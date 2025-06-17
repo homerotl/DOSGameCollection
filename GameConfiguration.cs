@@ -34,6 +34,11 @@ public class GameConfiguration
     /// Gets the full path to the game's "front.png" box art, if it exists.
     /// </summary>
     public string FrontBoxArtPath => Path.Combine(GameDirectoryPath, "media", "box-art", "front.png");
+
+    /// <summary>
+    /// Gets the full path to the game's "synopsis.txt" file, if it exists.
+    /// </summary>
+    public string SynopsisFilePath => Path.Combine(GameDirectoryPath, "media", "synopsis.txt");
     /// <summary>
     /// Gets the full path to the game's DOSBox configuration file (dosbox-staging.conf).
     /// </summary>
