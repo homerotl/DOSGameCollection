@@ -1,5 +1,5 @@
 using System.IO;
-using System.Windows.Forms; // Required for IWin32Window, MessageBox, OpenFileDialog
+using System.Windows.Forms;
 
 namespace DOSGameCollection
 {
@@ -21,8 +21,6 @@ namespace DOSGameCollection
 
         public async Task LoadOrCreateConfigurationAsync(IWin32Window? owner = null)
         {
-            // Initialize properties to null to ensure fresh load or prompt
-            bool pathConfigured = false;
             DosboxExePath = null;
             LibraryPath = null;
 
@@ -39,7 +37,6 @@ namespace DOSGameCollection
                             if (File.Exists(pathValue))
                             {
                                 DosboxExePath = pathValue;
-                                pathConfigured = true;
                             }
                             else
                             {
@@ -104,8 +101,8 @@ namespace DOSGameCollection
                 DosboxExePath = null; // Ensure it's null if user cancels
             }
         }
-        
-         private async Task PromptUserForLibraryPathAsync(IWin32Window? owner = null)
+
+        private async Task PromptUserForLibraryPathAsync(IWin32Window? owner = null)
         {
             MessageBox.Show(owner, $"Game library path is not configured or is invalid. Please select your game library directory.", "Game Library Configuration Needed", MessageBoxButtons.OK, MessageBoxIcon.Information);
 
@@ -149,6 +146,6 @@ namespace DOSGameCollection
             {
                 MessageBox.Show(owner, $"Failed to save configuration to '{ConfigFileName}': {ex.Message}", "Save Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
-         }
+        }
     }
 }

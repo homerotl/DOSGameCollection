@@ -45,14 +45,6 @@ public class TopForm : Form
         tableLayoutPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
 
         // Define Row Styles
-        // RowStyles will be implicitly SizeType.Percent, 100F for the single row after removing the button row.
-        // If you had multiple rows below where the buttons were, you'd adjust them here.
-        // For a single remaining row that fills, no explicit RowStyle is strictly needed unless you want AutoSize or Absolute.
-        // tableLayoutPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 100F)); // Row for game list and details
-        // For simplicity with one main content row, we can let it default or explicitly set it if more rows are added later.
-        // For now, let's assume it will take up all available space.
-
-        // --- Refresh Button Setup ---
         refreshButton = new Button
         {
             Text = "Refresh",
@@ -62,8 +54,9 @@ public class TopForm : Form
         };
         refreshButton.Click += RefreshButton_Click;
 
-        // --- Game ListBox Setup ---
+        // Game ListBox Setup
         gameListBox = new ListBox();
+
         // Initialize gameDetailsTableLayoutPanel for Name label and TextBox
         gameDetailsTableLayoutPanel = new TableLayoutPanel
         {
@@ -79,7 +72,7 @@ public class TopForm : Form
         // Initialize Run Button (moved here)
         runButton = new Button
         {
-            Text = "Run Game",
+            Text = "Run",
             Anchor = AnchorStyles.Left, // Anchor to the left
             AutoSize = true,
             Margin = new Padding(0, 0, 0, 5), // Add some bottom margin
