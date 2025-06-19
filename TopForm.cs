@@ -15,6 +15,7 @@ public class TopForm : Form
     private TextBox? gameNameTextBox;
     private PictureBox? boxArtPictureBox;
     private TextBox? synopsisTextBox; // Added for game synopsis
+    private MenuStrip? menuStrip; // Added for MenuStrip
     private List<GameConfiguration> _loadedGameConfigs = new();
     private AppConfigService _appConfigService;
 
@@ -27,12 +28,44 @@ public class TopForm : Form
 
     private void InitializeComponent()
     {
-
         this.Text = "DOSGameCollection";
         this.Name = "TopForm";
         this.ClientSize = new System.Drawing.Size(800, 450);
         this.MinimumSize = new System.Drawing.Size(400, 450);
 
+        // --- MenuStrip Setup ---
+        menuStrip = new MenuStrip();
+        menuStrip.Dock = DockStyle.Top; // Explicitly dock MenuStrip to the top
+
+        // File Menu
+        ToolStripMenuItem fileMenu = new ToolStripMenuItem("&File");
+        ToolStripMenuItem exitMenuItem = new ToolStripMenuItem("E&xit");
+        exitMenuItem.Click += ExitMenuItem_Click;
+        fileMenu.DropDownItems.Add(exitMenuItem);
+
+        // Settings Menu
+        ToolStripMenuItem settingsMenu = new ToolStripMenuItem("&Settings");
+        ToolStripMenuItem setDosboxLocationMenuItem = new ToolStripMenuItem("Set &DOSBox location...");
+        setDosboxLocationMenuItem.Click += SetDosboxLocationMenuItem_Click;
+        settingsMenu.DropDownItems.Add(setDosboxLocationMenuItem);
+
+        menuStrip.Items.AddRange(new ToolStripItem[] {
+            fileMenu,
+            settingsMenu
+        });
+
+        // Add MenuStrip to Form's Controls and set as MainMenuStrip
+        // This should be done before adding other controls that might fill the form,
+        // so the MenuStrip appears at the top.
+        this.Controls.Add(menuStrip);
+        this.MainMenuStrip = menuStrip;
+        // The MenuStrip will occupy the top.
+        // The main TableLayoutPanel will be added directly to the form's controls
+        // and should fill the space below the MenuStrip.
+
+        // --- Main TableLayoutPanel Setup ---
+        // This TableLayoutPanel will be added directly to the Form's controls,
+        // filling the space below the MenuStrip.
         TableLayoutPanel tableLayoutPanel = new TableLayoutPanel
         {
             Dock = DockStyle.Fill,
@@ -169,8 +202,10 @@ public class TopForm : Form
         tableLayoutPanel.Controls.Add(leftColumnPanel, 0, 0); // Add leftColumnPanel to column 0, row 0 of main TLP
         tableLayoutPanel.Controls.Add(gameDetailsTableLayoutPanel, 1, 0); // Add to column 1, row 0 of main TLP
 
-        // Add the TableLayoutPanel to the form
+        // Add the main TableLayoutPanel directly to the Form's controls
         this.Controls.Add(tableLayoutPanel);
+
+        this.Controls.Add(menuStrip);
     }
 
     private async void TopForm_Load(object? sender, EventArgs e)
@@ -359,6 +394,21 @@ public class TopForm : Form
     private async void RefreshButton_Click(object? sender, EventArgs e)
     {
         await RefreshGameListAsync();
+    }
+
+    private async void SetDosboxLocationMenuItem_Click(object? sender, EventArgs e)
+    {
+        bool pathUpdated = await _appConfigService.ManuallySetDosboxPathAsync(this);
+        if (pathUpdated)
+        {
+            await _appConfigService.SaveConfigurationAsync(this);
+            MessageBox.Show(this, "DOSBox location has been updated.", "DOSBox Location Saved", MessageBoxButtons.OK, MessageBoxIcon.Information);
+        }
+    }
+
+    private void ExitMenuItem_Click(object? sender, EventArgs e)
+    {
+        Application.Exit();
     }
     private void LaunchDosBox(GameConfiguration gameConfig)
     {

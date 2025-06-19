@@ -124,7 +124,7 @@ namespace DOSGameCollection
             // Save will be handled by LoadOrCreateConfigurationAsync
         }
 
-        private async Task SaveConfigurationAsync(IWin32Window? owner = null)
+        public async Task SaveConfigurationAsync(IWin32Window? owner = null)
         {
             List<string> linesToSave = new List<string>();
             if (!string.IsNullOrEmpty(DosboxExePath))
@@ -146,6 +146,30 @@ namespace DOSGameCollection
             {
                 MessageBox.Show(owner, $"Failed to save configuration to '{ConfigFileName}': {ex.Message}", "Save Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
+        }
+
+        public async Task<bool> ManuallySetDosboxPathAsync(IWin32Window? owner = null)
+        {
+            using OpenFileDialog openFileDialog = new OpenFileDialog
+            {
+                Title = "Select DOSBox Executable",
+                Filter = "Executable files (*.exe)|*.exe|All files (*.*)|*.*",
+                CheckFileExists = true,
+                CheckPathExists = true
+            };
+
+            // Set initial directory to current DOSBox path's directory if available and valid
+            if (!string.IsNullOrEmpty(DosboxExePath) && File.Exists(DosboxExePath))
+            {
+                openFileDialog.InitialDirectory = Path.GetDirectoryName(DosboxExePath);
+            }
+
+            if (openFileDialog.ShowDialog(owner) == DialogResult.OK)
+            {
+                DosboxExePath = openFileDialog.FileName;
+                return true; // Path was selected/updated
+            }
+            return false; // User cancelled
         }
     }
 }
