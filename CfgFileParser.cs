@@ -33,9 +33,10 @@ public static class CfgFileParser
             {
                 string trimmedLine = line.Trim();
 
-                if (string.IsNullOrEmpty(trimmedLine) || trimmedLine.StartsWith(";"))
+                // Skip empty lines and comments (lines starting with ';' or '#')
+                if (string.IsNullOrEmpty(trimmedLine) || trimmedLine.StartsWith(";") || trimmedLine.StartsWith("#"))
                 {
-                    // Skip empty lines and comments without changing state
+                    // Skip without changing state
                     continue;
                 }
 

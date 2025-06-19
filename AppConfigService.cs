@@ -171,5 +171,27 @@ namespace DOSGameCollection
             }
             return false; // User cancelled
         }
+
+        public async Task<bool> ManuallySetLibraryPathAsync(IWin32Window? owner = null)
+        {
+            using FolderBrowserDialog folderDialog = new FolderBrowserDialog
+            {
+                Description = "Select Game Library Directory",
+                ShowNewFolderButton = true // Allows user to create a new folder if needed
+            };
+
+            // Pre-select the current library path if it's valid
+            if (!string.IsNullOrEmpty(LibraryPath) && Directory.Exists(LibraryPath))
+            {
+                folderDialog.SelectedPath = LibraryPath;
+            }
+
+            if (folderDialog.ShowDialog(owner) == DialogResult.OK)
+            {
+                LibraryPath = folderDialog.SelectedPath;
+                return true; // Path was selected/updated
+            }
+            return false; // User cancelled
+        }
     }
 }

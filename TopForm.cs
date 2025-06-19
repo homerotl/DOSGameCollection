@@ -47,7 +47,12 @@ public class TopForm : Form
         ToolStripMenuItem settingsMenu = new ToolStripMenuItem("&Settings");
         ToolStripMenuItem setDosboxLocationMenuItem = new ToolStripMenuItem("Set &DOSBox location...");
         setDosboxLocationMenuItem.Click += SetDosboxLocationMenuItem_Click;
+        
+        ToolStripMenuItem setGameLibraryLocationMenuItem = new ToolStripMenuItem("Set game &library location...");
+        setGameLibraryLocationMenuItem.Click += SetGameLibraryLocationMenuItem_Click;
+
         settingsMenu.DropDownItems.Add(setDosboxLocationMenuItem);
+        settingsMenu.DropDownItems.Add(setGameLibraryLocationMenuItem);
 
         menuStrip.Items.AddRange(new ToolStripItem[] {
             fileMenu,
@@ -214,7 +219,7 @@ public class TopForm : Form
 
         if (string.IsNullOrEmpty(_appConfigService.LibraryPath) || !Directory.Exists(_appConfigService.LibraryPath))
         {
-            MessageBox.Show(this, "Game library path is not configured or is invalid. Please restart the application to configure it. Game loading will be skipped.", "Library Path Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            MessageBox.Show(this, "Game library path is not configured or is invalid. Please set it via 'Settings > Set game library location...'. Game loading will be skipped.", "Library Path Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             if (refreshButton != null) refreshButton.Enabled = false; // Disable refresh if library path is bad
             return; // Stop further processing in TopForm_Load
         }
@@ -405,6 +410,19 @@ public class TopForm : Form
             MessageBox.Show(this, "DOSBox location has been updated.", "DOSBox Location Saved", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
     }
+
+    private async void SetGameLibraryLocationMenuItem_Click(object? sender, EventArgs e)
+    {
+        bool pathUpdated = await _appConfigService.ManuallySetLibraryPathAsync(this);
+        if (pathUpdated)
+        {
+            await _appConfigService.SaveConfigurationAsync(this);
+            MessageBox.Show(this, "Game library location has been updated. Refreshing game list...", "Library Location Saved", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            await RefreshGameListAsync();
+        }
+        // Optional: else, show a message that the operation was cancelled or no path was chosen.
+    }
+
 
     private void ExitMenuItem_Click(object? sender, EventArgs e)
     {
