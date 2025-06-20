@@ -4,7 +4,7 @@ This program is a front-end for DOSBox-Staging with an emphasis on game collecti
 
 The game library is maintained in a folder structure with the following definition
 
----
+```
 /Library
     --/[Game Name]
         --/game.cfg
@@ -47,11 +47,11 @@ The game library is maintained in a folder structure with the following definiti
                 --/capture_001.png
             --/videos
                 --/video_001.mpg
---
+```
 
 Each game has a game.cfg, top level configuration file. Here is the structure of that file:
 
----
+```
 game.name=Game Name
 game.rating=[NR,...]
 game.publisher=Publisher
