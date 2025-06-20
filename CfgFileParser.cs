@@ -92,6 +92,13 @@ public static class CfgFileParser
             config.GameName = Path.GetFileName(gameDirectoryPath);
         }
 
+        // Check for manual.pdf in the game directory
+        string potentialManualPath = Path.Combine(gameDirectoryPath, "manual.pdf");
+        if (File.Exists(potentialManualPath))
+        {
+            config.ManualPath = potentialManualPath;
+        }
+
         return config;
     }
 }

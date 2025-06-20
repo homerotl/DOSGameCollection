@@ -20,6 +20,8 @@ public class GameConfiguration
 
     public string DosboxConfPath => Path.Combine(GameDirectoryPath, "dosbox-staging.conf");
 
+    public string? ManualPath { get; set; } // Path to the game's manual, if it exists
+
     public override string ToString()
     {
         return GameName;

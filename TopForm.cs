@@ -2,6 +2,7 @@
 using static DOSGameCollection.LoadGamesDataService;
 using System.IO;
 using System.Diagnostics;
+using System.Reflection; // Required for accessing embedded resources
 
 namespace DOSGameCollection;
 
@@ -9,6 +10,7 @@ public class TopForm : Form
 {
     private ListBox? gameListBox;
     private Button? runButton;
+    private Button? manualButton; // Added for game manual
     private Button? refreshButton; // Added refresh button
     private TableLayoutPanel? gameDetailsTableLayoutPanel; // For "Name" label and TextBox
     private Label? gameNameLabel;
@@ -16,6 +18,9 @@ public class TopForm : Form
     private PictureBox? boxArtPictureBox;
     private TextBox? synopsisTextBox; // Added for game synopsis
     private MenuStrip? menuStrip; // Added for MenuStrip
+    private TabControl? gameDetailsTabControl; // For additional game details
+    private ListBox? diskImagesListBox; // For displaying disk images on the "Disk Images" tab
+    private ListBox? runCommandsListBox; // For displaying DOSBox commands on the "Run Commands" tab
     private List<GameConfiguration> _loadedGameConfigs = new();
     private AppConfigService _appConfigService;
 
@@ -30,8 +35,33 @@ public class TopForm : Form
     {
         this.Text = "DOSGameCollection";
         this.Name = "TopForm";
-        this.ClientSize = new System.Drawing.Size(800, 450);
-        this.MinimumSize = new System.Drawing.Size(400, 450);
+        this.ClientSize = new System.Drawing.Size(800, 600); // Updated height
+        this.MinimumSize = new System.Drawing.Size(800, 600); // Updated minimum width and height
+
+        // --- Set Form Icon ---
+        try
+        {
+            // Get the current assembly
+            Assembly assembly = Assembly.GetExecutingAssembly();
+            // Get the resource name (usually Namespace.Filename.Extension)
+            // Assuming your namespace is DOSGameCollection and icon is appicon.ico in root
+            string resourceName = "DOSGameCollection.appicon.ico"; // Adjust if namespace or filename differs
+
+            using (Stream? iconStream = assembly.GetManifestResourceStream(resourceName))
+            {
+                if (iconStream != null)
+                {
+                    this.Icon = new System.Drawing.Icon(iconStream);
+                }
+                else
+                {
+                    Console.WriteLine($"Warning: Embedded resource '{resourceName}' not found.");
+                }
+            }
+        } catch (Exception ex) {
+             Console.WriteLine($"Error loading embedded icon: {ex.Message}");
+             // Optionally handle the error, e.g., log it or show a message
+        }
 
         // --- MenuStrip Setup ---
         menuStrip = new MenuStrip();
@@ -58,6 +88,7 @@ public class TopForm : Form
             fileMenu,
             settingsMenu
         });
+
 
         // Add MenuStrip to Form's Controls and set as MainMenuStrip
         // This should be done before adding other controls that might fill the form,
@@ -98,30 +129,51 @@ public class TopForm : Form
         // Initialize gameDetailsTableLayoutPanel for Name label and TextBox
         gameDetailsTableLayoutPanel = new TableLayoutPanel
         {
-            Dock = DockStyle.Top, // Anchor to the top of the cell
+            Dock = DockStyle.Fill, // Fill the cell in the main TableLayoutPanel
             ColumnCount = 2,
-            RowCount = 3, // Increased row count for PictureBox and Run button
-            AutoSize = true,
+            RowCount = 4, // Increased row count for TabControl
+            // AutoSize = true, // Removed: Dock.Fill will manage size
             Margin = new Padding(0, 5, 5, 5) // Added margin (top, right, bottom, left)
         };
         gameDetailsTableLayoutPanel.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize)); // For Label
         gameDetailsTableLayoutPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F)); // For TextBox
 
-        // Initialize Run Button (moved here)
+        // --- Action Buttons Panel (Run and Manual) ---
+        FlowLayoutPanel actionButtonsPanel = new FlowLayoutPanel
+        {
+            FlowDirection = FlowDirection.LeftToRight,
+            Dock = DockStyle.Top, // Ensure it uses the available width of its cell
+            AutoSize = true,
+            Margin = new Padding(0, 0, 0, 5) // Bottom margin for the panel
+        };
+
+        // Initialize Run Button
         runButton = new Button
         {
             Text = "Run",
-            Anchor = AnchorStyles.Left, // Anchor to the left
             AutoSize = true,
-            Margin = new Padding(0, 0, 0, 5), // Add some bottom margin
+            Margin = new Padding(0, 0, 5, 5), // Consistent right and bottom margin
             Enabled = false // Initially disabled
         };
         runButton.Click += RunButton_Click; // Add click event handler
+        actionButtonsPanel.Controls.Add(runButton);
+
+        // Initialize Manual Button
+        manualButton = new Button
+        {
+            Text = "Manual",
+            AutoSize = true,
+            Margin = new Padding(0, 0, 5, 5),
+            Enabled = false // Initially disabled
+        };
+        manualButton.Click += ManualButton_Click;
+        actionButtonsPanel.Controls.Add(manualButton);
 
         // Define Row Styles for gameDetailsTableLayoutPanel (order matters for visual layout)
         gameDetailsTableLayoutPanel.RowStyles.Add(new RowStyle(SizeType.AutoSize)); // Row 0: Run button
         gameDetailsTableLayoutPanel.RowStyles.Add(new RowStyle(SizeType.AutoSize)); // Row 1: Name (label and textbox)
-        gameDetailsTableLayoutPanel.RowStyles.Add(new RowStyle(SizeType.Absolute, 250F)); // Row 2: Box Art
+        gameDetailsTableLayoutPanel.RowStyles.Add(new RowStyle(SizeType.Absolute, 250F)); // Row 2: Media Panel (Synopsis & Box Art)
+        gameDetailsTableLayoutPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 100F)); // Row 3: TabControl (fills remaining space)
 
 
         gameNameLabel = new Label
@@ -138,9 +190,9 @@ public class TopForm : Form
             ReadOnly = true
         };
 
-        // Add Run button to row 0
-        gameDetailsTableLayoutPanel.Controls.Add(runButton, 0, 0);
-        gameDetailsTableLayoutPanel.SetColumnSpan(runButton, 2); // Span button across both columns
+        // Add Action Buttons Panel to row 0
+        gameDetailsTableLayoutPanel.Controls.Add(actionButtonsPanel, 0, 0);
+        gameDetailsTableLayoutPanel.SetColumnSpan(actionButtonsPanel, 2); // Span panel across both columns
         // Add Name label and textbox to row 1
         gameDetailsTableLayoutPanel.Controls.Add(gameNameLabel, 0, 1);
         gameDetailsTableLayoutPanel.Controls.Add(gameNameTextBox, 1, 1);
@@ -182,6 +234,51 @@ public class TopForm : Form
 
         gameDetailsTableLayoutPanel.Controls.Add(mediaPanel, 0, 2); // Add mediaPanel to row 2
         gameDetailsTableLayoutPanel.SetColumnSpan(mediaPanel, 2); // Span mediaPanel across both columns
+
+        // --- TabControl Setup for additional game details ---
+        gameDetailsTabControl = new TabControl
+        {
+            Dock = DockStyle.Fill, // Fill its cell in gameDetailsTableLayoutPanel
+            Margin = new Padding(0, 5, 0, 0) // Add some top margin
+        };
+
+        // Create and add TabPages
+        TabPage runCommandsTab = new TabPage("Run Commands"); // New tab
+        runCommandsListBox = new ListBox
+        {
+            Dock = DockStyle.Fill,
+            Margin = new Padding(3), // Add some padding within the tab page
+            IntegralHeight = false, // Allows partial items to be shown if needed, good with Dock.Fill
+            DrawMode = DrawMode.OwnerDrawFixed // Enable owner drawing
+        };
+        runCommandsTab.Controls.Add(runCommandsListBox);
+        runCommandsListBox.DrawItem += ListBox_DrawItemWithSeparator; // Subscribe to the generic DrawItem event
+
+        // Existing tabs
+        TabPage diskImagesTab = new TabPage("CD-ROM images");
+        diskImagesListBox = new ListBox
+        {
+            Dock = DockStyle.Fill,
+            Margin = new Padding(3), // Add some padding within the tab page
+            IntegralHeight = false, // Allows partial items to be shown if needed, good with Dock.Fill
+            DrawMode = DrawMode.OwnerDrawFixed // Enable owner drawing for this ListBox too
+        };
+        diskImagesTab.Controls.Add(diskImagesListBox);
+        diskImagesListBox.DrawItem += ListBox_DrawItemWithSeparator; // Subscribe to the generic DrawItem event
+
+        TabPage soundtrackTab = new TabPage("Soundtrack");
+        TabPage installDiscsTab = new TabPage("Install discs"); // Corrected from "Install Discs" to match request
+        TabPage walkthroughTab = new TabPage("Walkthrough");
+        TabPage cheatsTab = new TabPage("Cheats");
+        TabPage notesTab = new TabPage("Notes");
+
+
+
+        gameDetailsTabControl.TabPages.AddRange(new TabPage[] {
+            runCommandsTab, diskImagesTab, soundtrackTab, installDiscsTab, walkthroughTab, cheatsTab, notesTab
+        });
+        gameDetailsTableLayoutPanel.Controls.Add(gameDetailsTabControl, 0, 3); // Add TabControl to row 3
+        gameDetailsTableLayoutPanel.SetColumnSpan(gameDetailsTabControl, 2); // Span TabControl across both columns
 
         // --- Left Column Panel (for Refresh Button and Game ListBox) ---
         TableLayoutPanel leftColumnPanel = new TableLayoutPanel
@@ -251,6 +348,18 @@ public class TopForm : Form
         {
             runButton.Enabled = false;
         }
+        if (manualButton != null)
+        {
+            manualButton.Enabled = false;
+        }
+        if (diskImagesListBox != null)
+        {
+            diskImagesListBox.Items.Clear();
+        }
+        if (runCommandsListBox != null)
+        {
+            runCommandsListBox.Items.Clear();
+        }
         _loadedGameConfigs.Clear();
 
         if (string.IsNullOrEmpty(_appConfigService.LibraryPath) || !Directory.Exists(_appConfigService.LibraryPath))
@@ -301,7 +410,7 @@ public class TopForm : Form
     {
         if (gameListBox.InvokeRequired)
         {
-            gameListBox.Invoke(new MethodInvoker(() => PopulateListBox(gameConfigs)));
+            gameListBox.Invoke(new System.Windows.Forms.MethodInvoker(() => PopulateListBox(gameConfigs)));
         }
         else
         {
@@ -320,6 +429,20 @@ public class TopForm : Form
         {
             runButton.Enabled = (gameListBox?.SelectedItem != null);
         }
+        if (manualButton != null)
+        {
+            manualButton.Enabled = false; // Disable by default, enable if manual exists
+        }
+        if (diskImagesListBox != null)
+        {
+            diskImagesListBox.Items.Clear(); // Clear disk images list on selection change
+            // It will be repopulated if a game with ISOs is selected
+        }
+        if (runCommandsListBox != null)
+        {
+            runCommandsListBox.Items.Clear(); // Clear run commands list on selection change
+            // It will be repopulated if a game with commands is selected
+        }
 
         if (gameNameTextBox != null && gameListBox != null)
         { // General null check for UI elements
@@ -329,6 +452,11 @@ public class TopForm : Form
             if (selectedGame != null)
             {
                 gameNameTextBox.Text = selectedGame.GameName;
+
+                if (manualButton != null && !string.IsNullOrEmpty(selectedGame.ManualPath) && File.Exists(selectedGame.ManualPath))
+                {
+                    manualButton.Enabled = true;
+                }
 
                 // Load Synopsis
                 if (synopsisTextBox != null)
@@ -348,6 +476,24 @@ public class TopForm : Form
                     else
                     {
                         synopsisTextBox.Text = string.Empty; // File doesn't exist
+                    }
+                }
+
+                // Populate Disk Images ListBox
+                if (diskImagesListBox != null)
+                {
+                    foreach (string isoPath in selectedGame.IsoImagePaths)
+                    {
+                        diskImagesListBox.Items.Add(Path.GetFileName(isoPath)); // Display only the filename
+                    }
+                }
+
+                // Populate Run Commands ListBox
+                if (runCommandsListBox != null)
+                {
+                    foreach (string command in selectedGame.DosboxCommands)
+                    {
+                        runCommandsListBox.Items.Add(command);
                     }
                 }
             }
@@ -395,6 +541,37 @@ public class TopForm : Form
             LaunchDosBox(selectedGame);
         }
     }
+
+    private void ManualButton_Click(object? sender, EventArgs e)
+    {
+        if (gameListBox?.SelectedItem is GameConfiguration selectedGame &&
+            !string.IsNullOrEmpty(selectedGame.ManualPath) &&
+            File.Exists(selectedGame.ManualPath))
+        {
+            try
+            {
+                ProcessStartInfo psi = new ProcessStartInfo
+                {
+                    FileName = selectedGame.ManualPath,
+                    UseShellExecute = true // Important for opening with default app
+                };
+                Process.Start(psi);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(this, $"Could not open manual '{selectedGame.ManualPath}'.\nError: {ex.Message}", "Error Opening Manual", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+        else
+        {
+            MessageBox.Show(this, "No manual found or manual path is invalid for the selected game.", "Manual Not Available", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            if (manualButton != null)
+            {
+                manualButton.Enabled = false; // Ensure it's disabled if something went wrong
+            }
+        }
+    }
+
 
     private async void RefreshButton_Click(object? sender, EventArgs e)
     {
@@ -505,6 +682,44 @@ public class TopForm : Form
         catch (Exception ex)
         {
             MessageBox.Show(this, $"Failed to launch DOSBox: {ex.Message}\n\nCommand: {arguments}", "Launch Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
+    }
+
+    /// <summary>
+    /// Generic event handler for drawing ListBox items with a separator line.
+    /// </summary>
+    /// <param name="sender">The ListBox that raised the event.</param>
+    /// <param name="e">Event data.</param>
+    private void ListBox_DrawItemWithSeparator(object? sender, DrawItemEventArgs e)
+    {
+        if (e.Index < 0) return; // Nothing to draw if index is invalid
+
+        ListBox? listBox = sender as ListBox;
+        if (listBox == null) return;
+
+        // Draw the background of the item.
+        e.DrawBackground();
+
+        // Get the item text
+        string itemText = listBox.Items[e.Index].ToString() ?? string.Empty;
+
+        // Determine the text color based on selection state
+        Color textColor = (e.State & DrawItemState.Selected) == DrawItemState.Selected
+                        ? SystemColors.HighlightText
+                        : e.ForeColor;
+
+        // Draw the item text
+        TextRenderer.DrawText(e.Graphics, itemText, e.Font ?? listBox.Font, e.Bounds, textColor, TextFormatFlags.Left | TextFormatFlags.VerticalCenter);
+
+        // Draw the focus rectangle if the mouse hovers over an item.
+        e.DrawFocusRectangle();
+
+        // Draw the separator line at the bottom of the item, except for the last item if you don't want a line at the very bottom of the listbox
+        // Or always draw it if IntegralHeight is false and partial items might be shown.
+        // For simplicity, we'll draw it for all visible items.
+        using (Pen separatorPen = new Pen(SystemColors.ControlDark)) // Use a system color for the line
+        {
+            e.Graphics.DrawLine(separatorPen, e.Bounds.Left, e.Bounds.Bottom - 1, e.Bounds.Right, e.Bounds.Bottom - 1);
         }
     }
 }
