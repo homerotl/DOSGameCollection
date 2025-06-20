@@ -20,6 +20,8 @@ public class TopForm : Form
     private MenuStrip? menuStrip; // Added for MenuStrip
     private TabControl? gameDetailsTabControl; // For additional game details
     private ListBox? diskImagesListBox; // For displaying disk images on the "Disk Images" tab
+    private ListBox? installDiscsListBox; // For floppy disk images
+    private PictureBox? diskImagePictureBox; // For showing an image of the selected install disc
     private ListBox? runCommandsListBox; // For displaying DOSBox commands on the "Run Commands" tab
     private List<GameConfiguration> _loadedGameConfigs = new();
     private AppConfigService _appConfigService;
@@ -58,9 +60,11 @@ public class TopForm : Form
                     Console.WriteLine($"Warning: Embedded resource '{resourceName}' not found.");
                 }
             }
-        } catch (Exception ex) {
-             Console.WriteLine($"Error loading embedded icon: {ex.Message}");
-             // Optionally handle the error, e.g., log it or show a message
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading embedded icon: {ex.Message}");
+            // Optionally handle the error, e.g., log it or show a message
         }
 
         // --- MenuStrip Setup ---
@@ -77,7 +81,7 @@ public class TopForm : Form
         ToolStripMenuItem settingsMenu = new ToolStripMenuItem("&Settings");
         ToolStripMenuItem setDosboxLocationMenuItem = new ToolStripMenuItem("Set &DOSBox location...");
         setDosboxLocationMenuItem.Click += SetDosboxLocationMenuItem_Click;
-        
+
         ToolStripMenuItem setGameLibraryLocationMenuItem = new ToolStripMenuItem("Set game &library location...");
         setGameLibraryLocationMenuItem.Click += SetGameLibraryLocationMenuItem_Click;
 
@@ -204,7 +208,7 @@ public class TopForm : Form
             Multiline = true,
             ReadOnly = true,
             ScrollBars = ScrollBars.Vertical,
-            Text = "Lorem Ipsum", 
+            Text = "Lorem Ipsum",
             Margin = new Padding(3, 0, 0, 0) // Left margin (will be on the right)
         };
 
@@ -267,7 +271,45 @@ public class TopForm : Form
         diskImagesListBox.DrawItem += ListBox_DrawItemWithSeparator; // Subscribe to the generic DrawItem event
 
         TabPage soundtrackTab = new TabPage("Soundtrack");
-        TabPage installDiscsTab = new TabPage("Install discs"); // Corrected from "Install Discs" to match request
+        TabPage installDiscsTab = new TabPage("Install discs");
+
+        // --- Layout Panel for Install Discs Tab ---
+        TableLayoutPanel installDiscsPanel = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            ColumnCount = 2,
+            RowCount = 1
+        };
+        installDiscsPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
+        installDiscsPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
+        installDiscsPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
+
+        // ListBox for install disc images
+        installDiscsListBox = new ListBox
+        {
+            Dock = DockStyle.Fill,
+            Margin = new Padding(3),
+            IntegralHeight = false,
+            DrawMode = DrawMode.OwnerDrawFixed
+        };
+
+        installDiscsListBox.DrawItem += ListBox_DrawItemWithSeparator;
+        installDiscsListBox.SelectedIndexChanged += InstallDiscsListBox_SelectedIndexChanged;
+        installDiscsPanel.Controls.Add(installDiscsListBox, 0, 0);
+
+        // PictureBox for the selected install disc image
+        diskImagePictureBox = new PictureBox
+        {
+            Dock = DockStyle.Fill,
+            Margin = new Padding(3),
+            SizeMode = PictureBoxSizeMode.Zoom,
+            BorderStyle = BorderStyle.FixedSingle,
+            BackColor = Color.Black
+        };
+        installDiscsPanel.Controls.Add(diskImagePictureBox, 1, 0);
+
+        installDiscsTab.Controls.Add(installDiscsPanel);
+
         TabPage walkthroughTab = new TabPage("Walkthrough");
         TabPage cheatsTab = new TabPage("Cheats");
         TabPage notesTab = new TabPage("Notes");
@@ -356,6 +398,15 @@ public class TopForm : Form
         {
             diskImagesListBox.Items.Clear();
         }
+        if (installDiscsListBox != null)
+        {
+            installDiscsListBox.Items.Clear();
+        }
+        if (diskImagePictureBox != null && diskImagePictureBox.Image != null)
+        {
+            diskImagePictureBox.Image.Dispose();
+            diskImagePictureBox.Image = null;
+        }
         if (runCommandsListBox != null)
         {
             runCommandsListBox.Items.Clear();
@@ -438,6 +489,15 @@ public class TopForm : Form
             diskImagesListBox.Items.Clear(); // Clear disk images list on selection change
             // It will be repopulated if a game with ISOs is selected
         }
+        if (installDiscsListBox != null)
+        {
+            installDiscsListBox.Items.Clear();
+        }
+        if (diskImagePictureBox != null)
+        {
+            diskImagePictureBox.Image?.Dispose();
+            diskImagePictureBox.Image = null;
+        }
         if (runCommandsListBox != null)
         {
             runCommandsListBox.Items.Clear(); // Clear run commands list on selection change
@@ -494,6 +554,15 @@ public class TopForm : Form
                     foreach (string command in selectedGame.DosboxCommands)
                     {
                         runCommandsListBox.Items.Add(command);
+                    }
+                }
+
+                // Populate Install Discs ListBox
+                if (installDiscsListBox != null)
+                {
+                    foreach (DiscImageInfo discInfo in selectedGame.DiscImages)
+                    {
+                        installDiscsListBox.Items.Add(discInfo);
                     }
                 }
             }
@@ -720,6 +789,32 @@ public class TopForm : Form
         using (Pen separatorPen = new Pen(SystemColors.ControlDark)) // Use a system color for the line
         {
             e.Graphics.DrawLine(separatorPen, e.Bounds.Left, e.Bounds.Bottom - 1, e.Bounds.Right, e.Bounds.Bottom - 1);
+        }
+    }
+    
+    private void InstallDiscsListBox_SelectedIndexChanged(object? sender, EventArgs e)
+    {
+        // Clear previous image
+        if (diskImagePictureBox != null)
+        {
+            diskImagePictureBox.Image?.Dispose();
+            diskImagePictureBox.Image = null;
+        }
+
+        if (installDiscsListBox?.SelectedItem is DiscImageInfo selectedDisc)
+        {
+            if (!string.IsNullOrEmpty(selectedDisc.PngFilePath) && File.Exists(selectedDisc.PngFilePath))
+            {
+                try
+                {
+                    // Load the new image. The PictureBox's SizeMode is already set to Zoom, which maintains aspect ratio.
+                    diskImagePictureBox.Image = Image.FromFile(selectedDisc.PngFilePath);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error loading disc image picture '{selectedDisc.PngFilePath}': {ex.Message}");
+                }
+            }
         }
     }
 }

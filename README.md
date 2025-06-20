@@ -11,22 +11,29 @@ The game library is maintained in a folder structure with the following definiti
         --/dosbox-staging.conf
         --/manual.pdf
         --/game-files <- This will be mounted as C:
-        --/disk-images
-            --/properties.txt
-            --/disk_01.img
-            --/disk_02.img
-            --/disc_scan_01.png
-            --/disc_scan_02.png
-            --/checksums.md5 (MD5 checksums of the disk images)
+        --/disc-images
+            --/disc-info.txt
+            --/disc_01.img
+            --/disc_02.img
+            --/disc_01.png
+            --/disc_02.png
         --/isos
+            --/disc-info.txt
             --/game_cd_1.iso
             --/game_cd_2.iso
-            --/game_cd_1.pmg (picture or scan of the media itself)
-            --/checksums.md5 (MD5 checksums of the disk images)
+            --/game_cd_1.png (picture or scan of the media itself)
         --/media
+            --/synopsis.txt
+            --/box-art
+                --/front.png
+                --/back.png
+                --/art_01.png
+            --/inserts
+                --/insert_01.pdf
+                --/insert_02.pdf
+                --/insert-info.txt
             --/main.png
             --/icon.png
-            --/synopsis.txt
             --/background.png
             --/walkthrough
                 --/page_01.txt (pdf)
@@ -36,13 +43,6 @@ The game library is maintained in a folder structure with the following definiti
                 --/index.csv
                 --/cover_art.png
                 --/Track 01.mp3
-            --/box-art
-                --/front.png
-                --/back.png
-                --/art_01.png
-            --/inserts
-                --/insert_01_front.png
-                --/insert_01_back.png
             --/captures
                 --/capture_001.png
             --/videos

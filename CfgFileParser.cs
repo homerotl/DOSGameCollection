@@ -99,6 +99,34 @@ public static class CfgFileParser
             config.ManualPath = potentialManualPath;
         }
 
+// Scan for disc images (.img files)
+        string discImagesDirectory = Path.Combine(gameDirectoryPath, "disc-images");
+        if (Directory.Exists(discImagesDirectory))
+        {
+            try
+            {
+                var imgFiles = Directory.EnumerateFiles(discImagesDirectory, "*.img")
+                                        .OrderBy(f => f, StringComparer.OrdinalIgnoreCase);
+
+                foreach (var imgFilePath in imgFiles)
+                {
+                    string imgFileName = Path.GetFileName(imgFilePath);
+                    string pngFilePath = Path.ChangeExtension(imgFilePath, ".png");
+
+                    config.DiscImages.Add(new DiscImageInfo
+                    {
+                        ImgFileName = imgFileName,
+                        PngFilePath = File.Exists(pngFilePath) ? pngFilePath : null
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                // Log this error but don't prevent the game from loading
+                Console.WriteLine($"Error scanning for disc images in '{discImagesDirectory}': {ex.Message}");
+            }
+        }
+
         return config;
     }
 }
