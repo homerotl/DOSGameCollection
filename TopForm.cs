@@ -204,8 +204,8 @@ public class TopForm : Form
             Multiline = true,
             ReadOnly = true,
             ScrollBars = ScrollBars.Vertical,
-            Text = "Lorem Ipsum", // Hardcoded synopsis for now
-            Margin = new Padding(0, 0, 3, 0) // Right margin
+            Text = "Lorem Ipsum", 
+            Margin = new Padding(3, 0, 0, 0) // Left margin (will be on the right)
         };
 
         // Initialize PictureBox for Box Art
@@ -215,7 +215,7 @@ public class TopForm : Form
             SizeMode = PictureBoxSizeMode.Zoom, // Or StretchImage, Normal, etc.
             BorderStyle = BorderStyle.FixedSingle, // Optional: for visibility
             BackColor = Color.Black,
-            Margin = new Padding(3, 0, 0, 0) // Left margin
+            Margin = new Padding(0, 0, 3, 0) // Right margin (will be on the left)
         };
 
         // --- Media Panel (for Synopsis and Box Art) ---
@@ -225,12 +225,12 @@ public class TopForm : Form
             ColumnCount = 2,
             RowCount = 1
         };
-        mediaPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F)); // Synopsis
-        mediaPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F)); // Box Art
+        mediaPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F)); // Column 0: Box Art
+        mediaPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F)); // Column 1: Synopsis
         mediaPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 100F)); // Fill available height
 
-        mediaPanel.Controls.Add(synopsisTextBox, 0, 0);
-        mediaPanel.Controls.Add(boxArtPictureBox, 1, 0);
+        mediaPanel.Controls.Add(boxArtPictureBox, 0, 0); // Picture box on the left
+        mediaPanel.Controls.Add(synopsisTextBox, 1, 0); // Synopsis text box on the right
 
         gameDetailsTableLayoutPanel.Controls.Add(mediaPanel, 0, 2); // Add mediaPanel to row 2
         gameDetailsTableLayoutPanel.SetColumnSpan(mediaPanel, 2); // Span mediaPanel across both columns
