@@ -683,6 +683,15 @@ public class TopForm : Form
                     }
                 }
 
+                if (diskImagesDataGridView != null)
+                {
+                    if (diskImagesDataGridView.Rows.Count > 0)
+                    {
+                        diskImagesDataGridView.Rows[0].Selected = true;
+                    }
+                    UpdateIsoImageForSelection();
+                }
+
                 // Populate Run Commands DataGridView
                 if (runCommandsDataGridView != null)
                 {
@@ -700,6 +709,14 @@ public class TopForm : Form
                         var rowIndex = installDiscsDataGridView.Rows.Add(discInfo.ToString(), FormatTools.FormatFileSize(discInfo.FileSizeInBytes));
                         installDiscsDataGridView.Rows[rowIndex].Tag = discInfo;
                     }
+
+                    // Trigger selection changed to load the image for the first item
+                    // Select the first row and ensure its image is loaded.
+                    if (installDiscsDataGridView.Rows.Count > 0)
+                    {
+                        installDiscsDataGridView.Rows[0].Selected = true;
+                    }
+                    UpdateInstallDiscImageForSelection();
                 }
             }
             else // No game selected
@@ -879,7 +896,7 @@ public class TopForm : Form
         }
     }
 
-    private void InstallDiscsDataGridView_SelectionChanged(object? sender, EventArgs e)
+    private void UpdateInstallDiscImageForSelection()
     {
         // Clear previous image
         if (diskImagePictureBox != null)
@@ -908,8 +925,12 @@ public class TopForm : Form
             }
         }
     }
+    private void InstallDiscsDataGridView_SelectionChanged(object? sender, EventArgs e)
+    {
+        UpdateInstallDiscImageForSelection();
+    }
 
-    private void DiskImagesDataGridView_SelectionChanged(object? sender, EventArgs e)
+    private void UpdateIsoImageForSelection()
     {
         // Clear previous image
         if (isoImagePictureBox != null)
@@ -936,6 +957,11 @@ public class TopForm : Form
                 }
             }
         }
+    }
+
+    private void DiskImagesDataGridView_SelectionChanged(object? sender, EventArgs e)
+    {
+        UpdateIsoImageForSelection();
     }
     
     private void BoxArtPreviousButton_Click(object? sender, EventArgs e)
