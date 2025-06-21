@@ -27,7 +27,7 @@ public class TopForm : Form
     private DataGridView? installDiscsDataGridView; // For floppy disk images
     private PictureBox? diskImagePictureBox; // For showing an image of the selected install disc
     private DataGridView? runCommandsDataGridView; // For displaying DOSBox commands on the "Run Commands" tab
-    private List<GameConfiguration> _loadedGameConfigs = new();
+    private List<GameConfiguration> _loadedGameConfigs = [];
     private AppConfigService _appConfigService;
     private BoxArtCarouselManager? _boxArtCarouselManager;
 
@@ -73,21 +73,23 @@ public class TopForm : Form
         }
 
         // --- MenuStrip Setup ---
-        menuStrip = new MenuStrip();
-        menuStrip.Dock = DockStyle.Top; // Explicitly dock MenuStrip to the top
+        menuStrip = new MenuStrip
+        {
+            Dock = DockStyle.Top // Explicitly dock MenuStrip to the top
+        };
 
         // File Menu
-        ToolStripMenuItem fileMenu = new ToolStripMenuItem("&File");
-        ToolStripMenuItem exitMenuItem = new ToolStripMenuItem("E&xit");
+        ToolStripMenuItem fileMenu = new("&File");
+        ToolStripMenuItem exitMenuItem = new("E&xit");
         exitMenuItem.Click += ExitMenuItem_Click;
         fileMenu.DropDownItems.Add(exitMenuItem);
 
         // Settings Menu
-        ToolStripMenuItem settingsMenu = new ToolStripMenuItem("&Settings");
-        ToolStripMenuItem setDosboxLocationMenuItem = new ToolStripMenuItem("Set &DOSBox location...");
+        ToolStripMenuItem settingsMenu = new("&Settings");
+        ToolStripMenuItem setDosboxLocationMenuItem = new("Set &DOSBox location...");
         setDosboxLocationMenuItem.Click += SetDosboxLocationMenuItem_Click;
 
-        ToolStripMenuItem setGameLibraryLocationMenuItem = new ToolStripMenuItem("Set game &library location...");
+        ToolStripMenuItem setGameLibraryLocationMenuItem = new("Set game &library location...");
         setGameLibraryLocationMenuItem.Click += SetGameLibraryLocationMenuItem_Click;
 
         settingsMenu.DropDownItems.Add(setDosboxLocationMenuItem);
@@ -98,19 +100,9 @@ public class TopForm : Form
             settingsMenu
         });
 
+        Controls.Add(menuStrip);
+        MainMenuStrip = menuStrip;
 
-        // Add MenuStrip to Form's Controls and set as MainMenuStrip
-        // This should be done before adding other controls that might fill the form,
-        // so the MenuStrip appears at the top.
-        this.Controls.Add(menuStrip);
-        this.MainMenuStrip = menuStrip;
-        // The MenuStrip will occupy the top.
-        // The main TableLayoutPanel will be added directly to the form's controls
-        // and should fill the space below the MenuStrip.
-
-        // --- Main TableLayoutPanel Setup ---
-        // This TableLayoutPanel will be added directly to the Form's controls,
-        // filling the space below the MenuStrip.
         TableLayoutPanel tableLayoutPanel = new TableLayoutPanel
         {
             Dock = DockStyle.Fill,
@@ -122,15 +114,81 @@ public class TopForm : Form
         tableLayoutPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 200F));
         tableLayoutPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
 
-        // Define Row Styles
+        var symbolFont = FormatTools.GetSymbolFont();
+
+        // Button initialization
+
+        // Initialize the refresh button
         refreshButton = new Button
         {
-            Text = "Refresh",
             Anchor = AnchorStyles.Left, // Align to the left
             AutoSize = true,
             Margin = new Padding(5, 5, 5, 3) // Margin (left, top, right, bottom)
         };
         refreshButton.Click += RefreshButton_Click;
+
+        // Initialize Run Button
+        runButton = new Button
+        {
+            AutoSize = true,
+            Margin = new Padding(0, 0, 5, 5), // Consistent right and bottom margin
+            Enabled = false // Initially disabled
+        };
+        runButton.Click += RunButton_Click; // Add click event handler
+
+        // Initialize Manual Button
+        manualButton = new Button
+        {
+            AutoSize = true,
+            Margin = new Padding(0, 0, 5, 5), // Consistent right and bottom margin
+            Enabled = false // Initially disabled
+        };
+        manualButton.Click += ManualButton_Click;
+
+        // Initialize Previous button
+        boxArtPreviousButton = new Button
+        {
+            Size = new Size(30, 25),
+            Enabled = false,
+            Anchor = AnchorStyles.Left
+        };
+
+        // Initialize Next button
+        boxArtNextButton = new Button
+        {
+            Size = new Size(30, 25),
+            Enabled = false,
+            Anchor = AnchorStyles.Right
+        };
+
+        if (symbolFont != null)
+        {
+            refreshButton.Font = symbolFont;
+            refreshButton.Text = "\u21BB"; // Unicode for Clockwise Open Circle Arrow
+
+            runButton.Font = symbolFont;
+            runButton.Text = "\U0001F680"; // Unicode for Rocket
+
+            manualButton.Font = symbolFont;
+            manualButton.Text = "\U0001F56E"; // Unicode for Rolled-up Newspaper (used as book/manual symbol)
+
+            boxArtPreviousButton.Font = symbolFont;
+            boxArtPreviousButton.Text = "\u25C0"; // Unicode character for "Previous"
+
+            boxArtNextButton.Font = symbolFont;
+            boxArtNextButton.Text = "\u25B6"; // Unicode character for "Next"
+        }
+        else
+        {
+            refreshButton.Text = "Refresh";
+            runButton.Text = "Run";
+            manualButton.Text = "Manual";
+            boxArtPreviousButton.Text = "Previous";
+            boxArtPreviousButton.Text = "Next";
+        }
+
+
+
 
         // Game ListBox Setup
         gameListBox = new ListBox();
@@ -156,34 +214,20 @@ public class TopForm : Form
             Margin = new Padding(0, 0, 0, 5) // Bottom margin for the panel
         };
 
-        // Initialize Run Button
-        runButton = new Button
-        {
-            Text = "Run",
-            AutoSize = true,
-            Margin = new Padding(0, 0, 5, 5), // Consistent right and bottom margin
-            Enabled = false // Initially disabled
-        };
-        runButton.Click += RunButton_Click; // Add click event handler
         actionButtonsPanel.Controls.Add(runButton);
-
-        // Initialize Manual Button
-        manualButton = new Button
-        {
-            Text = "Manual",
-            AutoSize = true,
-            Margin = new Padding(0, 0, 5, 5),
-            Enabled = false // Initially disabled
-        };
-        manualButton.Click += ManualButton_Click;
         actionButtonsPanel.Controls.Add(manualButton);
+
+        // --- ToolTips for Action Buttons ---
+        ToolTip actionButtonToolTip = new ToolTip();
+        actionButtonToolTip.SetToolTip(runButton, "Launch");
+        actionButtonToolTip.SetToolTip(manualButton, "Manual");
+        actionButtonToolTip.SetToolTip(refreshButton, "Reload");
 
         // Define Row Styles for gameDetailsTableLayoutPanel (order matters for visual layout)
         gameDetailsTableLayoutPanel.RowStyles.Add(new RowStyle(SizeType.AutoSize)); // Row 0: Run button
         gameDetailsTableLayoutPanel.RowStyles.Add(new RowStyle(SizeType.AutoSize)); // Row 1: Name (label and textbox)
         gameDetailsTableLayoutPanel.RowStyles.Add(new RowStyle(SizeType.Absolute, 250F)); // Row 2: Media Panel (Synopsis & Box Art)
         gameDetailsTableLayoutPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 100F)); // Row 3: TabControl (fills remaining space)
-
 
         gameNameLabel = new Label
         {
@@ -193,16 +237,16 @@ public class TopForm : Form
             AutoSize = true,
             Margin = new Padding(0, 0, 3, 0) // Margin to the right of the label
         };
+
         gameNameTextBox = new TextBox
         {
             Dock = DockStyle.Fill,
             ReadOnly = true
         };
 
-        // Add Action Buttons Panel to row 0
         gameDetailsTableLayoutPanel.Controls.Add(actionButtonsPanel, 0, 0);
         gameDetailsTableLayoutPanel.SetColumnSpan(actionButtonsPanel, 2); // Span panel across both columns
-        // Add Name label and textbox to row 1
+
         gameDetailsTableLayoutPanel.Controls.Add(gameNameLabel, 0, 1);
         gameDetailsTableLayoutPanel.Controls.Add(gameNameTextBox, 1, 1);
 
@@ -252,23 +296,7 @@ public class TopForm : Form
         carouselControlsPanel.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize)); // Next button
         carouselControlsPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
 
-        boxArtPreviousButton = new Button
-        {
-            Text = "◀", // Unicode character for "Previous"
-            Font = new Font("Segoe UI Symbol", 9F, FontStyle.Bold),
-            Size = new Size(30, 25),
-            Enabled = false,
-            Anchor = AnchorStyles.Left
-        };
         boxArtImageNameLabel = new Label { Text = "", Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleCenter };
-        boxArtNextButton = new Button
-        {
-            Text = "▶", // Unicode character for "Next"
-            Font = new Font("Segoe UI Symbol", 9F, FontStyle.Bold),
-            Size = new Size(30, 25),
-            Enabled = false,
-            Anchor = AnchorStyles.Right
-        };
 
         boxArtPreviousButton.Click += BoxArtPreviousButton_Click;
         boxArtNextButton.Click += BoxArtNextButton_Click;
@@ -589,6 +617,8 @@ public class TopForm : Form
 
     private void PopulateListBox(List<GameConfiguration> gameConfigs)
     {
+        if (gameListBox == null) return;
+
         if (gameListBox.InvokeRequired)
         {
             gameListBox.Invoke(new System.Windows.Forms.MethodInvoker(() => PopulateListBox(gameConfigs)));
