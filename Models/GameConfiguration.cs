@@ -3,7 +3,7 @@ namespace DOSGameCollection.Models;
 public class GameConfiguration
 {
     public string GameName { get; set; } = "Unnamed Game"; // Default name
-    public List<string> IsoImagePaths { get; set; } = [];
+    public List<DiscImageInfo> IsoImages { get; set; } = [];
     public List<string> DosboxCommands { get; set; } = [];
     public List<DiscImageInfo> DiscImages { get; set; } = [];
 

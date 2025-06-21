@@ -18,8 +18,9 @@ public class TopForm : Form
     private TextBox? synopsisTextBox; // Added for game synopsis
     private MenuStrip? menuStrip; // Added for MenuStrip
     private TabControl? gameDetailsTabControl; // For additional game details
-    private ListBox? diskImagesListBox; // For displaying disk images on the "Disk Images" tab
-    private ListBox? installDiscsListBox; // For floppy disk images
+    private DataGridView? diskImagesDataGridView; // For displaying data for CD-ROM images
+    private PictureBox? isoImagePictureBox; // For showing an image of the selected CD-ROM image
+    private DataGridView? installDiscsDataGridView; // For floppy disk images
     private PictureBox? diskImagePictureBox; // For showing an image of the selected install disc
     private ListBox? runCommandsListBox; // For displaying DOSBox commands on the "Run Commands" tab
     private List<GameConfiguration> _loadedGameConfigs = new();
@@ -259,15 +260,61 @@ public class TopForm : Form
 
         // Existing tabs
         TabPage diskImagesTab = new TabPage("CD-ROM images");
-        diskImagesListBox = new ListBox
+
+        // --- Layout Panel for CD-ROM Images Tab ---
+        TableLayoutPanel isoImagesPanel = new TableLayoutPanel
         {
             Dock = DockStyle.Fill,
-            Margin = new Padding(3), // Add some padding within the tab page
-            IntegralHeight = false, // Allows partial items to be shown if needed, good with Dock.Fill
-            DrawMode = DrawMode.OwnerDrawFixed // Enable owner drawing for this ListBox too
+            ColumnCount = 2,
+            RowCount = 1
         };
-        diskImagesTab.Controls.Add(diskImagesListBox);
-        diskImagesListBox.DrawItem += ListBox_DrawItemWithSeparator; // Subscribe to the generic DrawItem event
+        isoImagesPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
+        isoImagesPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
+        isoImagesPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
+
+        diskImagesDataGridView = new DataGridView
+        {
+            Dock = DockStyle.Fill,
+            Margin = new Padding(3),
+            AllowUserToAddRows = false,
+            AllowUserToDeleteRows = false,
+            AllowUserToResizeRows = false,
+            AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill,
+            BackgroundColor = SystemColors.Window,
+            BorderStyle = BorderStyle.None,
+            CellBorderStyle = DataGridViewCellBorderStyle.SingleHorizontal,
+            ColumnHeadersVisible = false,
+            RowHeadersVisible = false,
+            SelectionMode = DataGridViewSelectionMode.FullRowSelect,
+            ReadOnly = true
+        };
+        
+        isoImagesPanel.Controls.Add(diskImagesDataGridView, 0, 0);
+
+        // PictureBox for the selected CD-ROM image
+        isoImagePictureBox = new PictureBox
+        {
+            Dock = DockStyle.Fill,
+            Margin = new Padding(3),
+            SizeMode = PictureBoxSizeMode.Zoom,
+            BorderStyle = BorderStyle.FixedSingle,
+            BackColor = Color.Black
+        };
+        isoImagesPanel.Controls.Add(isoImagePictureBox, 1, 0);
+
+        diskImagesTab.Controls.Add(isoImagesPanel);
+
+        // Modify columns for diskImagesDataGridView
+        diskImagesDataGridView.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Name", Name = "DisplayName", FillWeight = 70 });
+        diskImagesDataGridView.Columns.Add(new DataGridViewTextBoxColumn
+        {
+            HeaderText = "Size",
+            Name = "FileSize",
+            AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells,
+            DefaultCellStyle = new DataGridViewCellStyle { Alignment = DataGridViewContentAlignment.MiddleRight }
+        });
+        diskImagesDataGridView.SelectionChanged += DiskImagesDataGridView_SelectionChanged;
+
 
         TabPage soundtrackTab = new TabPage("Soundtrack");
         TabPage installDiscsTab = new TabPage("Install discs");
@@ -283,18 +330,34 @@ public class TopForm : Form
         installDiscsPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
         installDiscsPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
 
-        // ListBox for install disc images
-        installDiscsListBox = new ListBox
+        // DataGridView for install disc images
+        installDiscsDataGridView = new DataGridView
         {
             Dock = DockStyle.Fill,
             Margin = new Padding(3),
-            IntegralHeight = false,
-            DrawMode = DrawMode.OwnerDrawFixed
+            AllowUserToAddRows = false,
+            AllowUserToDeleteRows = false,
+            AllowUserToResizeRows = false,
+            AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill,
+            BackgroundColor = SystemColors.Window,
+            BorderStyle = BorderStyle.None,
+            CellBorderStyle = DataGridViewCellBorderStyle.SingleHorizontal,
+            ColumnHeadersVisible = false,
+            RowHeadersVisible = false,
+            SelectionMode = DataGridViewSelectionMode.FullRowSelect,
+            ReadOnly = true
         };
+        installDiscsDataGridView.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Name", Name = "DisplayName", FillWeight = 70 });
+        installDiscsDataGridView.Columns.Add(new DataGridViewTextBoxColumn
+        {
+            HeaderText = "Size",
+            Name = "FileSize",
+            AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells,
+            DefaultCellStyle = new DataGridViewCellStyle { Alignment = DataGridViewContentAlignment.MiddleRight }
+        });
 
-        installDiscsListBox.DrawItem += ListBox_DrawItemWithSeparator;
-        installDiscsListBox.SelectedIndexChanged += InstallDiscsListBox_SelectedIndexChanged;
-        installDiscsPanel.Controls.Add(installDiscsListBox, 0, 0);
+        installDiscsDataGridView.SelectionChanged += InstallDiscsDataGridView_SelectionChanged;
+        installDiscsPanel.Controls.Add(installDiscsDataGridView, 0, 0);
 
         // PictureBox for the selected install disc image
         diskImagePictureBox = new PictureBox
@@ -393,13 +456,18 @@ public class TopForm : Form
         {
             manualButton.Enabled = false;
         }
-        if (diskImagesListBox != null)
+        if (diskImagesDataGridView != null)
         {
-            diskImagesListBox.Items.Clear();
+            diskImagesDataGridView.Rows.Clear();
         }
-        if (installDiscsListBox != null)
+        if (isoImagePictureBox != null && isoImagePictureBox.Image != null)
         {
-            installDiscsListBox.Items.Clear();
+            isoImagePictureBox.Image.Dispose();
+            isoImagePictureBox.Image = null;
+        }
+        if (installDiscsDataGridView != null)
+        {
+            installDiscsDataGridView.Rows.Clear();
         }
         if (diskImagePictureBox != null && diskImagePictureBox.Image != null)
         {
@@ -483,14 +551,19 @@ public class TopForm : Form
         {
             manualButton.Enabled = false; // Disable by default, enable if manual exists
         }
-        if (diskImagesListBox != null)
+        if (diskImagesDataGridView != null)
         {
-            diskImagesListBox.Items.Clear(); // Clear disk images list on selection change
-            // It will be repopulated if a game with ISOs is selected
+            diskImagesDataGridView.Rows.Clear();
         }
-        if (installDiscsListBox != null)
+        if (isoImagePictureBox != null)
         {
-            installDiscsListBox.Items.Clear();
+            isoImagePictureBox.Image?.Dispose();
+            isoImagePictureBox.Image = null;
+        }
+
+        if (installDiscsDataGridView != null)
+        {
+            installDiscsDataGridView.Rows.Clear();
         }
         if (diskImagePictureBox != null)
         {
@@ -539,11 +612,12 @@ public class TopForm : Form
                 }
 
                 // Populate Disk Images ListBox
-                if (diskImagesListBox != null)
+                if (diskImagesDataGridView != null)
                 {
-                    foreach (string isoPath in selectedGame.IsoImagePaths)
+                    foreach (DiscImageInfo isoInfo in selectedGame.IsoImages)
                     {
-                        diskImagesListBox.Items.Add(Path.GetFileName(isoPath)); // Display only the filename
+                        var rowIndex = diskImagesDataGridView.Rows.Add(isoInfo.ToString(), FormatFileSize(isoInfo.FileSizeInBytes));
+                        diskImagesDataGridView.Rows[rowIndex].Tag = isoInfo;
                     }
                 }
 
@@ -557,11 +631,12 @@ public class TopForm : Form
                 }
 
                 // Populate Install Discs ListBox
-                if (installDiscsListBox != null)
+                if (installDiscsDataGridView != null)
                 {
                     foreach (DiscImageInfo discInfo in selectedGame.DiscImages)
                     {
-                        installDiscsListBox.Items.Add(discInfo);
+                        var rowIndex = installDiscsDataGridView.Rows.Add(discInfo.ToString(), FormatFileSize(discInfo.FileSizeInBytes));
+                        installDiscsDataGridView.Rows[rowIndex].Tag = discInfo;
                     }
                 }
             }
@@ -702,17 +777,17 @@ public class TopForm : Form
         dosboxArgs.Add($"-conf \"{gameSpecificDosboxConfPath}\"");
         dosboxArgs.Add($"-c \"MOUNT C '{gameSpecificMountCPath}'\"");
 
-        foreach (string isoPath in gameConfig.IsoImagePaths)
+        foreach (DiscImageInfo isoInfo in gameConfig.IsoImages)
         {
             // Check if the "isos" directory exists for this game if ISOs are listed
             if (!Directory.Exists(gameConfig.IsoBasePath))
             {
                 MessageBox.Show(this, $"ISO directory '{gameConfig.IsoBasePath}' not found for game '{gameConfig.GameName}'.", "Launch Warning", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                continue; // Skip this ISO if the base path doesn't exist
+                break; // No point in checking other ISOs if the directory is missing
             }
 
             // ISO paths in game.cfg are relative to the "isos" directory within the game's folder
-            string fullIsoPathOnHost = Path.Combine(gameConfig.IsoBasePath, isoPath);
+            string fullIsoPathOnHost = Path.Combine(gameConfig.IsoBasePath, isoInfo.ImgFileName);
 
             if (File.Exists(fullIsoPathOnHost))
             {
@@ -720,7 +795,7 @@ public class TopForm : Form
             }
             else
             {
-                MessageBox.Show(this, $"ISO/CUE file '{isoPath}' not found in '{gameConfig.IsoBasePath}' for game '{gameConfig.GameName}'.", "Launch Warning", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+               MessageBox.Show(this, $"ISO/CUE file '{isoInfo.ImgFileName}' not found in '{gameConfig.IsoBasePath}' for game '{gameConfig.GameName}'.", "Launch Warning", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             }
         }
 
@@ -788,8 +863,8 @@ public class TopForm : Form
         using Pen separatorPen = new(SystemColors.ControlDark); // Use a system color for the line
         e.Graphics.DrawLine(separatorPen, e.Bounds.Left, e.Bounds.Bottom - 1, e.Bounds.Right, e.Bounds.Bottom - 1);
     }
-    
-    private void InstallDiscsListBox_SelectedIndexChanged(object? sender, EventArgs e)
+
+    private void InstallDiscsDataGridView_SelectionChanged(object? sender, EventArgs e)
     {
         // Clear previous image
         if (diskImagePictureBox != null)
@@ -798,20 +873,64 @@ public class TopForm : Form
             diskImagePictureBox.Image = null;
         }
 
-        if (installDiscsListBox?.SelectedItem is DiscImageInfo selectedDisc)
+        if (installDiscsDataGridView?.SelectedRows.Count > 0)
         {
-            if (!string.IsNullOrEmpty(selectedDisc.PngFilePath) && File.Exists(selectedDisc.PngFilePath))
+            var selectedRow = installDiscsDataGridView.SelectedRows[0];
+            if (selectedRow.Tag is DiscImageInfo selectedDisc)
             {
-                try
+                if (!string.IsNullOrEmpty(selectedDisc.PngFilePath) && File.Exists(selectedDisc.PngFilePath))
                 {
-                    // Load the new image. The PictureBox's SizeMode is already set to Zoom, which maintains aspect ratio.
-                    diskImagePictureBox.Image = Image.FromFile(selectedDisc.PngFilePath);
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"Error loading disc image picture '{selectedDisc.PngFilePath}': {ex.Message}");
+                    try
+                    {
+                        // Load the new image. The PictureBox's SizeMode is already set to Zoom, which maintains aspect ratio.
+                        diskImagePictureBox.Image = Image.FromFile(selectedDisc.PngFilePath);
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Error loading disc image picture '{selectedDisc.PngFilePath}': {ex.Message}");
+                    }
                 }
             }
         }
+    }
+    
+    private void DiskImagesDataGridView_SelectionChanged(object? sender, EventArgs e)
+    {
+        // Clear previous image
+        if (isoImagePictureBox != null)
+        {
+            isoImagePictureBox.Image?.Dispose();
+            isoImagePictureBox.Image = null;
+        }
+
+        if (diskImagesDataGridView?.SelectedRows.Count > 0)
+        {
+            var selectedRow = diskImagesDataGridView.SelectedRows[0];
+            if (selectedRow.Tag is DiscImageInfo selectedDisc)
+            {
+                if (!string.IsNullOrEmpty(selectedDisc.PngFilePath) && File.Exists(selectedDisc.PngFilePath))
+                {
+                    try
+                    {
+                        isoImagePictureBox.Image = Image.FromFile(selectedDisc.PngFilePath);
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Error loading disc image picture '{selectedDisc.PngFilePath}': {ex.Message}");
+                    }
+                }
+            }
+        }
+    }
+
+    private string FormatFileSize(long bytes)
+    {
+        if (bytes >= 1024 * 1024 * 1024) // Gigabytes
+            return $"{(double)bytes / (1024 * 1024 * 1024):F2} GB";
+        if (bytes >= 1024 * 1024) // Megabytes
+            return $"{(double)bytes / (1024 * 1024):F2} MB";
+        if (bytes >= 1024) // Kilobytes
+            return $"{bytes / 1024} KB";
+        return $"{bytes} B";
     }
 }

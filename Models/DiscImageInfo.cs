@@ -4,6 +4,7 @@ public class DiscImageInfo
 {
     public required string ImgFileName { get; set; }
     public string? PngFilePath { get; set; } // Full path to the .png file
+    public long FileSizeInBytes { get; set; }
     public string? DisplayName { get; set; } // Optional friendly nam
 // e for display
 

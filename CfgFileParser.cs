@@ -18,13 +18,12 @@ public static class CfgFileParser
             return null;
         }
 
-        // GameDirectoryPath is required by GameConfiguration constructor.
-        // ConfigFilePath, MountCPath, and DosboxConfPath properties in GameConfiguration
-        // will be derived from this gameDirectoryPath.
-        GameConfiguration config = new GameConfiguration
+        GameConfiguration config = new()
         {
             GameDirectoryPath = gameDirectoryPath
         };
+
+        var isoFileNames = new List<string>();
 
         try
         {
@@ -62,7 +61,7 @@ public static class CfgFileParser
                 switch (currentState)
                 {
                     case ParsingState.Isos:
-                        config.IsoImagePaths.Add(trimmedLine);
+                        isoFileNames.Add(trimmedLine);
                         break;
                     case ParsingState.Commands:
                         config.DosboxCommands.Add(trimmedLine);
@@ -101,6 +100,68 @@ public static class CfgFileParser
             config.ManualPath = potentialManualPath;
         }
 
+        // Process collected ISO paths
+        string isoDirectory = Path.Combine(gameDirectoryPath, "isos");
+        if (Directory.Exists(isoDirectory) && isoFileNames.Any())
+        {
+            // Parse disc-info.txt for ISOs
+            var isoDisplayNames = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            string isoInfoPath = Path.Combine(isoDirectory, "disc-info.txt");
+            if (File.Exists(isoInfoPath))
+            {
+                string[] infoLines = await File.ReadAllLinesAsync(isoInfoPath);
+                foreach (var line in infoLines)
+                {
+                    if (string.IsNullOrWhiteSpace(line) || line.StartsWith("#") || line.StartsWith(";")) continue;
+                    var parts = line.Split(new[] { ',' }, 2);
+                    if (parts.Length == 2)
+                    {
+                        isoDisplayNames[parts[0].Trim()] = parts[1].Trim();
+                    }
+                }
+            }
+
+            // Process each ISO file from the config
+            foreach (var isoFileName in isoFileNames)
+            {
+                long actualFileSize = 0; // Declare here to be accessible later
+
+                string fullIsoPath = Path.Combine(isoDirectory, isoFileName);
+                if (File.Exists(fullIsoPath))
+                {
+                    string fileExtension = Path.GetExtension(isoFileName);
+
+                    if (fileExtension.Equals(".cue", StringComparison.OrdinalIgnoreCase))
+                    {
+                        string binFilePath = Path.ChangeExtension(fullIsoPath, ".bin");
+                        if (File.Exists(binFilePath))
+                        {
+                            actualFileSize = new FileInfo(binFilePath).Length;
+                        }
+                        else
+                        {
+                            Console.WriteLine($"Warning: .bin file not found for '{isoFileName}' at '{binFilePath}'. File size will be reported as 0.");
+                        }
+                    }
+                    else // Assume .iso or other direct image file
+                    {
+                        actualFileSize = new FileInfo(fullIsoPath).Length;
+                    }
+
+                    string pngFilePath = Path.ChangeExtension(fullIsoPath, ".png");
+                    isoDisplayNames.TryGetValue(isoFileName, out var displayName);
+
+                    config.IsoImages.Add(new DiscImageInfo
+                    {
+                        ImgFileName = isoFileName,
+                        FileSizeInBytes = actualFileSize,
+                        PngFilePath = File.Exists(pngFilePath) ? pngFilePath : null,
+                        DisplayName = displayName
+                    });
+                }
+            }
+        }
+
         // Scan for disc images (.img files)
         string discImagesDirectory = Path.Combine(gameDirectoryPath, "disc-images");
         if (Directory.Exists(discImagesDirectory))
@@ -130,12 +191,14 @@ public static class CfgFileParser
                 {
                     string imgFileName = Path.GetFileName(imgFilePath);
                     string pngFilePath = Path.ChangeExtension(imgFilePath, ".png");
+                    var fileInfo = new FileInfo(imgFilePath);
 
                     displayNames.TryGetValue(imgFileName, out var displayName);
 
                     config.DiscImages.Add(new DiscImageInfo
                     {
                         ImgFileName = imgFileName,
+                        FileSizeInBytes = fileInfo.Length,
                         PngFilePath = File.Exists(pngFilePath) ? pngFilePath : null,
                         DisplayName = displayName
                     });
