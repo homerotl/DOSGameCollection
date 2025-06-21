@@ -136,7 +136,6 @@ public class LoadGamesDataService
                 IsComplete = true
             });
         }
-
         return gameConfigurations;
     }
 }

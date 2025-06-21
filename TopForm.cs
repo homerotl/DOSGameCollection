@@ -2,6 +2,7 @@
 using System.Diagnostics;
 using System.Reflection;
 using DOSGameCollection.Models;
+using DOSGameCollection.UI;
 
 namespace DOSGameCollection;
 
@@ -25,11 +26,10 @@ public class TopForm : Form
     private PictureBox? isoImagePictureBox; // For showing an image of the selected CD-ROM image
     private DataGridView? installDiscsDataGridView; // For floppy disk images
     private PictureBox? diskImagePictureBox; // For showing an image of the selected install disc
-    private ListBox? runCommandsListBox; // For displaying DOSBox commands on the "Run Commands" tab
+    private DataGridView? runCommandsDataGridView; // For displaying DOSBox commands on the "Run Commands" tab
     private List<GameConfiguration> _loadedGameConfigs = new();
-    private List<string> _currentBoxArtPaths = new();
-    private int _currentBoxArtIndex = -1;
     private AppConfigService _appConfigService;
+    private BoxArtCarouselManager? _boxArtCarouselManager;
 
     public TopForm()
     {
@@ -278,6 +278,9 @@ public class TopForm : Form
         carouselControlsPanel.Controls.Add(boxArtNextButton, 2, 0);
 
         boxArtPanel.Controls.Add(carouselControlsPanel, 0, 1);
+
+        // Initialize the Box Art Carousel Manager
+        _boxArtCarouselManager = new BoxArtCarouselManager(boxArtPictureBox, boxArtImageNameLabel, boxArtPreviousButton, boxArtNextButton);
         // --- Media Panel (for Synopsis and Box Art) ---
         TableLayoutPanel mediaPanel = new TableLayoutPanel
         {
@@ -304,16 +307,24 @@ public class TopForm : Form
 
         // Create and add TabPages
         TabPage runCommandsTab = new TabPage("Run Commands"); // New tab
-        runCommandsListBox = new ListBox
+        runCommandsDataGridView = new DataGridView
         {
             Dock = DockStyle.Fill,
             Margin = new Padding(3), // Add some padding within the tab page
-            IntegralHeight = false, // Allows partial items to be shown if needed, good with Dock.Fill
-            DrawMode = DrawMode.OwnerDrawFixed // Enable owner drawing
+            AllowUserToAddRows = false,
+            AllowUserToDeleteRows = false,
+            AllowUserToResizeRows = false,
+            AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill,
+            BackgroundColor = SystemColors.Window,
+            BorderStyle = BorderStyle.None,
+            CellBorderStyle = DataGridViewCellBorderStyle.SingleHorizontal,
+            ColumnHeadersVisible = false,
+            RowHeadersVisible = false,
+            SelectionMode = DataGridViewSelectionMode.FullRowSelect,
+            ReadOnly = true
         };
-        runCommandsTab.Controls.Add(runCommandsListBox);
-        runCommandsListBox.DrawItem += ListBox_DrawItemWithSeparator; // Subscribe to the generic DrawItem event
-
+        runCommandsDataGridView.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Command", Name = "Command", FillWeight = 100 });
+        runCommandsTab.Controls.Add(runCommandsDataGridView);
         // Existing tabs
         TabPage diskImagesTab = new TabPage("CD-ROM images");
 
@@ -495,9 +506,7 @@ public class TopForm : Form
         {
             gameNameTextBox.Text = string.Empty;
         }
-        _currentBoxArtPaths.Clear();
-        _currentBoxArtIndex = -1;
-        UpdateBoxArtDisplay(); // This will clear the image, label, and disable buttons
+        _boxArtCarouselManager?.Clear();
         if (synopsisTextBox != null)
         {
             synopsisTextBox.Text = string.Empty;
@@ -528,9 +537,9 @@ public class TopForm : Form
             diskImagePictureBox.Image.Dispose();
             diskImagePictureBox.Image = null;
         }
-        if (runCommandsListBox != null)
+        if (runCommandsDataGridView != null)
         {
-            runCommandsListBox.Items.Clear();
+            runCommandsDataGridView.Rows.Clear();
         }
         _loadedGameConfigs.Clear();
 
@@ -624,10 +633,9 @@ public class TopForm : Form
             diskImagePictureBox.Image?.Dispose();
             diskImagePictureBox.Image = null;
         }
-        if (runCommandsListBox != null)
+        if (runCommandsDataGridView != null)
         {
-            runCommandsListBox.Items.Clear(); // Clear run commands list on selection change
-            // It will be repopulated if a game with commands is selected
+            runCommandsDataGridView.Rows.Clear();
         }
 
         if (gameNameTextBox != null && gameListBox != null)
@@ -670,17 +678,17 @@ public class TopForm : Form
                 {
                     foreach (DiscImageInfo isoInfo in selectedGame.IsoImages)
                     {
-                        var rowIndex = diskImagesDataGridView.Rows.Add(isoInfo.ToString(), FormatFileSize(isoInfo.FileSizeInBytes));
+                        var rowIndex = diskImagesDataGridView.Rows.Add(isoInfo.ToString(), FormatTools.FormatFileSize(isoInfo.FileSizeInBytes));
                         diskImagesDataGridView.Rows[rowIndex].Tag = isoInfo;
                     }
                 }
 
-                // Populate Run Commands ListBox
-                if (runCommandsListBox != null)
+                // Populate Run Commands DataGridView
+                if (runCommandsDataGridView != null)
                 {
                     foreach (string command in selectedGame.DosboxCommands)
                     {
-                        runCommandsListBox.Items.Add(command);
+                        runCommandsDataGridView.Rows.Add(command);
                     }
                 }
 
@@ -689,7 +697,7 @@ public class TopForm : Form
                 {
                     foreach (DiscImageInfo discInfo in selectedGame.DiscImages)
                     {
-                        var rowIndex = installDiscsDataGridView.Rows.Add(discInfo.ToString(), FormatFileSize(discInfo.FileSizeInBytes));
+                        var rowIndex = installDiscsDataGridView.Rows.Add(discInfo.ToString(), FormatTools.FormatFileSize(discInfo.FileSizeInBytes));
                         installDiscsDataGridView.Rows[rowIndex].Tag = discInfo;
                     }
                 }
@@ -703,28 +711,20 @@ public class TopForm : Form
                 }
             }
 
-            // Handle Box Art Carousel
-            _currentBoxArtPaths.Clear();
-            _currentBoxArtIndex = -1;
-
+            // Handle Box Art Carousel via manager
+            var boxArtPaths = new List<string>();
             if (selectedGame != null)
             {
                 if (selectedGame.HasFrontBoxArt)
                 {
-                    _currentBoxArtPaths.Add(selectedGame.FrontBoxArtPath);
+                    boxArtPaths.Add(selectedGame.FrontBoxArtPath);
                 }
                 if (selectedGame.HasBackBoxArt)
                 {
-                    _currentBoxArtPaths.Add(selectedGame.BackBoxArtPath);
-                }
-
-                if (_currentBoxArtPaths.Any())
-                {
-                    _currentBoxArtIndex = 0;
+                    boxArtPaths.Add(selectedGame.BackBoxArtPath);
                 }
             }
-
-            UpdateBoxArtDisplay(); // This will handle UI updates for image, label, and buttons
+            _boxArtCarouselManager?.LoadImages(boxArtPaths);
         }
     }
 
@@ -879,42 +879,6 @@ public class TopForm : Form
         }
     }
 
-    /// <summary>
-    /// Generic event handler for drawing ListBox items with a separator line.
-    /// </summary>
-    /// <param name="sender">The ListBox that raised the event.</param>
-    /// <param name="e">Event data.</param>
-    private void ListBox_DrawItemWithSeparator(object? sender, DrawItemEventArgs e)
-    {
-        if (e.Index < 0) return; // Nothing to draw if index is invalid
-
-        ListBox? listBox = sender as ListBox;
-        if (listBox == null) return;
-
-        // Draw the background of the item.
-        e.DrawBackground();
-
-        // Get the item text
-        string itemText = listBox.Items[e.Index].ToString() ?? string.Empty;
-
-        // Determine the text color based on selection state
-        Color textColor = (e.State & DrawItemState.Selected) == DrawItemState.Selected
-                        ? SystemColors.HighlightText
-                        : e.ForeColor;
-
-        // Draw the item text
-        TextRenderer.DrawText(e.Graphics, itemText, e.Font ?? listBox.Font, e.Bounds, textColor, TextFormatFlags.Left | TextFormatFlags.VerticalCenter);
-
-        // Draw the focus rectangle if the mouse hovers over an item.
-        e.DrawFocusRectangle();
-
-        // Draw the separator line at the bottom of the item, except for the last item if you don't want a line at the very bottom of the listbox
-        // Or always draw it if IntegralHeight is false and partial items might be shown.
-        // For simplicity, we'll draw it for all visible items.
-        using Pen separatorPen = new(SystemColors.ControlDark); // Use a system color for the line
-        e.Graphics.DrawLine(separatorPen, e.Bounds.Left, e.Bounds.Bottom - 1, e.Bounds.Right, e.Bounds.Bottom - 1);
-    }
-
     private void InstallDiscsDataGridView_SelectionChanged(object? sender, EventArgs e)
     {
         // Clear previous image
@@ -973,71 +937,26 @@ public class TopForm : Form
             }
         }
     }
-
-    private string FormatFileSize(long bytes)
-    {
-        if (bytes >= 1024 * 1024 * 1024) // Gigabytes
-            return $"{(double)bytes / (1024 * 1024 * 1024):F2} GB";
-        if (bytes >= 1024 * 1024) // Megabytes
-            return $"{(double)bytes / (1024 * 1024):F2} MB";
-        if (bytes >= 1024) // Kilobytes
-            return $"{bytes / 1024} KB";
-        return $"{bytes} B";
-    }
     
     private void BoxArtPreviousButton_Click(object? sender, EventArgs e)
     {
-        if (_currentBoxArtIndex > 0)
-        {
-            _currentBoxArtIndex--;
-            UpdateBoxArtDisplay();
-        }
+        _boxArtCarouselManager?.GoToPrevious();
     }
 
     private void BoxArtNextButton_Click(object? sender, EventArgs e)
     {
-        if (_currentBoxArtIndex < _currentBoxArtPaths.Count - 1)
-        {
-            _currentBoxArtIndex++;
-            UpdateBoxArtDisplay();
-        }
+        _boxArtCarouselManager?.GoToNext();
     }
 
-    private void UpdateBoxArtDisplay()
+    /// <summary>
+    /// Clean up any resources being used.
+    /// </summary>
+    /// <param name="disposing">true if managed resources should be disposed; otherwise, false.</param>
+    protected override void Dispose(bool disposing)
     {
-        // This method can be called before controls are initialized, so null checks are important.
-        if (boxArtPictureBox == null || boxArtImageNameLabel == null || boxArtPreviousButton == null || boxArtNextButton == null)
-        {
-            return;
+        if (disposing) {
+            _boxArtCarouselManager?.Dispose();
         }
-
-        // Dispose previous image
-        boxArtPictureBox.Image?.Dispose();
-        boxArtPictureBox.Image = null;
-
-        if (_currentBoxArtIndex < 0 || _currentBoxArtIndex >= _currentBoxArtPaths.Count)
-        {
-            // No images or invalid index, reset to blank state
-            boxArtImageNameLabel.Text = "";
-            boxArtPreviousButton.Enabled = false;
-            boxArtNextButton.Enabled = false;
-            return;
-        }
-
-        string imagePath = _currentBoxArtPaths[_currentBoxArtIndex];
-        boxArtImageNameLabel.Text = Path.GetFileName(imagePath);
-        try
-        {
-            boxArtPictureBox.Image = Image.FromFile(imagePath);
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error loading box art '{imagePath}': {ex.Message}");
-            boxArtImageNameLabel.Text = "Error loading image";
-        }
-
-        // Update button states
-        boxArtPreviousButton.Enabled = _currentBoxArtIndex > 0;
-        boxArtNextButton.Enabled = _currentBoxArtIndex < _currentBoxArtPaths.Count - 1;
+        base.Dispose(disposing);
     }
 }
