@@ -82,3 +82,11 @@ SETUP.EXE
 
 Both specifications are more of good wishes than reality. At this stage not all the properties and files are used, but this is the blueprint for future development.
 
+## Disk images disc-info.txt file
+
+An example of the format for the disc-info.txt text file is as follows:
+
+```
+disc_01.img,Installation disk 1
+disc_02.img,Installation disk 2
+```

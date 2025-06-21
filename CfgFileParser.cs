@@ -107,6 +107,22 @@ public static class CfgFileParser
         {
             try
             {
+                 var displayNames = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                string discInfoPath = Path.Combine(discImagesDirectory, "disc-info.txt");
+                if (File.Exists(discInfoPath))
+                {
+                    string[] infoLines = await File.ReadAllLinesAsync(discInfoPath);
+                    foreach (var line in infoLines)
+                    {
+                        if (string.IsNullOrWhiteSpace(line) || line.StartsWith("#") || line.StartsWith(";")) continue;
+                        var parts = line.Split(new[] { ',' }, 2);
+                        if (parts.Length == 2)
+                        {
+                            displayNames[parts[0].Trim()] = parts[1].Trim();
+                        }
+                    }
+                }
+
                 var imgFiles = Directory.EnumerateFiles(discImagesDirectory, "*.img")
                                         .OrderBy(f => f, StringComparer.OrdinalIgnoreCase);
 
@@ -115,10 +131,13 @@ public static class CfgFileParser
                     string imgFileName = Path.GetFileName(imgFilePath);
                     string pngFilePath = Path.ChangeExtension(imgFilePath, ".png");
 
+                    displayNames.TryGetValue(imgFileName, out var displayName);
+
                     config.DiscImages.Add(new DiscImageInfo
                     {
                         ImgFileName = imgFileName,
-                        PngFilePath = File.Exists(pngFilePath) ? pngFilePath : null
+                        PngFilePath = File.Exists(pngFilePath) ? pngFilePath : null,
+                        DisplayName = displayName
                     });
                 }
             }
