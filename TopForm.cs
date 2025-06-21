@@ -15,6 +15,9 @@ public class TopForm : Form
     private Label? gameNameLabel;
     private TextBox? gameNameTextBox;
     private PictureBox? boxArtPictureBox;
+    private Button? boxArtPreviousButton;
+    private Label? boxArtImageNameLabel;
+    private Button? boxArtNextButton;
     private TextBox? synopsisTextBox; // Added for game synopsis
     private MenuStrip? menuStrip; // Added for MenuStrip
     private TabControl? gameDetailsTabControl; // For additional game details
@@ -24,6 +27,8 @@ public class TopForm : Form
     private PictureBox? diskImagePictureBox; // For showing an image of the selected install disc
     private ListBox? runCommandsListBox; // For displaying DOSBox commands on the "Run Commands" tab
     private List<GameConfiguration> _loadedGameConfigs = new();
+    private List<string> _currentBoxArtPaths = new();
+    private int _currentBoxArtIndex = -1;
     private AppConfigService _appConfigService;
 
     public TopForm()
@@ -208,20 +213,71 @@ public class TopForm : Form
             Multiline = true,
             ReadOnly = true,
             ScrollBars = ScrollBars.Vertical,
-            Text = "Lorem Ipsum",
             Margin = new Padding(3, 0, 0, 0) // Left margin (will be on the right)
         };
 
         // Initialize PictureBox for Box Art
         boxArtPictureBox = new PictureBox
         {
-            Dock = DockStyle.Fill, // Or AnchorStyles.Top, AnchorStyles.Left if fixed size
-            SizeMode = PictureBoxSizeMode.Zoom, // Or StretchImage, Normal, etc.
-            BorderStyle = BorderStyle.FixedSingle, // Optional: for visibility
-            BackColor = Color.Black,
-            Margin = new Padding(0, 0, 3, 0) // Right margin (will be on the left)
+            Dock = DockStyle.Fill,
+            SizeMode = PictureBoxSizeMode.Zoom,
+            BorderStyle = BorderStyle.FixedSingle,
+            BackColor = Color.Black
+            // Margin is handled by its container
         };
 
+        // --- Box Art Panel with Carousel Controls ---
+        TableLayoutPanel boxArtPanel = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            RowCount = 2,
+            ColumnCount = 1,
+            Margin = new Padding(0, 0, 3, 0) // Right margin for the whole panel
+        };
+        boxArtPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 100F)); // Image
+        boxArtPanel.RowStyles.Add(new RowStyle(SizeType.AutoSize));    // Controls
+        boxArtPanel.Controls.Add(boxArtPictureBox, 0, 0);
+
+        // --- Carousel Controls Panel ---
+        TableLayoutPanel carouselControlsPanel = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            ColumnCount = 3,
+            RowCount = 1,
+            Height = 30,
+            Margin = new Padding(0, 3, 0, 0) // Top margin
+        };
+        carouselControlsPanel.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize)); // Previous button
+        carouselControlsPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F)); // Label
+        carouselControlsPanel.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize)); // Next button
+        carouselControlsPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
+
+        boxArtPreviousButton = new Button
+        {
+            Text = "◀", // Unicode character for "Previous"
+            Font = new Font("Segoe UI Symbol", 9F, FontStyle.Bold),
+            Size = new Size(30, 25),
+            Enabled = false,
+            Anchor = AnchorStyles.Left
+        };
+        boxArtImageNameLabel = new Label { Text = "", Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleCenter };
+        boxArtNextButton = new Button
+        {
+            Text = "▶", // Unicode character for "Next"
+            Font = new Font("Segoe UI Symbol", 9F, FontStyle.Bold),
+            Size = new Size(30, 25),
+            Enabled = false,
+            Anchor = AnchorStyles.Right
+        };
+
+        boxArtPreviousButton.Click += BoxArtPreviousButton_Click;
+        boxArtNextButton.Click += BoxArtNextButton_Click;
+
+        carouselControlsPanel.Controls.Add(boxArtPreviousButton, 0, 0);
+        carouselControlsPanel.Controls.Add(boxArtImageNameLabel, 1, 0);
+        carouselControlsPanel.Controls.Add(boxArtNextButton, 2, 0);
+
+        boxArtPanel.Controls.Add(carouselControlsPanel, 0, 1);
         // --- Media Panel (for Synopsis and Box Art) ---
         TableLayoutPanel mediaPanel = new TableLayoutPanel
         {
@@ -233,7 +289,7 @@ public class TopForm : Form
         mediaPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F)); // Column 1: Synopsis
         mediaPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 100F)); // Fill available height
 
-        mediaPanel.Controls.Add(boxArtPictureBox, 0, 0); // Picture box on the left
+        mediaPanel.Controls.Add(boxArtPanel, 0, 0); // Add the new composite panel
         mediaPanel.Controls.Add(synopsisTextBox, 1, 0); // Synopsis text box on the right
 
         gameDetailsTableLayoutPanel.Controls.Add(mediaPanel, 0, 2); // Add mediaPanel to row 2
@@ -288,7 +344,7 @@ public class TopForm : Form
             SelectionMode = DataGridViewSelectionMode.FullRowSelect,
             ReadOnly = true
         };
-        
+
         isoImagesPanel.Controls.Add(diskImagesDataGridView, 0, 0);
 
         // PictureBox for the selected CD-ROM image
@@ -439,11 +495,9 @@ public class TopForm : Form
         {
             gameNameTextBox.Text = string.Empty;
         }
-        if (boxArtPictureBox != null && boxArtPictureBox.Image != null)
-        {
-            boxArtPictureBox.Image.Dispose();
-            boxArtPictureBox.Image = null;
-        }
+        _currentBoxArtPaths.Clear();
+        _currentBoxArtIndex = -1;
+        UpdateBoxArtDisplay(); // This will clear the image, label, and disable buttons
         if (synopsisTextBox != null)
         {
             synopsisTextBox.Text = string.Empty;
@@ -649,31 +703,28 @@ public class TopForm : Form
                 }
             }
 
-            // Handle Box Art
-            if (boxArtPictureBox != null)
-            {
-                // Dispose previous image to free resources
-                boxArtPictureBox.Image?.Dispose();
-                boxArtPictureBox.Image = null;
+            // Handle Box Art Carousel
+            _currentBoxArtPaths.Clear();
+            _currentBoxArtIndex = -1;
 
-                if (selectedGame != null) // Use the already cast selectedGame
+            if (selectedGame != null)
+            {
+                if (selectedGame.HasFrontBoxArt)
                 {
-                    if (File.Exists(selectedGame.FrontBoxArtPath))
-                    {
-                        try
-                        {
-                            boxArtPictureBox.Image = Image.FromFile(selectedGame.FrontBoxArtPath);
-                        }
-                        catch (Exception ex) // Catch other potential errors like OutOfMemoryException or invalid image format
-                        {
-                            Console.WriteLine($"Error loading existing box art '{selectedGame.FrontBoxArtPath}': {ex.Message}");
-                            boxArtPictureBox.Image = null; // Ensure it's null on error
-                        }
-                    }
-                    // If File.Exists is false, boxArtPictureBox.Image remains null (no error logged for missing file)
-                    // Synopsis is handled above, independently of box art.
+                    _currentBoxArtPaths.Add(selectedGame.FrontBoxArtPath);
+                }
+                if (selectedGame.HasBackBoxArt)
+                {
+                    _currentBoxArtPaths.Add(selectedGame.BackBoxArtPath);
+                }
+
+                if (_currentBoxArtPaths.Any())
+                {
+                    _currentBoxArtIndex = 0;
                 }
             }
+
+            UpdateBoxArtDisplay(); // This will handle UI updates for image, label, and buttons
         }
     }
 
@@ -795,7 +846,7 @@ public class TopForm : Form
             }
             else
             {
-               MessageBox.Show(this, $"ISO/CUE file '{isoInfo.ImgFileName}' not found in '{gameConfig.IsoBasePath}' for game '{gameConfig.GameName}'.", "Launch Warning", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                MessageBox.Show(this, $"ISO/CUE file '{isoInfo.ImgFileName}' not found in '{gameConfig.IsoBasePath}' for game '{gameConfig.GameName}'.", "Launch Warning", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             }
         }
 
@@ -893,7 +944,7 @@ public class TopForm : Form
             }
         }
     }
-    
+
     private void DiskImagesDataGridView_SelectionChanged(object? sender, EventArgs e)
     {
         // Clear previous image
@@ -932,5 +983,61 @@ public class TopForm : Form
         if (bytes >= 1024) // Kilobytes
             return $"{bytes / 1024} KB";
         return $"{bytes} B";
+    }
+    
+    private void BoxArtPreviousButton_Click(object? sender, EventArgs e)
+    {
+        if (_currentBoxArtIndex > 0)
+        {
+            _currentBoxArtIndex--;
+            UpdateBoxArtDisplay();
+        }
+    }
+
+    private void BoxArtNextButton_Click(object? sender, EventArgs e)
+    {
+        if (_currentBoxArtIndex < _currentBoxArtPaths.Count - 1)
+        {
+            _currentBoxArtIndex++;
+            UpdateBoxArtDisplay();
+        }
+    }
+
+    private void UpdateBoxArtDisplay()
+    {
+        // This method can be called before controls are initialized, so null checks are important.
+        if (boxArtPictureBox == null || boxArtImageNameLabel == null || boxArtPreviousButton == null || boxArtNextButton == null)
+        {
+            return;
+        }
+
+        // Dispose previous image
+        boxArtPictureBox.Image?.Dispose();
+        boxArtPictureBox.Image = null;
+
+        if (_currentBoxArtIndex < 0 || _currentBoxArtIndex >= _currentBoxArtPaths.Count)
+        {
+            // No images or invalid index, reset to blank state
+            boxArtImageNameLabel.Text = "";
+            boxArtPreviousButton.Enabled = false;
+            boxArtNextButton.Enabled = false;
+            return;
+        }
+
+        string imagePath = _currentBoxArtPaths[_currentBoxArtIndex];
+        boxArtImageNameLabel.Text = Path.GetFileName(imagePath);
+        try
+        {
+            boxArtPictureBox.Image = Image.FromFile(imagePath);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading box art '{imagePath}': {ex.Message}");
+            boxArtImageNameLabel.Text = "Error loading image";
+        }
+
+        // Update button states
+        boxArtPreviousButton.Enabled = _currentBoxArtIndex > 0;
+        boxArtNextButton.Enabled = _currentBoxArtIndex < _currentBoxArtPaths.Count - 1;
     }
 }

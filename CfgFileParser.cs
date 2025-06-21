@@ -100,6 +100,10 @@ public static class CfgFileParser
             config.ManualPath = potentialManualPath;
         }
 
+        // Check for box art
+        config.HasFrontBoxArt = File.Exists(config.FrontBoxArtPath);
+        config.HasBackBoxArt = File.Exists(config.BackBoxArtPath);
+
         // Process collected ISO paths
         string isoDirectory = Path.Combine(gameDirectoryPath, "isos");
         if (Directory.Exists(isoDirectory) && isoFileNames.Any())

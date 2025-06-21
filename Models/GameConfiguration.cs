@@ -16,6 +16,10 @@ public class GameConfiguration
     public string IsoBasePath => Path.Combine(GameDirectoryPath, "isos");
 
     public string FrontBoxArtPath => Path.Combine(GameDirectoryPath, "media", "box-art", "front.png");
+    public bool HasFrontBoxArt { get; set; }
+
+    public string BackBoxArtPath => Path.Combine(GameDirectoryPath, "media", "box-art", "back.png");
+    public bool HasBackBoxArt { get; set; }
 
     public string SynopsisFilePath => Path.Combine(GameDirectoryPath, "media", "synopsis.txt");
 
