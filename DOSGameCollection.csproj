@@ -8,6 +8,9 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <ApplicationIcon>appicon.ico</ApplicationIcon>
   </PropertyGroup>
+  <Target Name="GenerateBuildInfo" BeforeTargets="CoreCompile">
+    <Exec Command="powershell.exe -ExecutionPolicy Bypass -File &quot;$(ProjectDir)generate_build_info.ps1&quot;" />
+  </Target>
   <ItemGroup>
     <EmbeddedResource Include="appicon.ico" />
   </ItemGroup>

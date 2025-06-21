@@ -1,8 +1,7 @@
 
-using static DOSGameCollection.LoadGamesDataService;
 using System.Diagnostics;
 using System.Reflection;
-using DOSGameCollection.Models; // Required for accessing embedded resources
+using DOSGameCollection.Models;
 
 namespace DOSGameCollection;
 
@@ -35,7 +34,7 @@ public class TopForm : Form
 
     private void InitializeComponent()
     {
-        this.Text = "DOSGameCollection";
+        this.Text = $"DOSGameCollection - build {BuildInfo.BuildVersion}";
         this.Name = "TopForm";
         this.ClientSize = new System.Drawing.Size(800, 600); // Updated height
         this.MinimumSize = new System.Drawing.Size(800, 600); // Updated minimum width and height

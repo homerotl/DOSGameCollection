@@ -1,8 +1,12 @@
 # DOSGameCollection
 
-This program is a front-end for DOSBox-Staging with an emphasis on game collecting and preservation.
+This program is a front-end for DOSBox-Staging with an emphasis on preserving many different aspects of the DOS gaming experience era, like access to manuals, box art, original disttribution media and providing easy access to playing the game on a modern computer.
 
-The game library is maintained in a folder structure with the following definition
+DOSGameCollection is being vibe-developed with Google Gemini Code assist as a C# DotNet 9.0 WinForms project and Visual Studio Code.
+
+## Library directory specification
+
+This program expects games to be arranged in a specific folder structure like so:
 
 ```
 /Library
@@ -49,9 +53,12 @@ The game library is maintained in a folder structure with the following definiti
                 --/video_001.mpg
 ```
 
+## Game file specification
+
 Each game has a game.cfg, top level configuration file. Here is the structure of that file:
 
 ```
+# Comments
 game.name=Game Name
 game.rating=[NR,...]
 game.publisher=Publisher
@@ -71,4 +78,7 @@ EXECUTABLE.EXE
 [setup-commands]
 CD GAMES\FOLDER
 SETUP.EXE
----
+```
+
+Both specifications are more of good wishes than reality. At this stage not all the properties and files are used, but this is the blueprint for future development.
+

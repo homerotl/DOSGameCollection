@@ -68,3 +68,7 @@ ehthumbs.db
 *.vsix
 *.vcxproj.filters
 *.vcxproj.user
+
+# Other files
+BuildInfo.cs
+build_counter.txt
