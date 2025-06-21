@@ -1,3 +1,5 @@
+using DOSGameCollection.Models;
+
 namespace DOSGameCollection;
 
 public static class CfgFileParser
@@ -99,7 +101,7 @@ public static class CfgFileParser
             config.ManualPath = potentialManualPath;
         }
 
-// Scan for disc images (.img files)
+        // Scan for disc images (.img files)
         string discImagesDirectory = Path.Combine(gameDirectoryPath, "disc-images");
         if (Directory.Exists(discImagesDirectory))
         {

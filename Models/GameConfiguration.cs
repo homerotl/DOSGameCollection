@@ -1,4 +1,4 @@
-namespace DOSGameCollection;
+namespace DOSGameCollection.Models;
 
 public class GameConfiguration
 {

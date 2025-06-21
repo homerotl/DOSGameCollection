@@ -1,8 +1,8 @@
 
 using static DOSGameCollection.LoadGamesDataService;
-using System.IO;
 using System.Diagnostics;
-using System.Reflection; // Required for accessing embedded resources
+using System.Reflection;
+using DOSGameCollection.Models; // Required for accessing embedded resources
 
 namespace DOSGameCollection;
 
@@ -786,10 +786,8 @@ public class TopForm : Form
         // Draw the separator line at the bottom of the item, except for the last item if you don't want a line at the very bottom of the listbox
         // Or always draw it if IntegralHeight is false and partial items might be shown.
         // For simplicity, we'll draw it for all visible items.
-        using (Pen separatorPen = new Pen(SystemColors.ControlDark)) // Use a system color for the line
-        {
-            e.Graphics.DrawLine(separatorPen, e.Bounds.Left, e.Bounds.Bottom - 1, e.Bounds.Right, e.Bounds.Bottom - 1);
-        }
+        using Pen separatorPen = new(SystemColors.ControlDark); // Use a system color for the line
+        e.Graphics.DrawLine(separatorPen, e.Bounds.Left, e.Bounds.Bottom - 1, e.Bounds.Right, e.Bounds.Bottom - 1);
     }
     
     private void InstallDiscsListBox_SelectedIndexChanged(object? sender, EventArgs e)

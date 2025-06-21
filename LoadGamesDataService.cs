@@ -1,19 +1,13 @@
+using DOSGameCollection.Models;
+
 namespace DOSGameCollection;
 
 public class LoadGamesDataService
 {
-    public class ProgressReport
-    {
-        public int CurrentStep { get; set; }
-        public int TotalSteps { get; set; }
-        public required string Message { get; set; }
-        public bool IsComplete { get; set; }
-    }
-
     // This method simulates loading data and reports progress
     // It takes an IProgress<ProgressReport> to allow reporting updates
 
-    public async Task<List<GameConfiguration>> LoadDataAsync(string libraryBasePath, IProgress<ProgressReport> progress = null)
+    public async Task<List<GameConfiguration>> LoadDataAsync(string libraryBasePath, IProgress<ProgressReport>? progress)
     {
         List<GameConfiguration> gameConfigurations = new List<GameConfiguration>();
 

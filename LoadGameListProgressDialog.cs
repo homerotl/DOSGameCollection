@@ -1,3 +1,4 @@
+using DOSGameCollection.Models;
 using static DOSGameCollection.LoadGamesDataService;
 
 namespace DOSGameCollection;

@@ -1,6 +1,3 @@
-using System.IO;
-using System.Windows.Forms;
-
 namespace DOSGameCollection;
 public class AppConfigService
 {
@@ -77,7 +74,7 @@ public class AppConfigService
         await SaveConfigurationAsync(owner);
     }
 
-    private async Task PromptUserForDosboxPathAsync(IWin32Window? owner = null)
+    private Task PromptUserForDosboxPathAsync(IWin32Window? owner = null)
     {
 
         MessageBox.Show(owner, $"DOSBox executable path is not configured or is invalid. Please locate your DOSBox executable (e.g., dosbox.exe, dosbox-staging.exe).", "DOSBox Configuration Needed", MessageBoxButtons.OK, MessageBoxIcon.Information);
@@ -99,9 +96,10 @@ public class AppConfigService
             MessageBox.Show(owner, "DOSBox executable was not selected. Game launching will be disabled until DOSBox is configured.", "DOSBox Not Configured", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             DosboxExePath = null; // Ensure it's null if user cancels
         }
+        return Task.CompletedTask;
     }
 
-    private async Task PromptUserForLibraryPathAsync(IWin32Window? owner = null)
+    private Task PromptUserForLibraryPathAsync(IWin32Window? owner = null)
     {
         MessageBox.Show(owner, $"Game library path is not configured or is invalid. Please select your game library directory.", "Game Library Configuration Needed", MessageBoxButtons.OK, MessageBoxIcon.Information);
 
@@ -121,6 +119,7 @@ public class AppConfigService
             LibraryPath = null; // Ensure it's null if user cancels
         }
         // Save will be handled by LoadOrCreateConfigurationAsync
+        return Task.CompletedTask;
     }
 
     public async Task SaveConfigurationAsync(IWin32Window? owner = null)
@@ -147,7 +146,7 @@ public class AppConfigService
         }
     }
 
-    public async Task<bool> ManuallySetDosboxPathAsync(IWin32Window? owner = null)
+    public Task<bool> ManuallySetDosboxPathAsync(IWin32Window? owner = null)
     {
         using OpenFileDialog openFileDialog = new OpenFileDialog
         {
@@ -166,12 +165,12 @@ public class AppConfigService
         if (openFileDialog.ShowDialog(owner) == DialogResult.OK)
         {
             DosboxExePath = openFileDialog.FileName;
-            return true; // Path was selected/updated
+            return Task.FromResult(true); // Path was selected/updated
         }
-        return false; // User cancelled
+        return Task.FromResult(false); // User cancelled
     }
 
-    public async Task<bool> ManuallySetLibraryPathAsync(IWin32Window? owner = null)
+    public Task<bool> ManuallySetLibraryPathAsync(IWin32Window? owner = null)
     {
         using FolderBrowserDialog folderDialog = new FolderBrowserDialog
         {
@@ -188,8 +187,8 @@ public class AppConfigService
         if (folderDialog.ShowDialog(owner) == DialogResult.OK)
         {
             LibraryPath = folderDialog.SelectedPath;
-            return true; // Path was selected/updated
+            return Task.FromResult(true); // Path was selected/updated
         }
-        return false; // User cancelled
+        return Task.FromResult(false); // User cancelled
     }
 }
