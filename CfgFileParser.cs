@@ -104,6 +104,38 @@ public static class CfgFileParser
         config.HasFrontBoxArt = File.Exists(config.FrontBoxArtPath);
         config.HasBackBoxArt = File.Exists(config.BackBoxArtPath);
 
+        // Scan for capture images (.png files)
+        string capturesDirectory = Path.Combine(gameDirectoryPath, "media", "captures");
+        if (Directory.Exists(capturesDirectory))
+        {
+            try
+            {
+                config.CaptureImagePaths = Directory.EnumerateFiles(capturesDirectory, "*.png")
+                                                    .OrderBy(f => f, StringComparer.OrdinalIgnoreCase)
+                                                    .ToList();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error scanning for captures in '{capturesDirectory}': {ex.Message}");
+            }
+        }
+
+        // Scan for videos (.avi files)
+        string videosDirectory = Path.Combine(gameDirectoryPath, "media", "videos");
+        if (Directory.Exists(videosDirectory))
+        {
+            try
+            {
+                config.VideoPaths = Directory.EnumerateFiles(videosDirectory, "*.avi")
+                                             .OrderBy(f => f, StringComparer.OrdinalIgnoreCase)
+                                             .ToList();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error scanning for videos in '{videosDirectory}': {ex.Message}");
+            }
+        }
+
         // Process collected ISO paths
         string isoDirectory = Path.Combine(gameDirectoryPath, "isos");
         if (Directory.Exists(isoDirectory) && isoFileNames.Any())

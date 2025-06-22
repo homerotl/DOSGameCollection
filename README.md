@@ -90,3 +90,6 @@ An example of the format for the disc-info.txt text file is as follows:
 disc_01.img,Installation disk 1
 disc_02.img,Installation disk 2
 ```
+## Open Source Project Dependencies 
+
+* [LibVLCSharp.Winforms](https://www.nuget.org/packages/LibVLCSharp.WinForms/)

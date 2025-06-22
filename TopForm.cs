@@ -3,6 +3,8 @@ using System.Diagnostics;
 using System.Reflection;
 using DOSGameCollection.Models;
 using DOSGameCollection.UI;
+using LibVLCSharp.Shared;
+using LibVLCSharp.WinForms;
 
 namespace DOSGameCollection;
 
@@ -31,8 +33,12 @@ public class TopForm : Form
     private AppConfigService _appConfigService;
     private BoxArtCarouselManager? _boxArtCarouselManager;
 
+    private LibVLC? _libVLC;
+    private MediaPlayer? _mediaPlayer;
+    private VideoView? _videoView;
     public TopForm()
     {
+        Core.Initialize(); // Must be called before using LibVLCSharp
         InitializeComponent();
         _appConfigService = new AppConfigService();
         this.Load += TopForm_Load; // Event for when the form loads
@@ -270,6 +276,18 @@ public class TopForm : Form
             // Margin is handled by its container
         };
 
+        // --- LibVLC VideoView Setup ---
+        _libVLC = new LibVLC();
+        _mediaPlayer = new MediaPlayer(_libVLC);
+        _mediaPlayer.Mute = true;
+        _videoView = new VideoView
+        {
+            MediaPlayer = _mediaPlayer,
+            Dock = DockStyle.Fill,
+            BackColor = Color.Black,
+            Visible = false // Initially hidden
+        };
+
         // --- Box Art Panel with Carousel Controls ---
         TableLayoutPanel boxArtPanel = new TableLayoutPanel
         {
@@ -281,6 +299,7 @@ public class TopForm : Form
         boxArtPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 100F)); // Image
         boxArtPanel.RowStyles.Add(new RowStyle(SizeType.AutoSize));    // Controls
         boxArtPanel.Controls.Add(boxArtPictureBox, 0, 0);
+        boxArtPanel.Controls.Add(_videoView, 0, 0); // Add VideoView to the same cell
 
         // --- Carousel Controls Panel ---
         TableLayoutPanel carouselControlsPanel = new TableLayoutPanel
@@ -308,7 +327,7 @@ public class TopForm : Form
         boxArtPanel.Controls.Add(carouselControlsPanel, 0, 1);
 
         // Initialize the Box Art Carousel Manager
-        _boxArtCarouselManager = new BoxArtCarouselManager(boxArtPictureBox, boxArtImageNameLabel, boxArtPreviousButton, boxArtNextButton);
+        _boxArtCarouselManager = new BoxArtCarouselManager(boxArtPictureBox, _videoView, _mediaPlayer, _libVLC, boxArtImageNameLabel, boxArtPreviousButton, boxArtNextButton);        
         // --- Media Panel (for Synopsis and Box Art) ---
         TableLayoutPanel mediaPanel = new TableLayoutPanel
         {
@@ -711,14 +730,12 @@ public class TopForm : Form
                         var rowIndex = diskImagesDataGridView.Rows.Add(isoInfo.ToString(), FormatTools.FormatFileSize(isoInfo.FileSizeInBytes));
                         diskImagesDataGridView.Rows[rowIndex].Tag = isoInfo;
                     }
-                }
 
-                if (diskImagesDataGridView != null)
-                {
                     if (diskImagesDataGridView.Rows.Count > 0)
                     {
                         diskImagesDataGridView.Rows[0].Selected = true;
                     }
+
                     UpdateIsoImageForSelection();
                 }
 
@@ -769,6 +786,14 @@ public class TopForm : Form
                 if (selectedGame.HasBackBoxArt)
                 {
                     boxArtPaths.Add(selectedGame.BackBoxArtPath);
+                }
+                if (selectedGame.CaptureImagePaths.Any())
+                {
+                    boxArtPaths.AddRange(selectedGame.CaptureImagePaths);
+                }
+                if (selectedGame.VideoPaths.Any())
+                {
+                    boxArtPaths.AddRange(selectedGame.VideoPaths);
                 }
             }
             _boxArtCarouselManager?.LoadImages(boxArtPaths);
@@ -944,8 +969,10 @@ public class TopForm : Form
                 {
                     try
                     {
-                        // Load the new image. The PictureBox's SizeMode is already set to Zoom, which maintains aspect ratio.
-                        diskImagePictureBox.Image = Image.FromFile(selectedDisc.PngFilePath);
+                        if (diskImagePictureBox!=null)
+                        {
+                            diskImagePictureBox.Image = Image.FromFile(selectedDisc.PngFilePath);
+                        }
                     }
                     catch (Exception ex)
                     {
@@ -978,7 +1005,10 @@ public class TopForm : Form
                 {
                     try
                     {
-                        isoImagePictureBox.Image = Image.FromFile(selectedDisc.PngFilePath);
+                        if (isoImagePictureBox != null)
+                        {
+                            isoImagePictureBox.Image = Image.FromFile(selectedDisc.PngFilePath);                            
+                        }
                     }
                     catch (Exception ex)
                     {
@@ -1004,14 +1034,12 @@ public class TopForm : Form
         _boxArtCarouselManager?.GoToNext();
     }
 
-    /// <summary>
-    /// Clean up any resources being used.
-    /// </summary>
-    /// <param name="disposing">true if managed resources should be disposed; otherwise, false.</param>
     protected override void Dispose(bool disposing)
     {
         if (disposing) {
             _boxArtCarouselManager?.Dispose();
+            _mediaPlayer?.Dispose();
+            _libVLC?.Dispose();
         }
         base.Dispose(disposing);
     }
