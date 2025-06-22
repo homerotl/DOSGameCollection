@@ -160,11 +160,11 @@ public class TopForm : Form
 
         editGameNameButton = new Button
         {
-            AutoSize = true,
+            Size = new Size(30, 30),
             Enabled = false, // Initially disabled
             Margin = new Padding(3, 0, 0, 0), // Left margin
             Anchor = AnchorStyles.Left,
-            Text = symbolFont != null ? "\u270F" : "Edit"
+            Text = symbolFont != null ? "\u270E" : "Edit"
         };
         if (symbolFont != null) { editGameNameButton.Font = symbolFont; }
         editGameNameButton.Click += EditGameNameButton_Click;
@@ -218,6 +218,7 @@ public class TopForm : Form
         actionButtonToolTip.SetToolTip(runButton, "Launch");
         actionButtonToolTip.SetToolTip(manualButton, "Manual");
         actionButtonToolTip.SetToolTip(refreshButton, "Reload");
+        actionButtonToolTip.SetToolTip(editGameNameButton, "Edit");
 
         // Define Row Styles for gameDetailsTableLayoutPanel (order matters for visual layout)
         gameDetailsTableLayoutPanel.RowStyles.Add(new RowStyle(SizeType.AutoSize)); // Row 0: Run button
@@ -387,14 +388,15 @@ public class TopForm : Form
 
         editCommandsButton = new Button
         {
-            AutoSize = true,
+            Size = new Size(30, 30),
             Enabled = false,
             Margin = new Padding(3, 0, 0, 0),
             Anchor = AnchorStyles.Top | AnchorStyles.Left,
-            Text = symbolFont != null ? "\u270F" : "Edit"
+            Text = symbolFont != null ? "\u270E" : "Edit"
         };
         if (symbolFont != null) { editCommandsButton.Font = symbolFont; }
         editCommandsButton.Click += EditCommandsButton_Click;
+        actionButtonToolTip.SetToolTip(editCommandsButton, "Edit");
 
         runCommandsPanel.Controls.Add(runCommandsTextBox, 0, 0);
         runCommandsPanel.Controls.Add(editCommandsButton, 1, 0);
