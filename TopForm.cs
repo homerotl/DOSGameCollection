@@ -28,7 +28,8 @@ public class TopForm : Form
     private PictureBox? isoImagePictureBox; // For showing an image of the selected CD-ROM image
     private DataGridView? installDiscsDataGridView; // For floppy disk images
     private PictureBox? diskImagePictureBox; // For showing an image of the selected install disc
-    private DataGridView? runCommandsDataGridView; // For displaying DOSBox commands on the "Run Commands" tab
+    private TextBox? runCommandsTextBox;
+    private Button? editCommandsButton;
     private List<GameConfiguration> _loadedGameConfigs = [];
     private AppConfigService _appConfigService;
     private BoxArtCarouselManager? _boxArtCarouselManager;
@@ -129,8 +130,10 @@ public class TopForm : Form
         {
             Anchor = AnchorStyles.Left, // Align to the left
             AutoSize = true,
-            Margin = new Padding(5, 5, 5, 3) // Margin (left, top, right, bottom)
+            Margin = new Padding(5, 5, 5, 3), // Margin (left, top, right, bottom)
+            Text = symbolFont != null ? "\u21BB" : "Refresh"
         };
+        if (symbolFont != null) { refreshButton.Font = symbolFont; }
         refreshButton.Click += RefreshButton_Click;
 
         // Initialize Run Button
@@ -138,8 +141,10 @@ public class TopForm : Form
         {
             AutoSize = true,
             Margin = new Padding(0, 0, 5, 5), // Consistent right and bottom margin
-            Enabled = false // Initially disabled
+            Enabled = false, // Initially disabled
+            Text = symbolFont != null ? "\U0001F680" : "Run"
         };
+        if (symbolFont != null) { runButton.Font = symbolFont; }
         runButton.Click += RunButton_Click; // Add click event handler
 
         // Initialize Manual Button
@@ -147,8 +152,10 @@ public class TopForm : Form
         {
             AutoSize = true,
             Margin = new Padding(0, 0, 5, 5), // Consistent right and bottom margin
-            Enabled = false // Initially disabled
+            Enabled = false, // Initially disabled
+            Text = symbolFont != null ? "\U0001F56E" : "Manual"
         };
+        if (symbolFont != null) { manualButton.Font = symbolFont; }
         manualButton.Click += ManualButton_Click;
 
         editGameNameButton = new Button
@@ -156,8 +163,10 @@ public class TopForm : Form
             AutoSize = true,
             Enabled = false, // Initially disabled
             Margin = new Padding(3, 0, 0, 0), // Left margin
-            Anchor = AnchorStyles.Left
+            Anchor = AnchorStyles.Left,
+            Text = symbolFont != null ? "\u270F" : "Edit"
         };
+        if (symbolFont != null) { editGameNameButton.Font = symbolFont; }
         editGameNameButton.Click += EditGameNameButton_Click;
 
         // Initialize Previous button
@@ -165,46 +174,20 @@ public class TopForm : Form
         {
             Size = new Size(30, 25),
             Enabled = false,
-            Anchor = AnchorStyles.Left
+            Anchor = AnchorStyles.Left,
+            Text = symbolFont != null ? "\u25C0" : "Previous"
         };
+        if (symbolFont != null) { boxArtPreviousButton.Font = symbolFont; }
 
         // Initialize Next button
         boxArtNextButton = new Button
         {
             Size = new Size(30, 25),
             Enabled = false,
-            Anchor = AnchorStyles.Right
+            Anchor = AnchorStyles.Right,
+            Text = symbolFont != null ? "\u25B6" : "Next"
         };
-
-        if (symbolFont != null)
-        {
-            refreshButton.Font = symbolFont;
-            refreshButton.Text = "\u21BB"; // Unicode for Clockwise Open Circle Arrow
-
-            runButton.Font = symbolFont;
-            runButton.Text = "\U0001F680"; // Unicode for Rocket
-
-            manualButton.Font = symbolFont;
-            manualButton.Text = "\U0001F56E"; // Unicode for Rolled-up Newspaper (used as book/manual symbol)
-
-            editGameNameButton.Font = symbolFont;
-            editGameNameButton.Text = "\u270F"; // Unicode for Pencil
-
-            boxArtPreviousButton.Font = symbolFont;
-            boxArtPreviousButton.Text = "\u25C0"; // Unicode character for "Previous"
-
-            boxArtNextButton.Font = symbolFont;
-            boxArtNextButton.Text = "\u25B6"; // Unicode character for "Next"
-        }
-        else
-        {
-            refreshButton.Text = "Refresh";
-            runButton.Text = "Run";
-            manualButton.Text = "Manual";
-            editGameNameButton.Text = "Edit";
-            boxArtPreviousButton.Text = "Previous";
-            boxArtPreviousButton.Text = "Next";
-        }
+        if (symbolFont != null) { boxArtNextButton.Font = symbolFont; }
 
         gameListBox = new ListBox();
 
@@ -378,25 +361,44 @@ public class TopForm : Form
         };
 
         // Create and add TabPages
-        TabPage runCommandsTab = new TabPage("Run Commands"); // New tab
-        runCommandsDataGridView = new DataGridView
+        TabPage runCommandsTab = new("Run Commands");
+
+        // --- Layout Panel for Run Commands Tab ---
+        TableLayoutPanel runCommandsPanel = new()
         {
             Dock = DockStyle.Fill,
-            Margin = new Padding(3), // Add some padding within the tab page
-            AllowUserToAddRows = false,
-            AllowUserToDeleteRows = false,
-            AllowUserToResizeRows = false,
-            AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill,
-            BackgroundColor = SystemColors.Window,
-            BorderStyle = BorderStyle.None,
-            CellBorderStyle = DataGridViewCellBorderStyle.SingleHorizontal,
-            ColumnHeadersVisible = false,
-            RowHeadersVisible = false,
-            SelectionMode = DataGridViewSelectionMode.FullRowSelect,
-            ReadOnly = true
+            ColumnCount = 2,
+            RowCount = 1,
+            Padding = new Padding(3)
         };
-        runCommandsDataGridView.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Command", Name = "Command", FillWeight = 100 });
-        runCommandsTab.Controls.Add(runCommandsDataGridView);
+        runCommandsPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
+        runCommandsPanel.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+        runCommandsPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
+
+        runCommandsTextBox = new TextBox
+        {
+            Dock = DockStyle.Fill,
+            Multiline = true,
+            ReadOnly = true,
+            ScrollBars = ScrollBars.Vertical,
+            Font = new Font("Consolas", 9.75F, FontStyle.Regular)
+        };
+        runCommandsTextBox.Leave += RunCommandsTextBox_Leave;
+
+        editCommandsButton = new Button
+        {
+            AutoSize = true,
+            Enabled = false,
+            Margin = new Padding(3, 0, 0, 0),
+            Anchor = AnchorStyles.Top | AnchorStyles.Left,
+            Text = symbolFont != null ? "\u270F" : "Edit"
+        };
+        if (symbolFont != null) { editCommandsButton.Font = symbolFont; }
+        editCommandsButton.Click += EditCommandsButton_Click;
+
+        runCommandsPanel.Controls.Add(runCommandsTextBox, 0, 0);
+        runCommandsPanel.Controls.Add(editCommandsButton, 1, 0);
+        runCommandsTab.Controls.Add(runCommandsPanel);
         // Existing tabs
         TabPage diskImagesTab = new TabPage("CD-ROM images");
 
@@ -612,9 +614,13 @@ public class TopForm : Form
             diskImagePictureBox.Image.Dispose();
             diskImagePictureBox.Image = null;
         }
-        if (runCommandsDataGridView != null)
+        if (runCommandsTextBox != null)
         {
-            runCommandsDataGridView.Rows.Clear();
+            runCommandsTextBox.Clear();
+        }
+        if (editCommandsButton != null)
+        {
+            editCommandsButton.Enabled = false;
         }
         _loadedGameConfigs.Clear();
 
@@ -714,9 +720,13 @@ public class TopForm : Form
             diskImagePictureBox.Image?.Dispose();
             diskImagePictureBox.Image = null;
         }
-        if (runCommandsDataGridView != null)
+        if (runCommandsTextBox != null)
         {
-            runCommandsDataGridView.Rows.Clear();
+            runCommandsTextBox.Clear();
+        }
+        if (editCommandsButton != null)
+        {
+            editCommandsButton.Enabled = false;
         }
 
         if (gameNameTextBox != null && gameListBox != null)
@@ -771,13 +781,11 @@ public class TopForm : Form
                     UpdateIsoImageForSelection();
                 }
 
-                // Populate Run Commands DataGridView
-                if (runCommandsDataGridView != null)
+                // Populate Run Commands TextBox
+                if (runCommandsTextBox != null && editCommandsButton != null)
                 {
-                    foreach (string command in selectedGame.DosboxCommands)
-                    {
-                        runCommandsDataGridView.Rows.Add(command);
-                    }
+                    runCommandsTextBox.Text = string.Join(Environment.NewLine, selectedGame.DosboxCommands);
+                    editCommandsButton.Enabled = true;
                 }
 
                 // Populate Install Discs ListBox
@@ -1136,6 +1144,54 @@ public class TopForm : Form
         {
             MessageBox.Show(this, $"Failed to save the new game name: {ex.Message}", "Save Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             gameNameTextBox.Text = originalName; // Revert on error
+        }
+    }
+
+    private void EditCommandsButton_Click(object? sender, EventArgs e)
+    {
+        if (runCommandsTextBox == null || editCommandsButton == null) return;
+
+        runCommandsTextBox.ReadOnly = false;
+        editCommandsButton.Enabled = false;
+        runCommandsTextBox.Focus();
+    }
+
+    private async void RunCommandsTextBox_Leave(object? sender, EventArgs e)
+    {
+        await SaveGameCommandsAsync();
+    }
+
+    private async Task SaveGameCommandsAsync()
+    {
+        if (gameListBox?.SelectedItem is not GameConfiguration selectedGame ||
+            runCommandsTextBox == null ||
+            editCommandsButton == null)
+        {
+            return;
+        }
+
+        // If already read-only, it means the save has already been processed.
+        if (runCommandsTextBox.ReadOnly) { return; }
+
+        var newCommands = runCommandsTextBox.Lines.ToList();
+        var originalCommands = selectedGame.DosboxCommands;
+
+        // Revert UI state
+        runCommandsTextBox.ReadOnly = true;
+        editCommandsButton.Enabled = true;
+
+        // If the content hasn't changed, do nothing.
+        if (newCommands.SequenceEqual(originalCommands)) { return; }
+
+        try
+        {
+            await GameDataWriterService.UpdateGameCommandsAsync(selectedGame.ConfigFilePath, newCommands);
+            selectedGame.DosboxCommands = newCommands.Where(c => !string.IsNullOrWhiteSpace(c)).ToList();
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(this, $"Failed to save the new commands: {ex.Message}", "Save Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            runCommandsTextBox.Text = string.Join(Environment.NewLine, originalCommands);
         }
     }
 }

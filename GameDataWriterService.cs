@@ -33,5 +33,56 @@ public static class GameDataWriterService
 
         await File.WriteAllLinesAsync(cfgFilePath, lines);
     }
-}
 
+    /// <summary>
+    /// Updates the [commands] section in a specified game.cfg file.
+    /// If the section exists, its contents are replaced. If not, the section is added to the end of the file.
+    /// </summary>
+    /// <param name="cfgFilePath">The full path to the game.cfg file.</param>
+    /// <param name="newCommands">The new list of commands to write.</param>
+    public static async Task UpdateGameCommandsAsync(string cfgFilePath, IEnumerable<string> newCommands)
+    {
+        if (!File.Exists(cfgFilePath))
+        {
+            throw new FileNotFoundException("Game configuration file not found.", cfgFilePath);
+        }
+
+        var lines = (await File.ReadAllLinesAsync(cfgFilePath)).ToList();
+        const string commandsHeader = "[commands]";
+
+        int commandsHeaderIndex = -1;
+        for (int i = 0; i < lines.Count; i++)
+        {
+            if (lines[i].Trim().Equals(commandsHeader, StringComparison.OrdinalIgnoreCase))
+            {
+                commandsHeaderIndex = i;
+                break;
+            }
+        }
+
+        var validNewCommands = newCommands.Where(c => !string.IsNullOrWhiteSpace(c)).ToList();
+
+        if (commandsHeaderIndex == -1)
+        {
+            lines.Add(string.Empty);
+            lines.Add(commandsHeader);
+            lines.AddRange(validNewCommands);
+        }
+        else
+        {
+            int firstCommandIndex = commandsHeaderIndex + 1;
+            int commandsToRemoveCount = 0;
+
+            for (int i = firstCommandIndex; i < lines.Count; i++)
+            {
+                if (string.IsNullOrEmpty(lines[i].Trim())) { break; }
+                commandsToRemoveCount++;
+            }
+
+            if (commandsToRemoveCount > 0) { lines.RemoveRange(firstCommandIndex, commandsToRemoveCount); }
+            lines.InsertRange(firstCommandIndex, validNewCommands);
+        }
+
+        await File.WriteAllLinesAsync(cfgFilePath, lines);
+    }
+}
