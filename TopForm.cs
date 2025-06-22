@@ -1,4 +1,3 @@
-
 using System.Diagnostics;
 using System.Reflection;
 using DOSGameCollection.Models;
@@ -12,9 +11,10 @@ public class TopForm : Form
 {
     private ListBox? gameListBox;
     private Button? runButton;
-    private Button? manualButton; // Added for game manual
-    private Button? refreshButton; // Added refresh button
-    private TableLayoutPanel? gameDetailsTableLayoutPanel; // For "Name" label and TextBox
+    private Button? manualButton;
+    private Button? refreshButton;
+    private Button? editGameNameButton;
+    private TableLayoutPanel? gameDetailsTableLayoutPanel;
     private Label? gameNameLabel;
     private TextBox? gameNameTextBox;
     private PictureBox? boxArtPictureBox;
@@ -151,6 +151,15 @@ public class TopForm : Form
         };
         manualButton.Click += ManualButton_Click;
 
+        editGameNameButton = new Button
+        {
+            AutoSize = true,
+            Enabled = false, // Initially disabled
+            Margin = new Padding(3, 0, 0, 0), // Left margin
+            Anchor = AnchorStyles.Left
+        };
+        editGameNameButton.Click += EditGameNameButton_Click;
+
         // Initialize Previous button
         boxArtPreviousButton = new Button
         {
@@ -178,6 +187,9 @@ public class TopForm : Form
             manualButton.Font = symbolFont;
             manualButton.Text = "\U0001F56E"; // Unicode for Rolled-up Newspaper (used as book/manual symbol)
 
+            editGameNameButton.Font = symbolFont;
+            editGameNameButton.Text = "\u270F"; // Unicode for Pencil
+
             boxArtPreviousButton.Font = symbolFont;
             boxArtPreviousButton.Text = "\u25C0"; // Unicode character for "Previous"
 
@@ -189,27 +201,22 @@ public class TopForm : Form
             refreshButton.Text = "Refresh";
             runButton.Text = "Run";
             manualButton.Text = "Manual";
+            editGameNameButton.Text = "Edit";
             boxArtPreviousButton.Text = "Previous";
             boxArtPreviousButton.Text = "Next";
         }
 
-
-
-
-        // Game ListBox Setup
         gameListBox = new ListBox();
 
-        // Initialize gameDetailsTableLayoutPanel for Name label and TextBox
         gameDetailsTableLayoutPanel = new TableLayoutPanel
         {
-            Dock = DockStyle.Fill, // Fill the cell in the main TableLayoutPanel
-            ColumnCount = 2,
-            RowCount = 4, // Increased row count for TabControl
-            // AutoSize = true, // Removed: Dock.Fill will manage size
-            Margin = new Padding(0, 5, 5, 5) // Added margin (top, right, bottom, left)
+            Dock = DockStyle.Fill,
+            ColumnCount = 1,
+            RowCount = 4,
+            CellBorderStyle = TableLayoutPanelCellBorderStyle.Single, // Keep for visual debugging
+            Margin = new Padding(0, 5, 5, 5)
         };
-        gameDetailsTableLayoutPanel.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize)); // For Label
-        gameDetailsTableLayoutPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F)); // For TextBox
+        gameDetailsTableLayoutPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
 
         // --- Action Buttons Panel (Run and Manual) ---
         FlowLayoutPanel actionButtonsPanel = new FlowLayoutPanel
@@ -224,16 +231,28 @@ public class TopForm : Form
         actionButtonsPanel.Controls.Add(manualButton);
 
         // --- ToolTips for Action Buttons ---
-        ToolTip actionButtonToolTip = new ToolTip();
+        ToolTip actionButtonToolTip = new();
         actionButtonToolTip.SetToolTip(runButton, "Launch");
         actionButtonToolTip.SetToolTip(manualButton, "Manual");
         actionButtonToolTip.SetToolTip(refreshButton, "Reload");
 
         // Define Row Styles for gameDetailsTableLayoutPanel (order matters for visual layout)
         gameDetailsTableLayoutPanel.RowStyles.Add(new RowStyle(SizeType.AutoSize)); // Row 0: Run button
-        gameDetailsTableLayoutPanel.RowStyles.Add(new RowStyle(SizeType.AutoSize)); // Row 1: Name (label and textbox)
+        gameDetailsTableLayoutPanel.RowStyles.Add(new RowStyle(SizeType.AutoSize)); // Row 1: Game Name
         gameDetailsTableLayoutPanel.RowStyles.Add(new RowStyle(SizeType.Absolute, 250F)); // Row 2: Media Panel (Synopsis & Box Art)
         gameDetailsTableLayoutPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 100F)); // Row 3: TabControl (fills remaining space)
+
+        // --- Game Name Container Panel (Label, TextBox, and Edit Button) ---
+        TableLayoutPanel gameNameContainerPanel = new()
+        {
+            Dock = DockStyle.Top,
+            ColumnCount = 3,
+            RowCount = 1,
+            Margin = new Padding(0)
+        };
+        gameNameContainerPanel.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));    // For Label
+        gameNameContainerPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F)); // For TextBox
+        gameNameContainerPanel.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));    // For Edit Button
 
         gameNameLabel = new Label
         {
@@ -241,20 +260,25 @@ public class TopForm : Form
             Anchor = AnchorStyles.Left,
             TextAlign = ContentAlignment.MiddleLeft,
             AutoSize = true,
-            Margin = new Padding(0, 0, 3, 0) // Margin to the right of the label
+            Margin = new Padding(0, 0, 3, 0) // Margin to the right
         };
 
         gameNameTextBox = new TextBox
         {
-            Dock = DockStyle.Fill,
-            ReadOnly = true
+            Anchor = AnchorStyles.Left | AnchorStyles.Right, // Stretch horizontally, center vertically
+            ReadOnly = true,
         };
+        gameNameTextBox.KeyDown += GameNameTextBox_KeyDown;
+        gameNameTextBox.Leave += GameNameTextBox_Leave;
+
+        gameNameContainerPanel.Controls.Add(gameNameLabel, 0, 0);
+        gameNameContainerPanel.Controls.Add(gameNameTextBox, 1, 0);
+        gameNameContainerPanel.Controls.Add(editGameNameButton, 2, 0);
+
 
         gameDetailsTableLayoutPanel.Controls.Add(actionButtonsPanel, 0, 0);
-        gameDetailsTableLayoutPanel.SetColumnSpan(actionButtonsPanel, 2); // Span panel across both columns
 
-        gameDetailsTableLayoutPanel.Controls.Add(gameNameLabel, 0, 1);
-        gameDetailsTableLayoutPanel.Controls.Add(gameNameTextBox, 1, 1);
+        gameDetailsTableLayoutPanel.Controls.Add(gameNameContainerPanel, 0, 1);
 
         // --- Synopsis TextBox Setup ---
         synopsisTextBox = new TextBox
@@ -327,7 +351,7 @@ public class TopForm : Form
         boxArtPanel.Controls.Add(carouselControlsPanel, 0, 1);
 
         // Initialize the Box Art Carousel Manager
-        _boxArtCarouselManager = new BoxArtCarouselManager(boxArtPictureBox, _videoView, _mediaPlayer, _libVLC, boxArtImageNameLabel, boxArtPreviousButton, boxArtNextButton);        
+        _boxArtCarouselManager = new BoxArtCarouselManager(boxArtPictureBox, _videoView, _mediaPlayer, _libVLC, boxArtImageNameLabel, boxArtPreviousButton, boxArtNextButton);
         // --- Media Panel (for Synopsis and Box Art) ---
         TableLayoutPanel mediaPanel = new TableLayoutPanel
         {
@@ -343,7 +367,6 @@ public class TopForm : Form
         mediaPanel.Controls.Add(synopsisTextBox, 1, 0); // Synopsis text box on the right
 
         gameDetailsTableLayoutPanel.Controls.Add(mediaPanel, 0, 2); // Add mediaPanel to row 2
-        gameDetailsTableLayoutPanel.SetColumnSpan(mediaPanel, 2); // Span mediaPanel across both columns
 
         // --- TabControl Setup for additional game details ---
         gameDetailsTabControl = new TabControl
@@ -496,7 +519,6 @@ public class TopForm : Form
             runCommandsTab, diskImagesTab, soundtrackTab, installDiscsTab, walkthroughTab, cheatsTab, notesTab
         });
         gameDetailsTableLayoutPanel.Controls.Add(gameDetailsTabControl, 0, 3); // Add TabControl to row 3
-        gameDetailsTableLayoutPanel.SetColumnSpan(gameDetailsTabControl, 2); // Span TabControl across both columns
 
         // --- Left Column Panel (for Refresh Button and Game ListBox) ---
         TableLayoutPanel leftColumnPanel = new TableLayoutPanel
@@ -565,6 +587,10 @@ public class TopForm : Form
         if (manualButton != null)
         {
             manualButton.Enabled = false;
+        }
+        if (editGameNameButton != null)
+        {
+            editGameNameButton.Enabled = false;
         }
         if (diskImagesDataGridView != null)
         {
@@ -662,6 +688,10 @@ public class TopForm : Form
         if (manualButton != null)
         {
             manualButton.Enabled = false; // Disable by default, enable if manual exists
+        }
+        if (editGameNameButton != null)
+        {
+            editGameNameButton.Enabled = (gameListBox?.SelectedItem != null);
         }
         if (diskImagesDataGridView != null)
         {
@@ -969,7 +999,7 @@ public class TopForm : Form
                 {
                     try
                     {
-                        if (diskImagePictureBox!=null)
+                        if (diskImagePictureBox != null)
                         {
                             diskImagePictureBox.Image = Image.FromFile(selectedDisc.PngFilePath);
                         }
@@ -1007,7 +1037,7 @@ public class TopForm : Form
                     {
                         if (isoImagePictureBox != null)
                         {
-                            isoImagePictureBox.Image = Image.FromFile(selectedDisc.PngFilePath);                            
+                            isoImagePictureBox.Image = Image.FromFile(selectedDisc.PngFilePath);
                         }
                     }
                     catch (Exception ex)
@@ -1023,7 +1053,7 @@ public class TopForm : Form
     {
         UpdateIsoImageForSelection();
     }
-    
+
     private void BoxArtPreviousButton_Click(object? sender, EventArgs e)
     {
         _boxArtCarouselManager?.GoToPrevious();
@@ -1036,11 +1066,74 @@ public class TopForm : Form
 
     protected override void Dispose(bool disposing)
     {
-        if (disposing) {
+        if (disposing)
+        {
             _boxArtCarouselManager?.Dispose();
             _mediaPlayer?.Dispose();
             _libVLC?.Dispose();
         }
         base.Dispose(disposing);
+    }
+    
+    private void EditGameNameButton_Click(object? sender, EventArgs e)
+    {
+        if (gameNameTextBox == null || editGameNameButton == null) return;
+
+        gameNameTextBox.ReadOnly = false;
+        editGameNameButton.Enabled = false;
+        gameNameTextBox.Focus();
+        gameNameTextBox.SelectAll();
+    }
+
+    private async void GameNameTextBox_KeyDown(object? sender, KeyEventArgs e)
+    {
+        if (e.KeyCode == Keys.Enter)
+        {
+            e.SuppressKeyPress = true; // Stop the 'ding' sound
+            await SaveGameNameAsync();
+        }
+    }
+
+    private async void GameNameTextBox_Leave(object? sender, EventArgs e)
+    {
+        await SaveGameNameAsync();
+    }
+
+    private async Task SaveGameNameAsync()
+    {
+        if (gameListBox?.SelectedItem is not GameConfiguration selectedGame || 
+            gameNameTextBox == null || 
+            editGameNameButton == null)
+        {
+            return;
+        }
+
+        // If already read-only, it means Leave was triggered after Enter. Do nothing.
+        if (gameNameTextBox.ReadOnly) { return; }
+
+        string newName = gameNameTextBox.Text.Trim();
+        string originalName = selectedGame.GameName;
+
+        // Revert UI state regardless of change
+        gameNameTextBox.ReadOnly = true;
+        editGameNameButton.Enabled = true;
+
+        if (string.IsNullOrWhiteSpace(newName) || newName.Equals(originalName, StringComparison.Ordinal))
+        {
+            gameNameTextBox.Text = originalName; // Revert if user entered empty string or made no change
+            return;
+        }
+
+        try
+        {
+            await GameDataWriterService.UpdateGameNameAsync(selectedGame.ConfigFilePath, newName);
+            selectedGame.GameName = newName; // Update in-memory model
+            gameListBox.Items[gameListBox.SelectedIndex] = selectedGame; // Force ListBox item to refresh its text
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(this, $"Failed to save the new game name: {ex.Message}", "Save Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            gameNameTextBox.Text = originalName; // Revert on error
+        }
     }
 }

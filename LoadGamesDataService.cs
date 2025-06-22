@@ -26,7 +26,7 @@ public class LoadGamesDataService
         // 3. Retrieve all subdirectories within the library base path. Each subdirectory is a potential game.
         //    Task.Run is used to offload the synchronous Directory.GetDirectories operation to a thread pool thread,
         //    preventing the UI thread from freezing during potentially long directory scans.
-        string[] gameDirectories = null;
+        string[]? gameDirectories = null;
         try
         {
             gameDirectories = await Task.Run(() => Directory.GetDirectories(libraryBasePath, "*", SearchOption.TopDirectoryOnly));
