@@ -246,6 +246,8 @@ public class TopForm : Form
         TableLayoutPanel gameNameContainerPanel = new()
         {
             Dock = DockStyle.Top,
+            AutoSize = true,
+            AutoSizeMode = AutoSizeMode.GrowAndShrink,
             ColumnCount = 3,
             RowCount = 1,
             Margin = new Padding(0)
