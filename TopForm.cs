@@ -12,8 +12,9 @@ public class TopForm : Form
     private ListBox? gameListBox;
     private Button? runButton;
     private Button? manualButton;
-    private Button? refreshButton;
-    private Button? editGameNameButton;
+    private Button? refreshButton; 
+    private Button? editGameDataButton; // Renamed from editGameNameButton
+    private Button? saveGameDataButton; // New button
     private TableLayoutPanel? gameDetailsTableLayoutPanel;
     private Label? gameNameLabel;
     private TextBox? gameNameTextBox;
@@ -28,8 +29,7 @@ public class TopForm : Form
     private PictureBox? isoImagePictureBox; // For showing an image of the selected CD-ROM image
     private DataGridView? installDiscsDataGridView; // For floppy disk images
     private PictureBox? diskImagePictureBox; // For showing an image of the selected install disc
-    private TextBox? runCommandsTextBox;
-    private Button? editCommandsButton;
+    private TextBox? runCommandsTextBox; 
     private List<GameConfiguration> _loadedGameConfigs = [];
     private AppConfigService _appConfigService;
     private BoxArtCarouselManager? _boxArtCarouselManager;
@@ -158,15 +158,25 @@ public class TopForm : Form
         if (symbolFont != null) { manualButton.Font = symbolFont; }
         manualButton.Click += ManualButton_Click;
 
-        editGameNameButton = new Button
+        editGameDataButton = new Button
         {
             AutoSize = true,
             Margin = new Padding(0, 0, 5, 5),
             Enabled = false, // Initially disabled
             Text = symbolFont != null ? "\u270E" : "Edit"
         };
-        if (symbolFont != null) { editGameNameButton.Font = symbolFont; }
-        editGameNameButton.Click += EditGameNameButton_Click;
+        if (symbolFont != null) { editGameDataButton.Font = symbolFont; }
+        editGameDataButton.Click += EditGameDataButton_Click;
+
+        saveGameDataButton = new Button
+        {
+            AutoSize = true,
+            Margin = new Padding(0, 0, 5, 5),
+            Visible = false, // Initially hidden
+            Text = symbolFont != null ? "\uD83D\uDCBE" : "Save" // Floppy disk emoji for save
+        };
+        if (symbolFont != null) { saveGameDataButton.Font = symbolFont; }
+        saveGameDataButton.Click += SaveGameDataButton_Click;
 
         // Initialize Previous button
         boxArtPreviousButton = new Button
@@ -211,14 +221,16 @@ public class TopForm : Form
 
         actionButtonsPanel.Controls.Add(runButton);
         actionButtonsPanel.Controls.Add(manualButton);
-        actionButtonsPanel.Controls.Add(editGameNameButton);
+        actionButtonsPanel.Controls.Add(editGameDataButton);
+        actionButtonsPanel.Controls.Add(saveGameDataButton);
 
         // --- ToolTips for Action Buttons ---
         ToolTip actionButtonToolTip = new();
         actionButtonToolTip.SetToolTip(runButton, "Launch");
+        actionButtonToolTip.SetToolTip(saveGameDataButton, "Save Game Data");
         actionButtonToolTip.SetToolTip(manualButton, "Manual");
         actionButtonToolTip.SetToolTip(refreshButton, "Reload");
-        actionButtonToolTip.SetToolTip(editGameNameButton, "Edit");
+        actionButtonToolTip.SetToolTip(editGameDataButton, "Edit Game Data");
 
         // Define Row Styles for gameDetailsTableLayoutPanel (order matters for visual layout)
         gameDetailsTableLayoutPanel.RowStyles.Add(new RowStyle(SizeType.AutoSize)); // Row 0: Run button
@@ -254,7 +266,6 @@ public class TopForm : Form
             ReadOnly = true,
         };
         gameNameTextBox.KeyDown += GameNameTextBox_KeyDown;
-        gameNameTextBox.Leave += GameNameTextBox_Leave;
 
         gameNameContainerPanel.Controls.Add(gameNameLabel, 0, 0);
         gameNameContainerPanel.Controls.Add(gameNameTextBox, 1, 0);
@@ -381,22 +392,8 @@ public class TopForm : Form
             ScrollBars = ScrollBars.Vertical,
             Font = new Font("Consolas", 9.75F, FontStyle.Regular)
         };
-        runCommandsTextBox.Leave += RunCommandsTextBox_Leave;
-
-        editCommandsButton = new Button
-        {
-            Size = new Size(30, 30),
-            Enabled = false,
-            Margin = new Padding(3, 0, 0, 0),
-            Anchor = AnchorStyles.Top | AnchorStyles.Left,
-            Text = symbolFont != null ? "\u270E" : "Edit"
-        };
-        if (symbolFont != null) { editCommandsButton.Font = symbolFont; }
-        editCommandsButton.Click += EditCommandsButton_Click;
-        actionButtonToolTip.SetToolTip(editCommandsButton, "Edit");
 
         runCommandsPanel.Controls.Add(runCommandsTextBox, 0, 0);
-        runCommandsPanel.Controls.Add(editCommandsButton, 1, 0);
         runCommandsTab.Controls.Add(runCommandsPanel);
         // Existing tabs
         TabPage diskImagesTab = new TabPage("CD-ROM images");
@@ -500,7 +497,7 @@ public class TopForm : Form
         installDiscsPanel.Controls.Add(installDiscsDataGridView, 0, 0);
 
         // PictureBox for the selected install disc image
-        diskImagePictureBox = new PictureBox
+        diskImagePictureBox = new PictureBox // This is the bug fix you asked about
         {
             Dock = DockStyle.Fill,
             Margin = new Padding(3),
@@ -591,10 +588,12 @@ public class TopForm : Form
         {
             manualButton.Enabled = false;
         }
-        if (editGameNameButton != null)
+        if (editGameDataButton != null)
         {
-            editGameNameButton.Enabled = false;
+            editGameDataButton.Enabled = false;
+            editGameDataButton.Visible = true;
         }
+        if (saveGameDataButton != null) saveGameDataButton.Visible = false;
         if (diskImagesDataGridView != null)
         {
             diskImagesDataGridView.Rows.Clear();
@@ -616,10 +615,7 @@ public class TopForm : Form
         if (runCommandsTextBox != null)
         {
             runCommandsTextBox.Clear();
-        }
-        if (editCommandsButton != null)
-        {
-            editCommandsButton.Enabled = false;
+            runCommandsTextBox.ReadOnly = true;
         }
         _loadedGameConfigs.Clear();
 
@@ -696,10 +692,12 @@ public class TopForm : Form
         {
             manualButton.Enabled = false; // Disable by default, enable if manual exists
         }
-        if (editGameNameButton != null)
+        if (editGameDataButton != null)
         {
-            editGameNameButton.Enabled = (gameListBox?.SelectedItem != null);
+            editGameDataButton.Enabled = (gameListBox?.SelectedItem != null);
+            editGameDataButton.Visible = true; // Ensure edit button is visible
         }
+        if (saveGameDataButton != null) saveGameDataButton.Visible = false; // Ensure save button is hidden
         if (diskImagesDataGridView != null)
         {
             diskImagesDataGridView.Rows.Clear();
@@ -722,15 +720,13 @@ public class TopForm : Form
         if (runCommandsTextBox != null)
         {
             runCommandsTextBox.Clear();
-        }
-        if (editCommandsButton != null)
-        {
-            editCommandsButton.Enabled = false;
+            runCommandsTextBox.ReadOnly = true;
         }
 
         if (gameNameTextBox != null && gameListBox != null)
         { // General null check for UI elements
 
+            gameNameTextBox.ReadOnly = true;
             GameConfiguration? selectedGame = gameListBox.SelectedItem as GameConfiguration;
 
             if (selectedGame != null)
@@ -781,10 +777,9 @@ public class TopForm : Form
                 }
 
                 // Populate Run Commands TextBox
-                if (runCommandsTextBox != null && editCommandsButton != null)
+                if (runCommandsTextBox != null)
                 {
                     runCommandsTextBox.Text = string.Join(Environment.NewLine, selectedGame.DosboxCommands);
-                    editCommandsButton.Enabled = true;
                 }
 
                 // Populate Install Discs ListBox
@@ -1084,112 +1079,88 @@ public class TopForm : Form
         base.Dispose(disposing);
     }
     
-    private void EditGameNameButton_Click(object? sender, EventArgs e)
+    private void EditGameDataButton_Click(object? sender, EventArgs e)
     {
-        if (gameNameTextBox == null || editGameNameButton == null) return;
+        if (gameNameTextBox == null || runCommandsTextBox == null || editGameDataButton == null || saveGameDataButton == null) return;
 
         gameNameTextBox.ReadOnly = false;
-        editGameNameButton.Enabled = false;
+        runCommandsTextBox.ReadOnly = false;
+
+        editGameDataButton.Visible = false;
+        saveGameDataButton.Visible = true;
+
         gameNameTextBox.Focus();
         gameNameTextBox.SelectAll();
     }
 
-    private async void GameNameTextBox_KeyDown(object? sender, KeyEventArgs e)
+    private void GameNameTextBox_KeyDown(object? sender, KeyEventArgs e)
     {
         if (e.KeyCode == Keys.Enter)
         {
             e.SuppressKeyPress = true; // Stop the 'ding' sound
-            await SaveGameNameAsync();
+            // Do not save on Enter, only suppress the key press to prevent newline
         }
     }
 
-    private async void GameNameTextBox_Leave(object? sender, EventArgs e)
+    private async void SaveGameDataButton_Click(object? sender, EventArgs e)
     {
-        await SaveGameNameAsync();
-    }
-
-    private async Task SaveGameNameAsync()
-    {
-        if (gameListBox?.SelectedItem is not GameConfiguration selectedGame || 
-            gameNameTextBox == null || 
-            editGameNameButton == null)
+        if (gameListBox?.SelectedItem is not GameConfiguration selectedGame ||
+            gameNameTextBox == null ||
+            runCommandsTextBox == null ||
+            editGameDataButton == null ||
+            saveGameDataButton == null)
         {
             return;
         }
 
-        // If already read-only, it means Leave was triggered after Enter. Do nothing.
-        if (gameNameTextBox.ReadOnly) { return; }
-
         string newName = gameNameTextBox.Text.Trim();
+        var newCommands = runCommandsTextBox.Lines.ToList();
         string originalName = selectedGame.GameName;
+        var originalCommands = selectedGame.DosboxCommands;
 
         // Revert UI state regardless of change
         gameNameTextBox.ReadOnly = true;
-        editGameNameButton.Enabled = true;
-
-        if (string.IsNullOrWhiteSpace(newName) || newName.Equals(originalName, StringComparison.Ordinal))
-        {
-            gameNameTextBox.Text = originalName; // Revert if user entered empty string or made no change
-            return;
-        }
-
-        try
-        {
-            await GameDataWriterService.UpdateGameNameAsync(selectedGame.ConfigFilePath, newName);
-            selectedGame.GameName = newName; // Update in-memory model
-            gameListBox.Items[gameListBox.SelectedIndex] = selectedGame; // Force ListBox item to refresh its text
-        }
-        catch (Exception ex)
-        {
-            MessageBox.Show(this, $"Failed to save the new game name: {ex.Message}", "Save Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            gameNameTextBox.Text = originalName; // Revert on error
-        }
-    }
-
-    private void EditCommandsButton_Click(object? sender, EventArgs e)
-    {
-        if (runCommandsTextBox == null || editCommandsButton == null) return;
-
-        runCommandsTextBox.ReadOnly = false;
-        editCommandsButton.Enabled = false;
-        runCommandsTextBox.Focus();
-    }
-
-    private async void RunCommandsTextBox_Leave(object? sender, EventArgs e)
-    {
-        await SaveGameCommandsAsync();
-    }
-
-    private async Task SaveGameCommandsAsync()
-    {
-        if (gameListBox?.SelectedItem is not GameConfiguration selectedGame ||
-            runCommandsTextBox == null ||
-            editCommandsButton == null)
-        {
-            return;
-        }
-
-        // If already read-only, it means the save has already been processed.
-        if (runCommandsTextBox.ReadOnly) { return; }
-
-        var newCommands = runCommandsTextBox.Lines.ToList();
-        var originalCommands = selectedGame.DosboxCommands;
-
-        // Revert UI state
         runCommandsTextBox.ReadOnly = true;
-        editCommandsButton.Enabled = true;
+        editGameDataButton.Visible = true;
+        saveGameDataButton.Visible = false;
 
-        // If the content hasn't changed, do nothing.
-        if (newCommands.SequenceEqual(originalCommands)) { return; }
+        // Check if anything actually changed
+        bool nameChanged = !string.IsNullOrWhiteSpace(newName) && !newName.Equals(originalName, StringComparison.Ordinal);
+        bool commandsChanged = !newCommands.SequenceEqual(originalCommands);
+
+        if (!nameChanged && !commandsChanged)
+        {
+            // No changes, just revert UI and return
+            gameNameTextBox.Text = originalName;
+            runCommandsTextBox.Text = string.Join(Environment.NewLine, originalCommands);
+            return;
+        }
 
         try
         {
-            await GameDataWriterService.UpdateGameCommandsAsync(selectedGame.ConfigFilePath, newCommands);
-            selectedGame.DosboxCommands = newCommands.Where(c => !string.IsNullOrWhiteSpace(c)).ToList();
+            // Call the consolidated save method
+            await GameDataWriterService.UpdateGameDataAsync(selectedGame.ConfigFilePath, newName, newCommands);
+
+            // Update in-memory model only if save was successful
+            if (nameChanged)
+            {
+                selectedGame.GameName = newName;
+                // Force ListBox item to refresh its text if it's still the selected item
+                if (gameListBox.SelectedItem is GameConfiguration currentSelected && currentSelected == selectedGame)
+                {
+                    gameListBox.Items[gameListBox.SelectedIndex] = selectedGame;
+                }
+            }
+            if (commandsChanged)
+            {
+                selectedGame.DosboxCommands = newCommands.Where(c => !string.IsNullOrWhiteSpace(c)).ToList();
+            }
         }
         catch (Exception ex)
         {
-            MessageBox.Show(this, $"Failed to save the new commands: {ex.Message}", "Save Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            MessageBox.Show(this, $"Failed to save game data: {ex.Message}", "Save Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            // Revert textboxes to original values on error
+            gameNameTextBox.Text = originalName; // Revert on error
             runCommandsTextBox.Text = string.Join(Environment.NewLine, originalCommands);
         }
     }
