@@ -160,10 +160,9 @@ public class TopForm : Form
 
         editGameNameButton = new Button
         {
-            Size = new Size(30, 30),
+            AutoSize = true,
+            Margin = new Padding(0, 0, 5, 5),
             Enabled = false, // Initially disabled
-            Margin = new Padding(3, 0, 0, 0), // Left margin
-            Anchor = AnchorStyles.Left,
             Text = symbolFont != null ? "\u270E" : "Edit"
         };
         if (symbolFont != null) { editGameNameButton.Font = symbolFont; }
@@ -212,6 +211,7 @@ public class TopForm : Form
 
         actionButtonsPanel.Controls.Add(runButton);
         actionButtonsPanel.Controls.Add(manualButton);
+        actionButtonsPanel.Controls.Add(editGameNameButton);
 
         // --- ToolTips for Action Buttons ---
         ToolTip actionButtonToolTip = new();
@@ -232,13 +232,12 @@ public class TopForm : Form
             Dock = DockStyle.Top,
             AutoSize = true,
             AutoSizeMode = AutoSizeMode.GrowAndShrink,
-            ColumnCount = 3,
+            ColumnCount = 2,
             RowCount = 1,
             Margin = new Padding(0)
         };
         gameNameContainerPanel.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));    // For Label
         gameNameContainerPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F)); // For TextBox
-        gameNameContainerPanel.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));    // For Edit Button
 
         gameNameLabel = new Label
         {
@@ -259,8 +258,6 @@ public class TopForm : Form
 
         gameNameContainerPanel.Controls.Add(gameNameLabel, 0, 0);
         gameNameContainerPanel.Controls.Add(gameNameTextBox, 1, 0);
-        gameNameContainerPanel.Controls.Add(editGameNameButton, 2, 0);
-
 
         gameDetailsTableLayoutPanel.Controls.Add(actionButtonsPanel, 0, 0);
 
