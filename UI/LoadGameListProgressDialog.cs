@@ -1,7 +1,6 @@
 using DOSGameCollection.Models;
-using static DOSGameCollection.LoadGamesDataService;
 
-namespace DOSGameCollection;
+namespace DOSGameCollection.UI;
 
 public class LoadGameListProgressDialog : Form
 {
@@ -53,23 +52,27 @@ public class LoadGameListProgressDialog : Form
         else
         {
             // Update UI elements directly on the UI thread
-            statusLabel.Text = report.Message;
+            if (statusLabel != null && progressBar != null)
+            {
+                statusLabel.Text = report.Message;
 
-            if (report.TotalSteps > 0 && report.CurrentStep <= report.TotalSteps)
-            {
-                if (progressBar.Style != ProgressBarStyle.Blocks)
+                if (report.TotalSteps > 0 && report.CurrentStep <= report.TotalSteps)
                 {
-                    progressBar.Style = ProgressBarStyle.Blocks;
-                    progressBar.MarqueeAnimationSpeed = 0; // Stop marquee
+                    if (progressBar.Style != ProgressBarStyle.Blocks)
+                    {
+                        progressBar.Style = ProgressBarStyle.Blocks;
+                        progressBar.MarqueeAnimationSpeed = 0; // Stop marquee
+                    }
+                    progressBar.Maximum = report.TotalSteps;
+                    progressBar.Value = report.CurrentStep;
                 }
-                progressBar.Maximum = report.TotalSteps;
-                progressBar.Value = report.CurrentStep;
-            }
-            else if (progressBar.Style != ProgressBarStyle.Marquee)
-            {
-                // If indeterminate or initial state, set to marquee
-                progressBar.Style = ProgressBarStyle.Marquee;
-                progressBar.MarqueeAnimationSpeed = 30;
+                else if (progressBar.Style != ProgressBarStyle.Marquee)
+                {
+                    // If indeterminate or initial state, set to marquee
+                    progressBar.Style = ProgressBarStyle.Marquee;
+                    progressBar.MarqueeAnimationSpeed = 30;
+                }
+                
             }
         }
     }
