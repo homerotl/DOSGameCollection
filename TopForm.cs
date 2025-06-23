@@ -455,11 +455,31 @@ public class TopForm : Form
             ColumnHeadersVisible = false,
             RowHeadersVisible = false,
             SelectionMode = DataGridViewSelectionMode.FullRowSelect,
-            ReadOnly = true
+            ReadOnly = true,
+            MultiSelect = false
         };
-        mediaDataGridView.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Type", Name = "Type", AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells });
+        // Column 1: Type (Image/Video Icon)
+        var mediaTypeColumn = new DataGridViewTextBoxColumn { HeaderText = "Type", Name = "Type", AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells };
+        if (FormatTools.SegoeUiSymbolExists)
+        {
+            // Use a slightly larger font for the symbols to be clear
+            mediaTypeColumn.DefaultCellStyle.Font = FormatTools.GetSymbolFont(10F);
+        }
+        mediaDataGridView.Columns.Add(mediaTypeColumn);
+        // Column 2: Name
         mediaDataGridView.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Name", Name = "Name", FillWeight = 100 });
+        // Column 3: Link (Clickable)
+        var linkColumn = new DataGridViewTextBoxColumn { HeaderText = "Link", Name = "Link", AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells };
+        if (FormatTools.SegoeUiSymbolExists)
+        {
+            linkColumn.DefaultCellStyle.Font = FormatTools.GetSymbolFont(10F);
+        }
+        mediaDataGridView.Columns.Add(linkColumn);
+
         mediaDataGridView.SelectionChanged += MediaDataGridView_SelectionChanged;
+        mediaDataGridView.CellClick += MediaDataGridView_CellClick;
+        mediaDataGridView.CellMouseEnter += MediaDataGridView_CellMouseEnter;
+        mediaDataGridView.CellMouseLeave += MediaDataGridView_CellMouseLeave;
 
         // --- Panel for PictureBox and VideoView ---
         Panel mediaDisplayPanel = new() { Dock = DockStyle.Fill };
@@ -496,7 +516,8 @@ public class TopForm : Form
             ColumnHeadersVisible = false,
             RowHeadersVisible = false,
             SelectionMode = DataGridViewSelectionMode.FullRowSelect,
-            ReadOnly = true
+            ReadOnly = true,
+            MultiSelect = false
         };
 
         isoImagesPanel.Controls.Add(isoImagesDataGridView, 0, 0);
@@ -554,7 +575,8 @@ public class TopForm : Form
             ColumnHeadersVisible = false,
             RowHeadersVisible = false,
             SelectionMode = DataGridViewSelectionMode.FullRowSelect,
-            ReadOnly = true
+            ReadOnly = true,
+            MultiSelect = false
         };
         floppyDiskDataGridView.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Name", Name = "DisplayName", FillWeight = 70 });
         floppyDiskDataGridView.Columns.Add(new DataGridViewTextBoxColumn
@@ -1095,8 +1117,23 @@ public class TopForm : Form
 
         foreach (var item in mediaItems)
         {
-            var rowIndex = mediaDataGridView.Rows.Add(item.Type.ToString(), item.DisplayName);
-            mediaDataGridView.Rows[rowIndex].Tag = item;
+            string typeDisplay;
+            if (FormatTools.SegoeUiSymbolExists)
+            {
+                // 🖼️ for Image, 🎞️ for Video
+                typeDisplay = item.Type == MediaType.Image ? "\U0001F5BC" : "\U0001F39E";
+            }
+            else
+            {
+                typeDisplay = item.Type.ToString(); // Fallback to text
+            }
+
+            string linkSymbol = FormatTools.SegoeUiSymbolExists ? "\U0001F517" : "Open";
+
+            var rowIndex = mediaDataGridView.Rows.Add(typeDisplay, item.DisplayName, linkSymbol);
+            var row = mediaDataGridView.Rows[rowIndex];
+            row.Tag = item;
+            row.Cells[2].ToolTipText = "Open"; // Set tooltip for the link column
         }
 
         if (mediaDataGridView.Rows.Count > 0)
@@ -1135,6 +1172,53 @@ public class TopForm : Form
             }
             catch (Exception ex) { AppLogger.Log($"Error loading media image '{mediaItem.FilePath}': {ex.Message}"); } // Log the error
         }
+    }
+
+    private void MediaDataGridView_CellClick(object? sender, DataGridViewCellEventArgs e)
+    {
+        // We only care about clicks on the "Link" column (index 2). Ignore headers too.
+        if (e.RowIndex < 0 || e.ColumnIndex != 2) return;
+
+        // The "Link" column was clicked.
+        if (mediaDataGridView?.Rows[e.RowIndex].Tag is MediaItem mediaItem)
+        {
+            if (!string.IsNullOrEmpty(mediaItem.FilePath) && File.Exists(mediaItem.FilePath))
+            {
+                try
+                {
+                    ProcessStartInfo psi = new()
+                    {
+                        FileName = mediaItem.FilePath,
+                        UseShellExecute = true // Use the default OS application
+                    };
+                    Process.Start(psi);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(this, $"Could not open media file '{mediaItem.FilePath}'.\nError: {ex.Message}", "Error Opening File", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
+        }
+    }
+
+    private void MediaDataGridView_CellMouseEnter(object? sender, DataGridViewCellEventArgs e)
+    {
+        if (mediaDataGridView == null) return;
+
+        // Change cursor to hand only when over the "Link" column (index 2) in a valid row.
+        if (e.RowIndex >= 0 && e.ColumnIndex == 2)
+        {
+            mediaDataGridView.Cursor = Cursors.Hand;
+        }
+        else
+        {
+            mediaDataGridView.Cursor = Cursors.Default;
+        }
+    }
+
+    private void MediaDataGridView_CellMouseLeave(object? sender, DataGridViewCellEventArgs e)
+    {
+        if (mediaDataGridView != null) mediaDataGridView.Cursor = Cursors.Default;
     }
 
     private void ClearMediaDisplay()
