@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Reflection;
 using DOSGameCollection.Models;
 using DOSGameCollection.UI;
+using DOSGameCollection.Services;
 using LibVLCSharp.Shared;
 using LibVLCSharp.WinForms;
 
@@ -949,7 +950,7 @@ public class TopForm : Form
     {
         if (gameListBox?.SelectedItem is GameConfiguration selectedGame)
         {
-            LaunchDosBox(selectedGame);
+            GameLauncherService.LaunchGame(selectedGame, _appConfigService.DosboxExePath, this);
         }
     }
 
@@ -1015,85 +1016,6 @@ public class TopForm : Form
     private void ExitMenuItem_Click(object? sender, EventArgs e)
     {
         Application.Exit();
-    }
-    private void LaunchDosBox(GameConfiguration gameConfig)
-    {
-        string? dosboxPath = _appConfigService.DosboxExePath;
-        if (string.IsNullOrEmpty(dosboxPath) || !File.Exists(dosboxPath))
-        {
-            MessageBox.Show(this, $"DOSBox executable path is not configured or the configured path is invalid. Please check 'config.txt' in the application directory, or restart the application to be prompted again.", "Launch Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            return;
-        }
-
-        string gameSpecificMountCPath = gameConfig.MountCPath;
-        if (string.IsNullOrEmpty(gameSpecificMountCPath) || !Directory.Exists(gameSpecificMountCPath))
-        {
-            MessageBox.Show($"Game's C: mount directory '{gameSpecificMountCPath}' (expected 'game-files' inside game folder) not found for '{gameConfig.GameName}'.", "Launch Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            return;
-        }
-
-        string gameSpecificDosboxConfPath = gameConfig.DosboxConfPath;
-        if (string.IsNullOrEmpty(gameSpecificDosboxConfPath) || !File.Exists(gameSpecificDosboxConfPath))
-        {
-            MessageBox.Show(this, $"Game's DOSBox config file '{gameSpecificDosboxConfPath}' (expected 'dosbox-staging.conf' inside game folder) not found for '{gameConfig.GameName}'.", "Launch Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            return;
-        }
-
-        List<string> dosboxArgs = new List<string>();
-
-        dosboxArgs.Add("-noconsole");
-        dosboxArgs.Add($"-conf \"{gameSpecificDosboxConfPath}\"");
-        dosboxArgs.Add($"-c \"MOUNT C '{gameSpecificMountCPath}'\"");
-
-        foreach (DiscImageInfo isoInfo in gameConfig.IsoImages)
-        {
-            // Check if the "isos" directory exists for this game if ISOs are listed
-            if (!Directory.Exists(gameConfig.IsoBasePath))
-            {
-                MessageBox.Show(this, $"ISO directory '{gameConfig.IsoBasePath}' not found for game '{gameConfig.GameName}'.", "Launch Warning", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                break; // No point in checking other ISOs if the directory is missing
-            }
-
-            // ISO paths in game.cfg are relative to the "isos" directory within the game's folder
-            string fullIsoPathOnHost = Path.Combine(gameConfig.IsoBasePath, isoInfo.ImgFileName);
-
-            if (File.Exists(fullIsoPathOnHost))
-            {
-                dosboxArgs.Add($"-c \"IMGMOUNT D '{fullIsoPathOnHost}' -t iso\"");
-            }
-            else
-            {
-                MessageBox.Show(this, $"ISO/CUE file '{isoInfo.ImgFileName}' not found in '{gameConfig.IsoBasePath}' for game '{gameConfig.GameName}'.", "Launch Warning", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-            }
-        }
-
-        dosboxArgs.Add($"-c \"C:\"");
-
-        foreach (string command in gameConfig.DosboxCommands)
-        {
-            dosboxArgs.Add($"-c \"{command}\"");
-        }
-
-        dosboxArgs.Add("-c \"EXIT\"");
-
-        string arguments = string.Join(" ", dosboxArgs);
-
-        try
-        {
-            ProcessStartInfo startInfo = new ProcessStartInfo
-            {
-                FileName = dosboxPath, // Use the local variable
-                Arguments = arguments,
-                UseShellExecute = false,
-                CreateNoWindow = true
-            };
-
-            Process.Start(startInfo);
-        }
-        catch (Exception ex)
-        {
-            MessageBox.Show(this, $"Failed to launch DOSBox: {ex.Message}\n\nCommand: {arguments}", "Launch Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-        }
     }
 
     private void UpdateInstallDiscImageForSelection()
