@@ -15,6 +15,7 @@ public class BoxArtCarouselManager : IDisposable
 
     private List<string> _mediaPaths = [];
     private int _currentIndex = -1;
+    private static readonly string[] VideoExtensions = [".avi", ".mp4", ".mpg"];
 
     public BoxArtCarouselManager(PictureBox pictureBox, VideoView videoView, MediaPlayer mediaPlayer, LibVLC libVLC, Label imageNameLabel, Button previousButton, Button nextButton)
     {
@@ -66,22 +67,23 @@ public void GoToNext()
         string currentPath = _mediaPaths[_currentIndex];
         _imageNameLabel.Text = Path.GetFileName(currentPath);
 
-        if (Path.GetExtension(currentPath).Equals(".avi", StringComparison.OrdinalIgnoreCase))
+        string extension = Path.GetExtension(currentPath);
+        if (VideoExtensions.Contains(extension, StringComparer.OrdinalIgnoreCase))
         {
             _pictureBox.Visible = false;
             _pictureBox.Image?.Dispose();
             _pictureBox.Image = null;
 
             _videoView.Visible = true;
-            
-            using var media = new Media(_libVLC, new Uri(currentPath));
+
+            // Create a new Media object with an option to loop indefinitely.
+            // The MediaPlayer will clone the media object, so we can dispose it right after.
+            using var media = new Media(_libVLC, new Uri(currentPath), ":input-repeat=65535");
             _mediaPlayer.Play(media);
-            _mediaPlayer.EndReached += MediaPlayer_EndReached;
         }
         else
         {
             _mediaPlayer.Stop();
-            _mediaPlayer.EndReached -= MediaPlayer_EndReached;
             _videoView.Visible = false;
             
             _pictureBox.Visible = true;
@@ -89,8 +91,6 @@ public void GoToNext()
             _pictureBox.Image = Image.FromFile(currentPath);
         }
     }
-
-    private void MediaPlayer_EndReached(object? sender, EventArgs e) => _mediaPlayer?.Play();
 
     private void UpdateControls()
     {
@@ -102,7 +102,6 @@ public void GoToNext()
     public void Clear()
     {
         _mediaPlayer.Stop();
-        _mediaPlayer.EndReached -= MediaPlayer_EndReached;
         _videoView.Visible = false;
         _pictureBox.Visible = true;
         _pictureBox.Image?.Dispose();
@@ -116,7 +115,5 @@ public void GoToNext()
     public void Dispose()
     {
         _pictureBox.Image?.Dispose();
-        if (_mediaPlayer != null) _mediaPlayer.EndReached -= MediaPlayer_EndReached;
     }
 }
-
