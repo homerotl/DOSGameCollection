@@ -14,8 +14,4 @@
   <ItemGroup>
     <EmbeddedResource Include="appicon.ico" />
   </ItemGroup>
-  <ItemGroup>
-    <PackageReference Include="LibVLCSharp.WinForms" Version="3.9.3" />
-    <PackageReference Include="VideoLAN.LibVLC.Windows" Version="3.0.21" />
-  </ItemGroup>
 </Project>

@@ -3,8 +3,6 @@ using System.Reflection;
 using DOSGameCollection.Models;
 using DOSGameCollection.UI;
 using DOSGameCollection.Services;
-using LibVLCSharp.Shared;
-using LibVLCSharp.WinForms;
 
 namespace DOSGameCollection;
 
@@ -34,16 +32,12 @@ public class TopForm : Form
     private PictureBox? floppyDiskImagePictureBox;
     private TextBox? runCommandsTextBox; 
     private List<GameConfiguration> _loadedGameConfigs = [];
-    private AppConfigService _appConfigService;
-    private LibVLC? _libVLC;
-    private MediaPlayer? _mediaPlayer;
-    private VideoView? _videoView;
+    private readonly AppConfigService _appConfigService;
     public TopForm()
     {
-        Core.Initialize(); // Must be called before using LibVLCSharp
         InitializeComponent();
         _appConfigService = new AppConfigService();
-        this.Load += TopForm_Load; // Event for when the form loads
+        Load += TopForm_Load;
     }
 
     private record MediaItem(string FilePath, string DisplayName, MediaType Type);
@@ -51,25 +45,23 @@ public class TopForm : Form
 
     private void InitializeComponent()
     {
-        this.Text = $"DOSGameCollection - build {BuildInfo.BuildVersion}";
-        this.Name = "TopForm";
-        this.ClientSize = new System.Drawing.Size(800, 600); // Updated height
-        this.MinimumSize = new System.Drawing.Size(800, 600); // Updated minimum width and height
+        Text = $"DOSGameCollection - build {BuildInfo.BuildVersion}";
+        Name = "TopForm";
+        ClientSize = new System.Drawing.Size(800, 600); 
+        MinimumSize = new System.Drawing.Size(800, 600); 
 
         // --- Set Form Icon ---
         try
         {
-            // Get the current assembly
             Assembly assembly = Assembly.GetExecutingAssembly();
-            // Get the resource name (usually Namespace.Filename.Extension)
-            // Assuming your namespace is DOSGameCollection and icon is appicon.ico in root
-            string resourceName = "DOSGameCollection.appicon.ico"; // Adjust if namespace or filename differs
+
+            string resourceName = "DOSGameCollection.appicon.ico"; 
 
             using (Stream? iconStream = assembly.GetManifestResourceStream(resourceName))
             {
                 if (iconStream != null)
                 {
-                    this.Icon = new System.Drawing.Icon(iconStream);
+                    Icon = new System.Drawing.Icon(iconStream);
                 }
                 else
                 {
@@ -108,7 +100,7 @@ public class TopForm : Form
 
         // Help Menu
         ToolStripMenuItem helpMenu = new("&Help");
-        helpMenu.Alignment = ToolStripItemAlignment.Right; // Align to the right
+        helpMenu.Alignment = ToolStripItemAlignment.Right;
 
         ToolStripMenuItem aboutMenuItem = new("&About");
         aboutMenuItem.Click += AboutMenuItem_Click;
@@ -119,11 +111,11 @@ public class TopForm : Form
         helpMenu.DropDownItems.Add(consoleLogMenuItem);
         helpMenu.DropDownItems.Add(aboutMenuItem);
 
-        menuStrip.Items.AddRange(new ToolStripItem[] {
+        menuStrip.Items.AddRange([
             fileMenu,
             settingsMenu,
             helpMenu
-        });
+        ]);
 
         Controls.Add(menuStrip);
         MainMenuStrip = menuStrip;
@@ -134,7 +126,6 @@ public class TopForm : Form
             ColumnCount = 2
         };
 
-        // Define Column Styles
         mainLayoutPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 200F));
         mainLayoutPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
 
@@ -142,34 +133,31 @@ public class TopForm : Form
 
         // Button initialization
 
-        // Initialize the refresh button
         refreshButton = new Button
         {
-            Anchor = AnchorStyles.Left, // Align to the left
+            Anchor = AnchorStyles.Left,
             AutoSize = true,
-            Margin = new Padding(5, 5, 5, 3), // Margin (left, top, right, bottom)
+            Margin = new Padding(5, 5, 5, 3),
             Text = symbolFont != null ? "\u21BB" : "Refresh"
         };
         if (symbolFont != null) { refreshButton.Font = symbolFont; }
         refreshButton.Click += RefreshButton_Click;
 
-        // Initialize Run Button
         runButton = new Button
         {
             AutoSize = true,
-            Margin = new Padding(0, 0, 5, 5), // Consistent right and bottom margin
-            Enabled = false, // Initially disabled
+            Margin = new Padding(0, 0, 5, 5), 
+            Enabled = false,
             Text = symbolFont != null ? "\U0001F680" : "Run"
         };
         if (symbolFont != null) { runButton.Font = symbolFont; }
-        runButton.Click += RunButton_Click; // Add click event handler
+        runButton.Click += RunButton_Click; 
 
-        // Initialize Manual Button
         manualButton = new Button
         {
             AutoSize = true,
-            Margin = new Padding(0, 0, 5, 5), // Consistent right and bottom margin
-            Enabled = false, // Initially disabled
+            Margin = new Padding(0, 0, 5, 5),
+            Enabled = false,
             Text = symbolFont != null ? "\U0001F56E" : "Manual"
         };
         if (symbolFont != null) { manualButton.Font = symbolFont; }
@@ -179,7 +167,7 @@ public class TopForm : Form
         {
             AutoSize = true,
             Margin = new Padding(0, 0, 5, 5),
-            Enabled = false, // Initially disabled
+            Enabled = false, 
             Text = symbolFont != null ? "\u270E" : "Edit"
         };
         if (symbolFont != null) { editGameDataButton.Font = symbolFont; }
@@ -189,8 +177,8 @@ public class TopForm : Form
         {
             AutoSize = true,
             Margin = new Padding(0, 0, 5, 5),
-            Visible = false, // Initially hidden
-            Text = symbolFont != null ? "\uD83D\uDCBE" : "Save" // Floppy disk emoji for save
+            Visible = false, 
+            Text = symbolFont != null ? "\uD83D\uDCBE" : "Save"
         };
         if (symbolFont != null) { saveGameDataButton.Font = symbolFont; }
         saveGameDataButton.Click += SaveGameDataButton_Click;
@@ -202,11 +190,11 @@ public class TopForm : Form
             Dock = DockStyle.Fill,
             ColumnCount = 1,
             RowCount = 3,
-            Margin = new Padding(0, 5, 5, 5) // This will be adjusted
+            Margin = new Padding(0, 5, 5, 5)
         };
         rightColumnPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
 
-        // --- Action Buttons Panel (Run and Manual) ---
+        // --- Action Buttons Panel 
         FlowLayoutPanel actionButtonsPanel = new FlowLayoutPanel
         {
             FlowDirection = FlowDirection.LeftToRight,
@@ -236,19 +224,11 @@ public class TopForm : Form
         // --- Game Name Container Panel (Label and TextBox) ---
         TableLayoutPanel gamePropsTablePanel = new()
         {
-
             Dock = DockStyle.Top,
             AutoSize = true,
             ColumnCount = 2,
             RowCount = 6,
             Margin = new Padding(0, 0, 3, 0) // Right margin
-
-            
-            //Dock = DockStyle.Top,
-            //AutoSizeMode = AutoSizeMode.GrowOnly,
-            //ColumnCount = 2,
-            //RowCount = 6, // Use six rows now
-            //Margin = new Padding(0, 0, 3, 0) // Right margin
         };
         gamePropsTablePanel.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
         gamePropsTablePanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
@@ -282,7 +262,7 @@ public class TopForm : Form
         gamePropsTablePanel.Controls.Add(gameNameTextBox, 1, 0);
 
         // --- New Release Year controls ---
-        Label releaseYearLabel = new Label
+        Label releaseYearLabel = new()
         {
             Text = "Release Year",
             Anchor = AnchorStyles.Left,
@@ -304,7 +284,7 @@ public class TopForm : Form
         gamePropsTablePanel.Controls.Add(releaseYearTextBox, 1, 1);
 
         // --- New Parental Rating controls ---
-        Label parentalRatingLabel = new Label
+        Label parentalRatingLabel = new()
         {
             Text = "Parental Rating",
             Anchor = AnchorStyles.Left,
@@ -328,7 +308,7 @@ public class TopForm : Form
         gamePropsTablePanel.Controls.Add(parentalRatingComboBox, 1, 2);
 
         // --- New Developer controls ---
-        Label developerLabel = new Label
+        Label developerLabel = new()
         {
             Text = "Developer",
             Anchor = AnchorStyles.Left,
@@ -343,13 +323,13 @@ public class TopForm : Form
             ReadOnly = true,
             MaxLength = 100
         };
-        developerTextBox.KeyPress += GameNameTextBox_KeyPress; // Reuse ASCII filter
+        developerTextBox.KeyPress += GameNameTextBox_KeyPress;
 
         gamePropsTablePanel.Controls.Add(developerLabel, 0, 3);
         gamePropsTablePanel.Controls.Add(developerTextBox, 1, 3);
 
         // --- New Publisher controls ---
-        Label publisherLabel = new Label
+        Label publisherLabel = new()
         {
             Text = "Publisher",
             Anchor = AnchorStyles.Left,
@@ -364,7 +344,7 @@ public class TopForm : Form
             ReadOnly = true,
             MaxLength = 100
         };
-        publisherTextBox.KeyPress += GameNameTextBox_KeyPress; // Reuse ASCII filter
+        publisherTextBox.KeyPress += GameNameTextBox_KeyPress;
 
         gamePropsTablePanel.Controls.Add(publisherLabel, 0, 4);
         gamePropsTablePanel.Controls.Add(publisherTextBox, 1, 4);
@@ -381,7 +361,7 @@ public class TopForm : Form
         runCommandsPanel.RowStyles.Add(new RowStyle(SizeType.AutoSize)); // For Label
         runCommandsPanel.RowStyles.Add(new RowStyle(SizeType.AutoSize)); // For TextBox
 
-        Label runCommandsLabel = new Label
+        Label runCommandsLabel = new()
         {
             Text = "Run Commands",
             Anchor = AnchorStyles.Left,
@@ -436,34 +416,21 @@ public class TopForm : Form
             SizeMode = PictureBoxSizeMode.Zoom,
             BorderStyle = BorderStyle.FixedSingle,
             BackColor = Color.Black
-            // Margin is handled by its container
-        };
-
-        // --- LibVLC VideoView Setup ---
-        _libVLC = new LibVLC();
-        _mediaPlayer = new MediaPlayer(_libVLC);
-        _mediaPlayer.Mute = true;
-        _videoView = new VideoView
-        {
-            MediaPlayer = _mediaPlayer,
-            Dock = DockStyle.Fill,
-            BackColor = Color.Black,
-            Visible = false // Initially hidden
         };
 
         // --- TabControl Setup for additional game details ---
         extraInformationTabControl = new TabControl
         {
             Dock = DockStyle.Fill,
-            Margin = new Padding(0, 5, 0, 0) // Add some top margin
+            Margin = new Padding(0, 5, 0, 0)
         };
 
-        TabPage mediaTab = new TabPage("Media");
-        TabPage synopsisTab = new TabPage("Synopsis");
+        TabPage mediaTab = new("Media");
+        TabPage synopsisTab = new("Synopsis");
         synopsisTab.Controls.Add(synopsisTextBox);
 
         // --- Layout Panel for Media Tab ---
-        TableLayoutPanel mediaTabPanel = new TableLayoutPanel
+        TableLayoutPanel mediaTabPanel = new()
         {
             Dock = DockStyle.Fill,
             ColumnCount = 2,
@@ -495,15 +462,14 @@ public class TopForm : Form
         mediaDataGridView.SelectionChanged += MediaDataGridView_SelectionChanged;
 
         // --- Panel for PictureBox and VideoView ---
-        Panel mediaDisplayPanel = new Panel { Dock = DockStyle.Fill };
+        Panel mediaDisplayPanel = new() { Dock = DockStyle.Fill };
         mediaDisplayPanel.Controls.Add(mediaDisplayPictureBox);
-        mediaDisplayPanel.Controls.Add(_videoView);
 
         mediaTabPanel.Controls.Add(mediaDataGridView, 0, 0);
         mediaTabPanel.Controls.Add(mediaDisplayPanel, 1, 0);
         mediaTab.Controls.Add(mediaTabPanel);
 
-        TabPage isoImagesTab = new TabPage("CD-ROM images");
+        TabPage isoImagesTab = new("CD-ROM images");
 
         // --- Layout Panel for CD-ROM Images Tab ---
         TableLayoutPanel isoImagesPanel = new TableLayoutPanel
@@ -559,11 +525,11 @@ public class TopForm : Form
         });
         isoImagesDataGridView.SelectionChanged += DiskImagesDataGridView_SelectionChanged;
 
-        TabPage soundtrackTab = new TabPage("Soundtrack");
-        TabPage floppyDisksTab = new TabPage("Floppy disks");
+        TabPage soundtrackTab = new("Soundtrack");
+        TabPage floppyDisksTab = new("Floppy disks");
 
         // --- Layout Panel for floppy disk images Tab ---
-        TableLayoutPanel floppyDiskPanel = new TableLayoutPanel
+        TableLayoutPanel floppyDiskPanel = new()
         {
             Dock = DockStyle.Fill,
             ColumnCount = 2,
@@ -603,7 +569,7 @@ public class TopForm : Form
         floppyDiskPanel.Controls.Add(floppyDiskDataGridView, 0, 0);
 
         // PictureBox for the selected install disc image
-        floppyDiskImagePictureBox = new PictureBox // This is the bug fix you asked about
+        floppyDiskImagePictureBox = new PictureBox 
         {
             Dock = DockStyle.Fill,
             Margin = new Padding(3),
@@ -619,13 +585,13 @@ public class TopForm : Form
         TabPage cheatsTab = new TabPage("Cheats");
         TabPage notesTab = new TabPage("Notes");
 
-        extraInformationTabControl.TabPages.AddRange(new TabPage[] {
+        extraInformationTabControl.TabPages.AddRange([
             mediaTab, synopsisTab, isoImagesTab, soundtrackTab, floppyDisksTab, walkthroughTab, cheatsTab, notesTab
-        });
-        rightColumnPanel.Controls.Add(extraInformationTabControl, 0, 2); // Add TabControl to the new row 2
+        ]);
+        rightColumnPanel.Controls.Add(extraInformationTabControl, 0, 2);
 
         // --- Left Column Panel (for Refresh Button and Game ListBox) ---
-        TableLayoutPanel leftColumnPanel = new TableLayoutPanel
+        TableLayoutPanel leftColumnPanel = new()
         {
             Dock = DockStyle.Fill,
             ColumnCount = 1,
@@ -649,9 +615,9 @@ public class TopForm : Form
         mainLayoutPanel.Controls.Add(rightColumnPanel, 1, 0); // Add to column 1, row 0 of main TLP
 
         // Add the main TableLayoutPanel directly to the Form's controls
-        this.Controls.Add(mainLayoutPanel);
+        Controls.Add(mainLayoutPanel);
 
-        this.Controls.Add(menuStrip);
+        Controls.Add(menuStrip);
     }
 
     private async void TopForm_Load(object? sender, EventArgs e)
@@ -670,6 +636,8 @@ public class TopForm : Form
 
     private async Task RefreshGameListAsync()
     {
+        ClearMediaDisplay();
+
         // Clear existing game list and related UI elements
         if (gameListBox != null)
         {
@@ -700,7 +668,6 @@ public class TopForm : Form
         {
             mediaDataGridView.Rows.Clear();
         }
-        StopAndClearMediaDisplay();
         if (synopsisTextBox != null)
         {
             synopsisTextBox.Text = string.Empty;
@@ -761,11 +728,11 @@ public class TopForm : Form
         });
 
         LoadGamesDataService loadGamesDataService = new();
-        List<GameConfiguration> gameConfigs = new List<GameConfiguration>();
+        List<GameConfiguration> gameConfigs = [];
 
         try
         {
-            if (refreshButton != null) refreshButton.Enabled = false; // Disable button during load
+            if (refreshButton != null) refreshButton.Enabled = false;
 
             Task<List<GameConfiguration>> loadingTask = loadGamesDataService.LoadDataAsync(_appConfigService.LibraryPath, progress);
             progressDialog.ShowDialog(this); // Show modally, blocks here until dialog is closed
@@ -781,7 +748,7 @@ public class TopForm : Form
         }
         finally
         {
-            if (refreshButton != null) refreshButton.Enabled = true; // Re-enable button
+            if (refreshButton != null) refreshButton.Enabled = true;
         }
 
         _loadedGameConfigs = gameConfigs;
@@ -808,21 +775,20 @@ public class TopForm : Form
 
     private async void GameListBox_SelectedIndexChanged(object? sender, EventArgs e)
     {
-        // Enable the Run button only if an item is selected
         if (runButton != null)
         {
             runButton.Enabled = (gameListBox?.SelectedItem != null);
         }
         if (manualButton != null)
         {
-            manualButton.Enabled = false; // Disable by default, enable if manual exists
+            manualButton.Enabled = false;
         }
         if (editGameDataButton != null)
         {
             editGameDataButton.Enabled = (gameListBox?.SelectedItem != null);
-            editGameDataButton.Visible = true; // Ensure edit button is visible
+            editGameDataButton.Visible = true;
         }
-        if (saveGameDataButton != null) saveGameDataButton.Visible = false; // Ensure save button is hidden
+        if (saveGameDataButton != null) saveGameDataButton.Visible = false;
         if (isoImagesDataGridView != null)
         {
             isoImagesDataGridView.Rows.Clear();
@@ -849,8 +815,7 @@ public class TopForm : Form
         }
 
         if (gameNameTextBox != null && gameListBox != null)
-        { // General null check for UI elements
-
+        {
             gameNameTextBox.ReadOnly = true;
             GameConfiguration? selectedGame = gameListBox.SelectedItem as GameConfiguration;
 
@@ -876,9 +841,8 @@ public class TopForm : Form
                     publisherTextBox.Text = selectedGame.Publisher ?? string.Empty;
                 }
 
-                // Stop any playing media from previous selection
-                StopAndClearMediaDisplay();
-                // Populate the new Media tab
+                ClearMediaDisplay();
+
                 PopulateMediaTab(selectedGame);
 
                 if (manualButton != null && !string.IsNullOrEmpty(selectedGame.ManualPath) && File.Exists(selectedGame.ManualPath))
@@ -907,7 +871,7 @@ public class TopForm : Form
                     }
                 }
 
-                // Populate Disk Images ListBox
+                // Populate isos ListBox
                 if (isoImagesDataGridView != null)
                 {
                     foreach (DiscImageInfo isoInfo in selectedGame.IsoImages)
@@ -924,7 +888,6 @@ public class TopForm : Form
                     UpdateIsoImageForSelection();
                 }
 
-                // Populate Run Commands TextBox
                 if (runCommandsTextBox != null)
                 {
                     runCommandsTextBox.Text = string.Join(Environment.NewLine, selectedGame.DosboxCommands);
@@ -939,8 +902,6 @@ public class TopForm : Form
                         floppyDiskDataGridView.Rows[rowIndex].Tag = discInfo;
                     }
 
-                    // Trigger selection changed to load the image for the first item
-                    // Select the first row and ensure its image is loaded.
                     if (floppyDiskDataGridView.Rows.Count > 0)
                     {
                         floppyDiskDataGridView.Rows[0].Selected = true;
@@ -972,7 +933,6 @@ public class TopForm : Form
                     synopsisTextBox.Text = string.Empty; // Clear synopsis if no selection
                 }
             }
-
         }
     }
 
@@ -1148,54 +1108,43 @@ public class TopForm : Form
 
     private void MediaDataGridView_SelectionChanged(object? sender, EventArgs e)
     {
+        // Clear the display first.
+        ClearMediaDisplay();
+
         if (mediaDataGridView == null || mediaDataGridView.SelectedRows.Count == 0)
         {
-            StopAndClearMediaDisplay();
             return;
         }
 
         var selectedRow = mediaDataGridView.SelectedRows[0];
-        if (selectedRow.Tag is not MediaItem mediaItem) return;
+        if (selectedRow.Tag is not MediaItem mediaItem)
+        {
+            return;
+        }
 
-        StopAndClearMediaDisplay();
+        if (mediaDisplayPictureBox != null)
+        {
+            mediaDisplayPictureBox.Visible = true;
+        }
 
         if (mediaItem.Type == MediaType.Image && mediaDisplayPictureBox != null)
         {
             try
             {
                 mediaDisplayPictureBox.Image = Image.FromFile(mediaItem.FilePath);
-                mediaDisplayPictureBox.Visible = true;
             }
-            catch (Exception ex) { AppLogger.Log($"Error loading media image '{mediaItem.FilePath}': {ex.Message}"); }
-        }
-        else if (mediaItem.Type == MediaType.Video && _videoView != null && _mediaPlayer != null)
-        {
-            try
-            {
-                _videoView.Visible = true;
-                using var media = new Media(_libVLC, new Uri(mediaItem.FilePath));
-                _mediaPlayer.Play(media);
-            }
-            catch (Exception ex) { AppLogger.Log($"Error playing media video '{mediaItem.FilePath}': {ex.Message}"); }
+            catch (Exception ex) { AppLogger.Log($"Error loading media image '{mediaItem.FilePath}': {ex.Message}"); } // Log the error
         }
     }
 
-    private void StopAndClearMediaDisplay()
+    private void ClearMediaDisplay()
     {
-        _mediaPlayer?.Stop();
         if (mediaDisplayPictureBox != null)
         {
             mediaDisplayPictureBox.Visible = false;
             mediaDisplayPictureBox.Image?.Dispose();
             mediaDisplayPictureBox.Image = null;
         }
-        if (_videoView != null) _videoView.Visible = false;
-    }
-
-    protected override void Dispose(bool disposing)
-    {
-        if (disposing) { _mediaPlayer?.Dispose(); _libVLC?.Dispose(); }
-        base.Dispose(disposing);
     }
     
     private void GameNameTextBox_KeyPress(object? sender, KeyPressEventArgs e)
@@ -1258,7 +1207,6 @@ public class TopForm : Form
         if (e.KeyCode == Keys.Enter)
         {
             e.SuppressKeyPress = true; // Stop the 'ding' sound
-            // Do not save on Enter, only suppress the key press to prevent newline
         }
     }
 
@@ -1361,7 +1309,6 @@ public class TopForm : Form
 
         try
         {
-            // Call the consolidated save method
             await GameDataWriterService.UpdateGameDataAsync(selectedGame.ConfigFilePath, newName, newYear, newRating, newDeveloper, newPublisher, newCommands);
 
             // Update in-memory model only if save was successful

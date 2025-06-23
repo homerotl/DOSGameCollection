@@ -28,35 +28,36 @@ This program expects games to be arranged in a specific folder structure like so
             --/game_cd_1.png (picture or scan of the media itself)
         --/media
             --/synopsis.txt
+            --/main.png
+            --/icon.png
+            --/background.png
+            --/cheats-and-secrets.txt
+            --/personal-notes.txt
+            --/walkthrough
+                --/page_01.txt (or pdf)
+                --/walkthrough-info.txt
             --/box-art
                 --/front.png
                 --/back.png
                 --/art_01.png
             --/captures
                 --/capture-info.txt
-                --/capture_001.png
+                --/capture-001.png
             --/videos
                 --/video-info.txt
-                --/video_001.mpg
+                --/video-001.avi
             --/inserts
                 --/insert-info.txt
                 --/insert_01.pdf
-                --/insert_02.pdf
-            --/main.png
-            --/icon.png
-            --/background.png
-            --/walkthrough
-                --/page_01.txt (or pdf)
-                --/walkthrough-info.txt
-            --/cheats_and_secrets
-            --notes.txt
-            --/ost
+                --/insert_02.png
+            --/ost (original soundtrack, .mp3)
                 --/midi
                   --/track-info.txt
                   --/track_01.mid
                 --/track-info.txt
                 --/cover.png
                 --/track_01.mp3
+        --/other (other files which don't fit in any other category)
 ```
 
 ## Game file specification
@@ -96,6 +97,3 @@ An example of the format for the disc-info.txt text file is as follows:
 disc_01.img,Installation disk 1
 disc_02.img,Installation disk 2
 ```
-## Open Source Project Dependencies 
-
-* [LibVLCSharp.Winforms](https://www.nuget.org/packages/LibVLCSharp.WinForms/)

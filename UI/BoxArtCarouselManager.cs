@@ -1,28 +1,19 @@
-using LibVLCSharp.Shared;
-using LibVLCSharp.WinForms;
-
 namespace DOSGameCollection.UI;
 
 public class BoxArtCarouselManager : IDisposable
 {
     private readonly PictureBox _pictureBox;
-    private readonly VideoView _videoView;
-    private readonly MediaPlayer _mediaPlayer;
-    private readonly LibVLC _libVLC;
     private readonly Label _imageNameLabel;
     private readonly Button _previousButton;
     private readonly Button _nextButton;
 
     private List<string> _mediaPaths = [];
     private int _currentIndex = -1;
-    private static readonly string[] VideoExtensions = [".avi", ".mp4", ".mpg"];
+    private static readonly string[] VideoExtensions = [".avi", ".mp4", ".mpg", ".mkv"];
 
-    public BoxArtCarouselManager(PictureBox pictureBox, VideoView videoView, MediaPlayer mediaPlayer, LibVLC libVLC, Label imageNameLabel, Button previousButton, Button nextButton)
+    public BoxArtCarouselManager(PictureBox pictureBox, Label imageNameLabel, Button previousButton, Button nextButton)
     {
         _pictureBox = pictureBox;
-        _videoView = videoView;
-        _mediaPlayer = mediaPlayer;
-        _libVLC = libVLC;
         _imageNameLabel = imageNameLabel;
         _previousButton = previousButton;
         _nextButton = nextButton;
@@ -67,29 +58,24 @@ public void GoToNext()
         string currentPath = _mediaPaths[_currentIndex];
         _imageNameLabel.Text = Path.GetFileName(currentPath);
 
+        _pictureBox.Visible = true;
+        _pictureBox.Image?.Dispose();
+        _pictureBox.Image = null;
+
         string extension = Path.GetExtension(currentPath);
-        if (VideoExtensions.Contains(extension, StringComparer.OrdinalIgnoreCase))
+        if (!VideoExtensions.Contains(extension, StringComparer.OrdinalIgnoreCase))
         {
-            _pictureBox.Visible = false;
-            _pictureBox.Image?.Dispose();
-            _pictureBox.Image = null;
-
-            _videoView.Visible = true;
-
-            // Create a new Media object with an option to loop indefinitely.
-            // The MediaPlayer will clone the media object, so we can dispose it right after.
-            using var media = new Media(_libVLC, new Uri(currentPath), ":input-repeat=65535");
-            _mediaPlayer.Play(media);
+            // It's an image, so try to load it.
+            try
+            {
+                _pictureBox.Image = Image.FromFile(currentPath);
+            }
+            catch (Exception ex)
+            {
+                AppLogger.Log($"Error loading carousel image '{currentPath}': {ex.Message}");
+            }
         }
-        else
-        {
-            _mediaPlayer.Stop();
-            _videoView.Visible = false;
-            
-            _pictureBox.Visible = true;
-            _pictureBox.Image?.Dispose();
-            _pictureBox.Image = Image.FromFile(currentPath);
-        }
+        // If it's a video, the picture box remains visible but empty.
     }
 
     private void UpdateControls()
@@ -101,9 +87,7 @@ public void GoToNext()
 
     public void Clear()
     {
-        _mediaPlayer.Stop();
-        _videoView.Visible = false;
-        _pictureBox.Visible = true;
+        _pictureBox.Visible = false;
         _pictureBox.Image?.Dispose();
         _pictureBox.Image = null;
         _imageNameLabel.Text = "";
