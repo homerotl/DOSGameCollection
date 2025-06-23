@@ -9,8 +9,9 @@ public static class GameDataWriterService
     /// </summary>
     /// <param name="cfgFilePath">The full path to the game.cfg file.</param>
     /// <param name="newName">The new name for the game.</param>
+    /// <param name="newYear">The new release year for the game.</param>
     /// <param name="newCommands">The new list of commands to write.</param>
-    public static async Task UpdateGameDataAsync(string cfgFilePath, string newName, IEnumerable<string> newCommands)
+    public static async Task UpdateGameDataAsync(string cfgFilePath, string newName, int? newYear, IEnumerable<string> newCommands)
     {
         if (!File.Exists(cfgFilePath))
         {
@@ -19,22 +20,55 @@ public static class GameDataWriterService
 
         var lines = (await File.ReadAllLinesAsync(cfgFilePath)).ToList();
 
-        // --- Update game.name ---
-        bool nameFound = false;
+        // --- Update game.name and find its index ---
+        int nameIndex = -1;
         const string gameNamePrefix = "game.name=";
-
         for (int i = 0; i < lines.Count; i++)
         {
             if (lines[i].TrimStart().StartsWith(gameNamePrefix, StringComparison.OrdinalIgnoreCase))
             {
                 lines[i] = $"{gameNamePrefix}{newName}";
-                nameFound = true;
+                nameIndex = i;
                 break;
             }
         }
-        if (!nameFound)
+        if (nameIndex == -1)
         {
             lines.Insert(0, $"{gameNamePrefix}{newName}");
+            nameIndex = 0;
+        }
+
+        // --- Update game.release.year ---
+        int yearIndex = -1;
+        const string yearPrefix = "game.release.year=";
+        for (int i = 0; i < lines.Count; i++)
+        {
+            if (lines[i].TrimStart().StartsWith(yearPrefix, StringComparison.OrdinalIgnoreCase))
+            {
+                yearIndex = i;
+                break;
+            }
+        }
+
+        if (newYear.HasValue)
+        {
+            string yearLine = $"{yearPrefix}{newYear.Value}";
+            if (yearIndex != -1)
+            {
+                lines[yearIndex] = yearLine;
+            }
+            else
+            {
+                // Insert after game.name
+                lines.Insert(nameIndex + 1, yearLine);
+            }
+        }
+        else // newYear is null, so remove the line if it exists
+        {
+            if (yearIndex != -1)
+            {
+                lines.RemoveAt(yearIndex);
+            }
         }
 
         // --- Update [commands] section ---

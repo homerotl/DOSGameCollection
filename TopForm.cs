@@ -18,6 +18,7 @@ public class TopForm : Form
     private TableLayoutPanel? gameDetailsTableLayoutPanel;
     private Label? gameNameLabel;
     private TextBox? gameNameTextBox;
+    private TextBox? releaseYearTextBox;
     private PictureBox? boxArtPictureBox;
     private Button? boxArtPreviousButton;
     private Label? boxArtImageNameLabel;
@@ -255,12 +256,13 @@ public class TopForm : Form
         {
             Dock = DockStyle.Fill, // Fill the cell
             ColumnCount = 2,
-            RowCount = 2, // Use two rows to force content to the top
+            RowCount = 3, // Use three rows now
             Margin = new Padding(0, 0, 3, 0) // Right margin
         };
         gameNameContainerPanel.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
         gameNameContainerPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
         gameNameContainerPanel.RowStyles.Add(new RowStyle(SizeType.AutoSize));      // Row for content
+        gameNameContainerPanel.RowStyles.Add(new RowStyle(SizeType.AutoSize));      // Row for Release Year
         gameNameContainerPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 100F)); // Spacer row
 
         gameNameLabel = new Label
@@ -281,6 +283,28 @@ public class TopForm : Form
 
         gameNameContainerPanel.Controls.Add(gameNameLabel, 0, 0);
         gameNameContainerPanel.Controls.Add(gameNameTextBox, 1, 0);
+
+        // --- New Release Year controls ---
+        Label releaseYearLabel = new Label
+        {
+            Text = "Release Year",
+            Anchor = AnchorStyles.Left,
+            TextAlign = ContentAlignment.MiddleLeft,
+            AutoSize = true,
+            Margin = new Padding(0, 3, 3, 0) // Top and right margin
+        };
+
+        releaseYearTextBox = new TextBox
+        {
+            Anchor = AnchorStyles.Left, // Don't stretch, keep it small
+            ReadOnly = true,
+            Width = 50, // Good for 4 digits + padding
+            MaxLength = 4
+        };
+        releaseYearTextBox.KeyPress += ReleaseYearTextBox_KeyPress;
+
+        gameNameContainerPanel.Controls.Add(releaseYearLabel, 0, 1);
+        gameNameContainerPanel.Controls.Add(releaseYearTextBox, 1, 1);
 
         // --- Run Commands Layout Table ---
         TableLayoutPanel runCommandsLayoutTable = new()
@@ -609,6 +633,10 @@ public class TopForm : Form
         {
             gameNameTextBox.Text = string.Empty;
         }
+        if (releaseYearTextBox != null)
+        {
+            releaseYearTextBox.Text = string.Empty;
+        }
         _boxArtCarouselManager?.Clear();
         if (synopsisTextBox != null)
         {
@@ -766,6 +794,11 @@ public class TopForm : Form
             if (selectedGame != null)
             {
                 gameNameTextBox.Text = selectedGame.GameName;
+                if (releaseYearTextBox != null)
+                {
+                    releaseYearTextBox.Text = selectedGame.ReleaseYear?.ToString() ?? string.Empty;
+                    releaseYearTextBox.ReadOnly = true;
+                }
 
                 if (manualButton != null && !string.IsNullOrEmpty(selectedGame.ManualPath) && File.Exists(selectedGame.ManualPath))
                 {
@@ -837,6 +870,10 @@ public class TopForm : Form
             else // No game selected
             {
                 gameNameTextBox.Text = string.Empty; // Clear if no selection
+                if (releaseYearTextBox != null)
+                {
+                    releaseYearTextBox.Text = string.Empty;
+                }
                 if (synopsisTextBox != null)
                 {
                     synopsisTextBox.Text = string.Empty; // Clear synopsis if no selection
@@ -1113,6 +1150,15 @@ public class TopForm : Form
         base.Dispose(disposing);
     }
     
+    private void ReleaseYearTextBox_KeyPress(object? sender, KeyPressEventArgs e)
+    {
+        // Allow only digits and control characters (like backspace)
+        if (!char.IsControl(e.KeyChar) && !char.IsDigit(e.KeyChar))
+        {
+            e.Handled = true;
+        }
+    }
+
     private void AboutMenuItem_Click(object? sender, EventArgs e)
     {
         using AboutDialog aboutDialog = new();
@@ -1128,10 +1174,11 @@ public class TopForm : Form
 
     private void EditGameDataButton_Click(object? sender, EventArgs e)
     {
-        if (gameNameTextBox == null || runCommandsTextBox == null || editGameDataButton == null || saveGameDataButton == null) return;
+        if (gameNameTextBox == null || releaseYearTextBox == null || runCommandsTextBox == null || editGameDataButton == null || saveGameDataButton == null) return;
 
         gameNameTextBox.ReadOnly = false;
         runCommandsTextBox.ReadOnly = false;
+        releaseYearTextBox.ReadOnly = false;
 
         editGameDataButton.Visible = false;
         saveGameDataButton.Visible = true;
@@ -1153,6 +1200,7 @@ public class TopForm : Form
     {
         if (gameListBox?.SelectedItem is not GameConfiguration selectedGame ||
             gameNameTextBox == null ||
+            releaseYearTextBox == null ||
             runCommandsTextBox == null ||
             editGameDataButton == null ||
             saveGameDataButton == null)
@@ -1162,31 +1210,53 @@ public class TopForm : Form
 
         string newName = gameNameTextBox.Text.Trim();
         var newCommands = runCommandsTextBox.Lines.ToList();
+        string yearText = releaseYearTextBox.Text.Trim();
+
+        int? newYear = null;
+        if (!string.IsNullOrEmpty(yearText))
+        {
+            if (!int.TryParse(yearText, out int parsedYear))
+            {
+                MessageBox.Show(this, "Release Year must be a valid number.", "Invalid Input", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
+            if (parsedYear <= 1900 || parsedYear > DateTime.Now.Year)
+            {
+                MessageBox.Show(this, $"Release Year must be between 1901 and {DateTime.Now.Year}.", "Invalid Year", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+            newYear = parsedYear;
+        }
+
         string originalName = selectedGame.GameName;
         var originalCommands = selectedGame.DosboxCommands;
 
         // Revert UI state regardless of change
         gameNameTextBox.ReadOnly = true;
         runCommandsTextBox.ReadOnly = true;
+        releaseYearTextBox.ReadOnly = true;
         editGameDataButton.Visible = true;
         saveGameDataButton.Visible = false;
 
         // Check if anything actually changed
         bool nameChanged = !string.IsNullOrWhiteSpace(newName) && !newName.Equals(originalName, StringComparison.Ordinal);
         bool commandsChanged = !newCommands.SequenceEqual(originalCommands);
+        bool yearChanged = selectedGame.ReleaseYear != newYear;
 
-        if (!nameChanged && !commandsChanged)
+        if (!nameChanged && !commandsChanged && !yearChanged)
         {
             // No changes, just revert UI and return
             gameNameTextBox.Text = originalName;
             runCommandsTextBox.Text = string.Join(Environment.NewLine, originalCommands);
+            releaseYearTextBox.Text = selectedGame.ReleaseYear?.ToString() ?? string.Empty;
             return;
         }
 
         try
         {
             // Call the consolidated save method
-            await GameDataWriterService.UpdateGameDataAsync(selectedGame.ConfigFilePath, newName, newCommands);
+            await GameDataWriterService.UpdateGameDataAsync(selectedGame.ConfigFilePath, newName, newYear, newCommands);
 
             // Update in-memory model only if save was successful
             if (nameChanged)
@@ -1202,12 +1272,17 @@ public class TopForm : Form
             {
                 selectedGame.DosboxCommands = newCommands.Where(c => !string.IsNullOrWhiteSpace(c)).ToList();
             }
+            if (yearChanged)
+            {
+                selectedGame.ReleaseYear = newYear;
+            }
         }
         catch (Exception ex)
         {
             MessageBox.Show(this, $"Failed to save game data: {ex.Message}", "Save Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             // Revert textboxes to original values on error
             gameNameTextBox.Text = originalName; // Revert on error
+            releaseYearTextBox.Text = selectedGame.ReleaseYear?.ToString() ?? string.Empty;
             runCommandsTextBox.Text = string.Join(Environment.NewLine, originalCommands);
         }
     }

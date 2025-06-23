@@ -5,6 +5,7 @@ namespace DOSGameCollection;
 public static class CfgFileParser
 {
     private const string GameNamePrefix = "game.name=";
+    private const string GameReleaseYearPrefix = "game.release.year=";
     private const string IsoSectionHeader = "[isos]";
     private const string CommandsSectionHeader = "[commands]";
 
@@ -55,6 +56,17 @@ public static class CfgFileParser
                 {
                     config.GameName = trimmedLine.Substring(GameNamePrefix.Length).Trim();
                     currentState = ParsingState.None; // Game name is not part of Isos or Commands sections
+                    continue;
+                }
+                else if (trimmedLine.StartsWith(GameReleaseYearPrefix, StringComparison.OrdinalIgnoreCase))
+                {
+                    string yearString = trimmedLine.Substring(GameReleaseYearPrefix.Length).Trim();
+                    if (int.TryParse(yearString, out int year))
+                    {
+                        config.ReleaseYear = year;
+                    }
+                    else { AppLogger.Log($"Warning: Invalid release year format in {cfgFilePath}: '{yearString}'"); }
+                    currentState = ParsingState.None;
                     continue;
                 }
 
