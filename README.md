@@ -33,27 +33,30 @@ This program expects games to be arranged in a specific folder structure like so
                 --/back.png
                 --/art_01.png
             --/captures
-                --/capture_001.png
                 --/capture-info.txt
+                --/capture_001.png
             --/videos
-                --/video_001.mpg
                 --/video-info.txt
+                --/video_001.mpg
             --/inserts
+                --/insert-info.txt
                 --/insert_01.pdf
                 --/insert_02.pdf
-                --/insert-info.txt
             --/main.png
             --/icon.png
             --/background.png
             --/walkthrough
-                --/page_01.txt (pdf)
+                --/page_01.txt (or pdf)
+                --/walkthrough-info.txt
             --/cheats_and_secrets
-            --notes
+            --notes.txt
             --/ost
-                --/index.csv
-                --/cover_art.png
-                --/Track 01.mp3
-            
+                --/midi
+                  --/track-info.txt
+                  --/track_01.mid
+                --/track-info.txt
+                --/cover.png
+                --/track_01.mp3
 ```
 
 ## Game file specification

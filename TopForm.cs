@@ -69,13 +69,13 @@ public class TopForm : Form
                 }
                 else
                 {
-                    Console.WriteLine($"Warning: Embedded resource '{resourceName}' not found.");
+                    AppLogger.Log($"Warning: Embedded resource '{resourceName}' not found.");
                 }
             }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error loading embedded icon: {ex.Message}");
+            AppLogger.Log($"Error loading embedded icon: {ex.Message}");
             // Optionally handle the error, e.g., log it or show a message
         }
 
@@ -102,9 +102,23 @@ public class TopForm : Form
         settingsMenu.DropDownItems.Add(setDosboxLocationMenuItem);
         settingsMenu.DropDownItems.Add(setGameLibraryLocationMenuItem);
 
+        // Help Menu
+        ToolStripMenuItem helpMenu = new("&Help");
+        helpMenu.Alignment = ToolStripItemAlignment.Right; // Align to the right
+
+        ToolStripMenuItem aboutMenuItem = new("&About");
+        aboutMenuItem.Click += AboutMenuItem_Click;
+
+        ToolStripMenuItem consoleLogMenuItem = new("Console &Log");
+        consoleLogMenuItem.Click += ConsoleLogMenuItem_Click;
+
+        helpMenu.DropDownItems.Add(consoleLogMenuItem);
+        helpMenu.DropDownItems.Add(aboutMenuItem);
+
         menuStrip.Items.AddRange(new ToolStripItem[] {
             fileMenu,
-            settingsMenu
+            settingsMenu,
+            helpMenu
         });
 
         Controls.Add(menuStrip);
@@ -769,7 +783,7 @@ public class TopForm : Form
                         }
                         catch (Exception ex)
                         {
-                            Console.WriteLine($"Error reading synopsis file '{selectedGame.SynopsisFilePath}': {ex.Message}");
+                            AppLogger.Log($"Error reading synopsis file '{selectedGame.SynopsisFilePath}': {ex.Message}");
                             synopsisTextBox.Text = string.Empty; // Clear on error
                         }
                     }
@@ -1030,7 +1044,7 @@ public class TopForm : Form
                     }
                     catch (Exception ex)
                     {
-                        Console.WriteLine($"Error loading disc image picture '{selectedDisc.PngFilePath}': {ex.Message}");
+                        AppLogger.Log($"Error loading disc image picture '{selectedDisc.PngFilePath}': {ex.Message}");
                     }
                 }
             }
@@ -1066,7 +1080,7 @@ public class TopForm : Form
                     }
                     catch (Exception ex)
                     {
-                        Console.WriteLine($"Error loading disc image picture '{selectedDisc.PngFilePath}': {ex.Message}");
+                        AppLogger.Log($"Error loading disc image picture '{selectedDisc.PngFilePath}': {ex.Message}");
                     }
                 }
             }
@@ -1099,6 +1113,19 @@ public class TopForm : Form
         base.Dispose(disposing);
     }
     
+    private void AboutMenuItem_Click(object? sender, EventArgs e)
+    {
+        using AboutDialog aboutDialog = new();
+        aboutDialog.ShowDialog(this);
+    }
+
+    private void ConsoleLogMenuItem_Click(object? sender, EventArgs e)
+    {
+        string allLogs = AppLogger.GetAllLogs();
+        using ConsoleLogDialog logDialog = new(allLogs);
+        logDialog.ShowDialog(this);
+    }
+
     private void EditGameDataButton_Click(object? sender, EventArgs e)
     {
         if (gameNameTextBox == null || runCommandsTextBox == null || editGameDataButton == null || saveGameDataButton == null) return;

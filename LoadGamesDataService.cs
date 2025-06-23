@@ -71,7 +71,7 @@ public class LoadGamesDataService
 
             if (!File.Exists(cfgFilePath))
             {
-                Console.WriteLine($"Skipping directory {gameDirName}: 'game.cfg' not found.");
+                AppLogger.Log($"Skipping directory {gameDirName}: 'game.cfg' not found.");
                 // Optionally report skipped directory
                 if (progress != null)
                 {
@@ -106,7 +106,7 @@ public class LoadGamesDataService
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error processing game in {gameDirName}: {ex.Message}");
+                AppLogger.Log($"Error processing game in {gameDirName}: {ex.Message}");
                 gameConfig = new GameConfiguration
                 {
                     GameName = $"[Error: {gameDirName}]",

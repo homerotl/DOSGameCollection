@@ -14,7 +14,7 @@ public static class CfgFileParser
     {
         if (!File.Exists(cfgFilePath))
         {
-            Console.WriteLine($"Warning: File not found for parsing: {cfgFilePath}");
+            AppLogger.Log($"Warning: File not found for parsing: {cfgFilePath}");
             return null;
         }
 
@@ -73,17 +73,17 @@ public static class CfgFileParser
         }
         catch (UnauthorizedAccessException ex)
         {
-            Console.WriteLine($"Error parsing {cfgFilePath}: Access denied. {ex.Message}");
+            AppLogger.Log($"Error parsing {cfgFilePath}: Access denied. {ex.Message}");
             throw;
         }
         catch (IOException ex)
         {
-            Console.WriteLine($"Error parsing {cfgFilePath}: I/O error. {ex.Message}");
+            AppLogger.Log($"Error parsing {cfgFilePath}: I/O error. {ex.Message}");
             throw;
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"An unexpected error occurred while parsing {cfgFilePath}: {ex.Message}");
+            AppLogger.Log($"An unexpected error occurred while parsing {cfgFilePath}: {ex.Message}");
             throw;
         }
 
@@ -116,7 +116,7 @@ public static class CfgFileParser
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error scanning for captures in '{capturesDirectory}': {ex.Message}");
+                AppLogger.Log($"Error scanning for captures in '{capturesDirectory}': {ex.Message}");
             }
         }
 
@@ -134,7 +134,7 @@ public static class CfgFileParser
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error scanning for videos in '{videosDirectory}': {ex.Message}");
+                AppLogger.Log($"Error scanning for videos in '{videosDirectory}': {ex.Message}");
             }
         }
 
@@ -178,7 +178,7 @@ public static class CfgFileParser
                         }
                         else
                         {
-                            Console.WriteLine($"Warning: .bin file not found for '{isoFileName}' at '{binFilePath}'. File size will be reported as 0.");
+                            AppLogger.Log($"Warning: .bin file not found for '{isoFileName}' at '{binFilePath}'. File size will be reported as 0.");
                         }
                     }
                     else // Assume .iso or other direct image file
@@ -245,7 +245,7 @@ public static class CfgFileParser
             catch (Exception ex)
             {
                 // Log this error but don't prevent the game from loading
-                Console.WriteLine($"Error scanning for disc images in '{discImagesDirectory}': {ex.Message}");
+                AppLogger.Log($"Error scanning for disc images in '{discImagesDirectory}': {ex.Message}");
             }
         }
 
