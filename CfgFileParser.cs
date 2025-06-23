@@ -126,9 +126,11 @@ public static class CfgFileParser
         {
             try
             {
-                config.VideoPaths = Directory.EnumerateFiles(videosDirectory, "*.avi")
-                                             .OrderBy(f => f, StringComparer.OrdinalIgnoreCase)
-                                             .ToList();
+                var allowedVideoExtensions = new[] { "*.avi", "*.mp4", "*.mpg" };
+                config.VideoPaths = allowedVideoExtensions
+                                        .SelectMany(ext => Directory.EnumerateFiles(videosDirectory, ext, SearchOption.TopDirectoryOnly))
+                                        .OrderBy(f => f, StringComparer.OrdinalIgnoreCase)
+                                        .ToList();
             }
             catch (Exception ex)
             {

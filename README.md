@@ -32,6 +32,12 @@ This program expects games to be arranged in a specific folder structure like so
                 --/front.png
                 --/back.png
                 --/art_01.png
+            --/captures
+                --/capture_001.png
+                --/capture-info.txt
+            --/videos
+                --/video_001.mpg
+                --/video-info.txt
             --/inserts
                 --/insert_01.pdf
                 --/insert_02.pdf
@@ -47,10 +53,7 @@ This program expects games to be arranged in a specific folder structure like so
                 --/index.csv
                 --/cover_art.png
                 --/Track 01.mp3
-            --/captures
-                --/capture_001.png
-            --/videos
-                --/video_001.mpg
+            
 ```
 
 ## Game file specification
