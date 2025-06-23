@@ -102,7 +102,7 @@ public class LoadGamesDataService
             GameConfiguration? gameConfig = null;
             try
             {
-                gameConfig = await CfgFileParser.ParseCfgFileAsync(cfgFilePath, gameDirPath);
+                gameConfig = await GameDataReaderService.ParseCfgFileAsync(cfgFilePath, gameDirPath);
             }
             catch (Exception ex)
             {

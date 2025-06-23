@@ -2,7 +2,7 @@ using DOSGameCollection.Models;
 
 namespace DOSGameCollection;
 
-public static class CfgFileParser
+public static class GameDataReaderService
 {
     private const string GameNamePrefix = "game.name=";
     private const string GameReleaseYearPrefix = "game.release.year=";
