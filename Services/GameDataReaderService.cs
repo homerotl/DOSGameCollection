@@ -6,6 +6,8 @@ public static class GameDataReaderService
 {
     private const string GameNamePrefix = "game.name=";
     private const string GameReleaseYearPrefix = "game.release.year=";
+    private const string GameDeveloperPrefix = "game.developer=";
+    private const string GamePublisherPrefix = "game.publisher=";
     private const string ParentalRatingPrefix = "game.parental.rating=";
     private const string IsoSectionHeader = "[isos]";
     private const string CommandsSectionHeader = "[commands]";
@@ -67,6 +69,18 @@ public static class GameDataReaderService
                         config.ReleaseYear = year;
                     }
                     else { AppLogger.Log($"Warning: Invalid release year format in {cfgFilePath}: '{yearString}'"); }
+                    currentState = ParsingState.None;
+                    continue;
+                }
+                else if (trimmedLine.StartsWith(GameDeveloperPrefix, StringComparison.OrdinalIgnoreCase))
+                {
+                    config.Developer = trimmedLine.Substring(GameDeveloperPrefix.Length).Trim();
+                    currentState = ParsingState.None;
+                    continue;
+                }
+                else if (trimmedLine.StartsWith(GamePublisherPrefix, StringComparison.OrdinalIgnoreCase))
+                {
+                    config.Publisher = trimmedLine.Substring(GamePublisherPrefix.Length).Trim();
                     currentState = ParsingState.None;
                     continue;
                 }

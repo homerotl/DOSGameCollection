@@ -7,58 +7,49 @@ public static class GameDataWriterService
     /// </summary>
     /// <param name="cfgFilePath">The full path to the game.cfg file.</param>
     /// <param name="newName">The new name for the game.</param>
-    /// <param name="newYear">The new release year for the game.</param>
-    /// <param name="newRating">The new parental rating for the game.</param>
+    /// <param name="newYear">The new release year.</param>
+    /// <param name="newRating">The new parental rating.</param>
+    /// <param name="newDeveloper">The new developer.</param>
+    /// <param name="newPublisher">The new publisher.</param>
     /// <param name="newCommands">The new list of commands to write.</param>
-    public static async Task UpdateGameDataAsync(string cfgFilePath, string newName, int? newYear, string? newRating, IEnumerable<string> newCommands)
+    public static async Task UpdateGameDataAsync(string cfgFilePath, string newName, int? newYear, string? newRating, string? newDeveloper, string? newPublisher, IEnumerable<string> newCommands)
     {
         if (!File.Exists(cfgFilePath))
         {
             throw new FileNotFoundException("Game configuration file not found.", cfgFilePath);
         }
 
-        List<string> lines = (await File.ReadAllLinesAsync(cfgFilePath)).ToList();
+        var lines = (await File.ReadAllLinesAsync(cfgFilePath)).ToList();
 
-        // Convert UI rating to file format
+        // Remove all existing game.* properties. We will re-add them in order.
+        lines.RemoveAll(l => l.TrimStart().StartsWith("game.", StringComparison.OrdinalIgnoreCase));
+
+        // Prepare the new properties to be inserted at the top.
+        var newProperties = new List<string>();
+        newProperties.Add($"game.name={newName}");
+
         string? ratingForFile = FormatTools.EncodeRating(newRating);
+        if (!string.IsNullOrEmpty(ratingForFile)) newProperties.Add($"game.parental.rating={ratingForFile}");
+        if (!string.IsNullOrEmpty(newPublisher)) newProperties.Add($"game.publisher={newPublisher}");
+        if (!string.IsNullOrEmpty(newDeveloper)) newProperties.Add($"game.developer={newDeveloper}");
+        if (newYear.HasValue) newProperties.Add($"game.release.year={newYear.Value}");
 
-        // Update simple key-value properties
-        UpdateOrAddProperty(lines, "game.name=", newName);
-        UpdateOrAddProperty(lines, "game.release.year=", newYear?.ToString());
-        UpdateOrAddProperty(lines, "game.parental.rating=", ratingForFile);
+        // Find the first non-empty, non-comment line to insert a blank line before if needed.
+        int firstContentIndex = lines.FindIndex(l => !string.IsNullOrWhiteSpace(l) && !l.TrimStart().StartsWith("#") && !l.TrimStart().StartsWith(";"));
+        if (firstContentIndex != -1 && newProperties.Any())
+        {
+            lines.Insert(firstContentIndex, string.Empty);
+        }
+
+        // Insert the new properties at the beginning of the file content.
+        lines.InsertRange(0, newProperties);
 
         // Update the [commands] section
         UpdateCommandsSection(lines, newCommands);
 
         await File.WriteAllLinesAsync(cfgFilePath, lines);
     }
-
-    private static void UpdateOrAddProperty(List<string> lines, string prefix, string? value)
-    {
-        int propertyIndex = lines.FindIndex(l => l.Trim().StartsWith(prefix, StringComparison.OrdinalIgnoreCase));
-
-        if (string.IsNullOrEmpty(value))
-        {
-            // If the value is null or empty, remove the line from the file if it exists.
-            if (propertyIndex != -1)
-            {
-                lines.RemoveAt(propertyIndex);
-            }
-        }
-        else
-        {
-            // If the value is provided, update the existing line or add a new one.
-            if (propertyIndex != -1)
-            {
-                lines[propertyIndex] = $"{prefix}{value}";
-            }
-            else
-            {
-                lines.Insert(0, $"{prefix}{value}"); // Add to top of file if not found.
-            }
-        }
-    }
-
+    
     private static void UpdateCommandsSection(List<string> lines, IEnumerable<string> newCommands)
     {
         const string commandsHeader = "[commands]";

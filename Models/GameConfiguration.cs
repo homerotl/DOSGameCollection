@@ -4,6 +4,8 @@ public class GameConfiguration
 {
     public string GameName { get; set; } = "Unnamed Game"; // Default name
     public int? ReleaseYear { get; set; }
+    public string? Developer { get; set; }
+    public string? Publisher { get; set; }
     public List<DiscImageInfo> IsoImages { get; set; } = [];
     public List<string> DosboxCommands { get; set; } = [];
     public List<DiscImageInfo> DiscImages { get; set; } = [];
