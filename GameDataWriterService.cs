@@ -1,121 +1,91 @@
 namespace DOSGameCollection;
 
+using System.Collections.Generic;
+
 public static class GameDataWriterService
 {
     /// <summary>
-    /// Updates the 'game.name' property in a specified game.cfg file.
-    /// And updates the [commands] section in a specified game.cfg file.
-    /// If properties/sections exist, they are updated. If not, they are added.
+    /// Updates multiple data points in a specified game.cfg file in a single operation.
     /// </summary>
     /// <param name="cfgFilePath">The full path to the game.cfg file.</param>
     /// <param name="newName">The new name for the game.</param>
     /// <param name="newYear">The new release year for the game.</param>
+    /// <param name="newRating">The new parental rating for the game.</param>
     /// <param name="newCommands">The new list of commands to write.</param>
-    public static async Task UpdateGameDataAsync(string cfgFilePath, string newName, int? newYear, IEnumerable<string> newCommands)
+    public static async Task UpdateGameDataAsync(string cfgFilePath, string newName, int? newYear, string? newRating, IEnumerable<string> newCommands)
     {
         if (!File.Exists(cfgFilePath))
         {
             throw new FileNotFoundException("Game configuration file not found.", cfgFilePath);
         }
 
-        var lines = (await File.ReadAllLinesAsync(cfgFilePath)).ToList();
+        List<string> lines = (await File.ReadAllLinesAsync(cfgFilePath)).ToList();
 
-        // --- Update game.name and find its index ---
-        int nameIndex = -1;
-        const string gameNamePrefix = "game.name=";
-        for (int i = 0; i < lines.Count; i++)
+        // Convert UI rating to file format
+        string? ratingForFile = FormatTools.EncodeRating(newRating);
+
+        // Update simple key-value properties
+        UpdateOrAddProperty(lines, "game.name=", newName);
+        UpdateOrAddProperty(lines, "game.release.year=", newYear?.ToString());
+        UpdateOrAddProperty(lines, "game.parental.rating=", ratingForFile);
+
+        // Update the [commands] section
+        UpdateCommandsSection(lines, newCommands);
+
+        await File.WriteAllLinesAsync(cfgFilePath, lines);
+    }
+
+    private static void UpdateOrAddProperty(List<string> lines, string prefix, string? value)
+    {
+        int propertyIndex = lines.FindIndex(l => l.Trim().StartsWith(prefix, StringComparison.OrdinalIgnoreCase));
+
+        if (string.IsNullOrEmpty(value))
         {
-            if (lines[i].TrimStart().StartsWith(gameNamePrefix, StringComparison.OrdinalIgnoreCase))
+            // If the value is null or empty, remove the line from the file if it exists.
+            if (propertyIndex != -1)
             {
-                lines[i] = $"{gameNamePrefix}{newName}";
-                nameIndex = i;
-                break;
+                lines.RemoveAt(propertyIndex);
             }
         }
-        if (nameIndex == -1)
+        else
         {
-            lines.Insert(0, $"{gameNamePrefix}{newName}");
-            nameIndex = 0;
-        }
-
-        // --- Update game.release.year ---
-        int yearIndex = -1;
-        const string yearPrefix = "game.release.year=";
-        for (int i = 0; i < lines.Count; i++)
-        {
-            if (lines[i].TrimStart().StartsWith(yearPrefix, StringComparison.OrdinalIgnoreCase))
+            // If the value is provided, update the existing line or add a new one.
+            if (propertyIndex != -1)
             {
-                yearIndex = i;
-                break;
-            }
-        }
-
-        if (newYear.HasValue)
-        {
-            string yearLine = $"{yearPrefix}{newYear.Value}";
-            if (yearIndex != -1)
-            {
-                lines[yearIndex] = yearLine;
+                lines[propertyIndex] = $"{prefix}{value}";
             }
             else
             {
-                // Insert after game.name
-                lines.Insert(nameIndex + 1, yearLine);
+                lines.Insert(0, $"{prefix}{value}"); // Add to top of file if not found.
             }
         }
-        else // newYear is null, so remove the line if it exists
-        {
-            if (yearIndex != -1)
-            {
-                lines.RemoveAt(yearIndex);
-            }
-        }
+    }
 
-        // --- Update [commands] section ---
+    private static void UpdateCommandsSection(List<string> lines, IEnumerable<string> newCommands)
+    {
         const string commandsHeader = "[commands]";
-
-        int commandsHeaderIndex = -1;
-        for (int i = 0; i < lines.Count; i++)
-        {
-            if (lines[i].TrimStart().Equals(commandsHeader, StringComparison.OrdinalIgnoreCase))
-            {
-                commandsHeaderIndex = i;
-                break;
-            }
-        }
-
-        // Filter out empty or whitespace-only commands
+        int commandsHeaderIndex = lines.FindIndex(l => l.Trim().Equals(commandsHeader, StringComparison.OrdinalIgnoreCase));
         var validNewCommands = newCommands.Where(c => !string.IsNullOrWhiteSpace(c)).ToList();
 
         if (commandsHeaderIndex == -1)
         {
-            // Add commands section at the end if not found
+            // If section doesn't exist, add it to the end.
             lines.Add(string.Empty);
             lines.Add(commandsHeader);
             lines.AddRange(validNewCommands);
         }
         else
         {
-            // Remove existing commands in the section
+            // If section exists, find its end and replace the content.
             int firstCommandIndex = commandsHeaderIndex + 1;
             int commandsToRemoveCount = 0;
-
-            // Find the end of the commands section
-            // It ends at the next section header or end of file.
             for (int i = firstCommandIndex; i < lines.Count; i++)
             {
-                string trimmedLine = lines[i].TrimStart();
-                if (string.IsNullOrEmpty(trimmedLine) || trimmedLine.StartsWith("[", StringComparison.Ordinal) || trimmedLine.StartsWith(";", StringComparison.Ordinal) || trimmedLine.StartsWith("#", StringComparison.Ordinal))
-                {
-                    break; // End of commands section or start of new section/comment
-                }
+                if (string.IsNullOrWhiteSpace(lines[i]) || lines[i].Trim().StartsWith("[")) { break; }
                 commandsToRemoveCount++;
             }
-
             if (commandsToRemoveCount > 0) { lines.RemoveRange(firstCommandIndex, commandsToRemoveCount); }
             lines.InsertRange(firstCommandIndex, validNewCommands);
         }
-
-        await File.WriteAllLinesAsync(cfgFilePath, lines);
     }
 }

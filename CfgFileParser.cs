@@ -6,6 +6,7 @@ public static class CfgFileParser
 {
     private const string GameNamePrefix = "game.name=";
     private const string GameReleaseYearPrefix = "game.release.year=";
+    private const string ParentalRatingPrefix = "game.parental.rating=";
     private const string IsoSectionHeader = "[isos]";
     private const string CommandsSectionHeader = "[commands]";
 
@@ -68,6 +69,20 @@ public static class CfgFileParser
                     else { AppLogger.Log($"Warning: Invalid release year format in {cfgFilePath}: '{yearString}'"); }
                     currentState = ParsingState.None;
                     continue;
+                }
+                else if (trimmedLine.StartsWith(ParentalRatingPrefix, StringComparison.OrdinalIgnoreCase))
+                {
+                    string fileValue = trimmedLine.Substring(ParentalRatingPrefix.Length).Trim();
+                    if (!string.IsNullOrEmpty(fileValue))
+                    {
+                        string? displayValue = FormatTools.DecodeRating(fileValue);
+                        if (displayValue == null)
+                        {
+                            AppLogger.Log($"Warning: Unknown parental rating value '{fileValue}' in {cfgFilePath}.");
+                        }
+                        config.ParentalRating = displayValue; // Assigns null if invalid, which is correct
+                    }
+                    currentState = ParsingState.None;
                 }
 
                 switch (currentState)

@@ -66,7 +66,7 @@ Each game has a game.cfg, top level configuration file. Here is the structure of
 ```
 # Comments
 game.name=Game Name
-game.rating=[NR,...]
+game.parental.rating=[ESRB ratings]
 game.publisher=Publisher
 game.developer=Developer
 game.release.year=1978

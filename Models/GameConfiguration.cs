@@ -9,7 +9,7 @@ public class GameConfiguration
     public List<DiscImageInfo> DiscImages { get; set; } = [];
     public List<string> CaptureImagePaths { get; set; } = [];
     public List<string> VideoPaths { get; set; } = [];
-
+    public string? ParentalRating { get; set; }
     public required string GameDirectoryPath { get; set; }
 
     public string ConfigFilePath => Path.Combine(GameDirectoryPath, "game.cfg");

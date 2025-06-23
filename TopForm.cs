@@ -19,6 +19,7 @@ public class TopForm : Form
     private Label? gameNameLabel;
     private TextBox? gameNameTextBox;
     private TextBox? releaseYearTextBox;
+    private ComboBox? parentalRatingComboBox;
     private PictureBox? boxArtPictureBox;
     private Button? boxArtPreviousButton;
     private Label? boxArtImageNameLabel;
@@ -256,13 +257,14 @@ public class TopForm : Form
         {
             Dock = DockStyle.Fill, // Fill the cell
             ColumnCount = 2,
-            RowCount = 3, // Use three rows now
+            RowCount = 4, // Use four rows now
             Margin = new Padding(0, 0, 3, 0) // Right margin
         };
         gameNameContainerPanel.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
         gameNameContainerPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
         gameNameContainerPanel.RowStyles.Add(new RowStyle(SizeType.AutoSize));      // Row for content
         gameNameContainerPanel.RowStyles.Add(new RowStyle(SizeType.AutoSize));      // Row for Release Year
+        gameNameContainerPanel.RowStyles.Add(new RowStyle(SizeType.AutoSize));      // Row for Parental Rating
         gameNameContainerPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 100F)); // Spacer row
 
         gameNameLabel = new Label
@@ -305,6 +307,30 @@ public class TopForm : Form
 
         gameNameContainerPanel.Controls.Add(releaseYearLabel, 0, 1);
         gameNameContainerPanel.Controls.Add(releaseYearTextBox, 1, 1);
+
+        // --- New Parental Rating controls ---
+        Label parentalRatingLabel = new Label
+        {
+            Text = "Parental Rating",
+            Anchor = AnchorStyles.Left,
+            TextAlign = ContentAlignment.MiddleLeft,
+            AutoSize = true,
+            Margin = new Padding(0, 3, 3, 0) // Top and right margin
+        };
+
+        parentalRatingComboBox = new ComboBox
+        {
+            Anchor = AnchorStyles.Left,
+            Enabled = false, // Read-only initially
+            DropDownStyle = ComboBoxStyle.DropDownList, // Prevent free-form text
+            Width = 100
+        };
+        parentalRatingComboBox.Items.AddRange(new object[] {
+            "", "E", "E 10+", "T", "M 17+", "AO 18+", "RP", "RP LM 17+"
+        });
+
+        gameNameContainerPanel.Controls.Add(parentalRatingLabel, 0, 2);
+        gameNameContainerPanel.Controls.Add(parentalRatingComboBox, 1, 2);
 
         // --- Run Commands Layout Table ---
         TableLayoutPanel runCommandsLayoutTable = new()
@@ -637,6 +663,11 @@ public class TopForm : Form
         {
             releaseYearTextBox.Text = string.Empty;
         }
+        if (parentalRatingComboBox != null)
+        {
+            parentalRatingComboBox.SelectedIndex = -1;
+            parentalRatingComboBox.Enabled = false;
+        }
         _boxArtCarouselManager?.Clear();
         if (synopsisTextBox != null)
         {
@@ -799,6 +830,11 @@ public class TopForm : Form
                     releaseYearTextBox.Text = selectedGame.ReleaseYear?.ToString() ?? string.Empty;
                     releaseYearTextBox.ReadOnly = true;
                 }
+                if (parentalRatingComboBox != null)
+                {
+                    parentalRatingComboBox.SelectedItem = selectedGame.ParentalRating ?? "";
+                    parentalRatingComboBox.Enabled = false;
+                }
 
                 if (manualButton != null && !string.IsNullOrEmpty(selectedGame.ManualPath) && File.Exists(selectedGame.ManualPath))
                 {
@@ -873,6 +909,10 @@ public class TopForm : Form
                 if (releaseYearTextBox != null)
                 {
                     releaseYearTextBox.Text = string.Empty;
+                }
+                if (parentalRatingComboBox != null)
+                {
+                    parentalRatingComboBox.SelectedIndex = -1;
                 }
                 if (synopsisTextBox != null)
                 {
@@ -1174,11 +1214,12 @@ public class TopForm : Form
 
     private void EditGameDataButton_Click(object? sender, EventArgs e)
     {
-        if (gameNameTextBox == null || releaseYearTextBox == null || runCommandsTextBox == null || editGameDataButton == null || saveGameDataButton == null) return;
+        if (gameNameTextBox == null || releaseYearTextBox == null || parentalRatingComboBox == null || runCommandsTextBox == null || editGameDataButton == null || saveGameDataButton == null) return;
 
         gameNameTextBox.ReadOnly = false;
         runCommandsTextBox.ReadOnly = false;
         releaseYearTextBox.ReadOnly = false;
+        parentalRatingComboBox.Enabled = true;
 
         editGameDataButton.Visible = false;
         saveGameDataButton.Visible = true;
@@ -1201,6 +1242,7 @@ public class TopForm : Form
         if (gameListBox?.SelectedItem is not GameConfiguration selectedGame ||
             gameNameTextBox == null ||
             releaseYearTextBox == null ||
+            parentalRatingComboBox == null ||
             runCommandsTextBox == null ||
             editGameDataButton == null ||
             saveGameDataButton == null)
@@ -1211,6 +1253,7 @@ public class TopForm : Form
         string newName = gameNameTextBox.Text.Trim();
         var newCommands = runCommandsTextBox.Lines.ToList();
         string yearText = releaseYearTextBox.Text.Trim();
+        string? newRating = parentalRatingComboBox.SelectedItem?.ToString();
 
         int? newYear = null;
         if (!string.IsNullOrEmpty(yearText))
@@ -1231,11 +1274,13 @@ public class TopForm : Form
 
         string originalName = selectedGame.GameName;
         var originalCommands = selectedGame.DosboxCommands;
+        var originalRating = selectedGame.ParentalRating;
 
         // Revert UI state regardless of change
         gameNameTextBox.ReadOnly = true;
         runCommandsTextBox.ReadOnly = true;
         releaseYearTextBox.ReadOnly = true;
+        parentalRatingComboBox.Enabled = false;
         editGameDataButton.Visible = true;
         saveGameDataButton.Visible = false;
 
@@ -1243,20 +1288,22 @@ public class TopForm : Form
         bool nameChanged = !string.IsNullOrWhiteSpace(newName) && !newName.Equals(originalName, StringComparison.Ordinal);
         bool commandsChanged = !newCommands.SequenceEqual(originalCommands);
         bool yearChanged = selectedGame.ReleaseYear != newYear;
+        bool ratingChanged = originalRating != newRating;
 
-        if (!nameChanged && !commandsChanged && !yearChanged)
+        if (!nameChanged && !commandsChanged && !yearChanged && !ratingChanged)
         {
             // No changes, just revert UI and return
             gameNameTextBox.Text = originalName;
             runCommandsTextBox.Text = string.Join(Environment.NewLine, originalCommands);
             releaseYearTextBox.Text = selectedGame.ReleaseYear?.ToString() ?? string.Empty;
+            parentalRatingComboBox.SelectedItem = originalRating ?? "";
             return;
         }
 
         try
         {
             // Call the consolidated save method
-            await GameDataWriterService.UpdateGameDataAsync(selectedGame.ConfigFilePath, newName, newYear, newCommands);
+            await GameDataWriterService.UpdateGameDataAsync(selectedGame.ConfigFilePath, newName, newYear, newRating, newCommands);
 
             // Update in-memory model only if save was successful
             if (nameChanged)
@@ -1276,6 +1323,10 @@ public class TopForm : Form
             {
                 selectedGame.ReleaseYear = newYear;
             }
+            if (ratingChanged)
+            {
+                selectedGame.ParentalRating = newRating;
+            }
         }
         catch (Exception ex)
         {
@@ -1284,6 +1335,7 @@ public class TopForm : Form
             gameNameTextBox.Text = originalName; // Revert on error
             releaseYearTextBox.Text = selectedGame.ReleaseYear?.ToString() ?? string.Empty;
             runCommandsTextBox.Text = string.Join(Environment.NewLine, originalCommands);
+            parentalRatingComboBox.SelectedItem = originalRating ?? "";
         }
     }
 }
