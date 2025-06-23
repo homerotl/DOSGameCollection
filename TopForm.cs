@@ -21,13 +21,11 @@ public class TopForm : Form
     private TextBox? gameNameTextBox;
     private TextBox? releaseYearTextBox;
     private ComboBox? parentalRatingComboBox;
-    private PictureBox? boxArtPictureBox;
-    private Button? boxArtPreviousButton;
-    private Label? boxArtImageNameLabel;
-    private Button? boxArtNextButton;
-    private TextBox? synopsisTextBox; // Added for game synopsis
+    private PictureBox? mediaDisplayPictureBox;
+    private TextBox? synopsisTextBox;
     private MenuStrip? menuStrip; // Added for MenuStrip
     private TabControl? gameDetailsTabControl; // For additional game details
+    private DataGridView? mediaDataGridView;
     private DataGridView? diskImagesDataGridView; // For displaying data for CD-ROM images
     private PictureBox? isoImagePictureBox; // For showing an image of the selected CD-ROM image
     private DataGridView? installDiscsDataGridView; // For floppy disk images
@@ -35,7 +33,6 @@ public class TopForm : Form
     private TextBox? runCommandsTextBox; 
     private List<GameConfiguration> _loadedGameConfigs = [];
     private AppConfigService _appConfigService;
-    private BoxArtCarouselManager? _boxArtCarouselManager;
 
     private LibVLC? _libVLC;
     private MediaPlayer? _mediaPlayer;
@@ -47,6 +44,9 @@ public class TopForm : Form
         _appConfigService = new AppConfigService();
         this.Load += TopForm_Load; // Event for when the form loads
     }
+
+    private record MediaItem(string FilePath, string DisplayName, MediaType Type);
+    private enum MediaType { Image, Video }
 
     private void InitializeComponent()
     {
@@ -194,26 +194,6 @@ public class TopForm : Form
         if (symbolFont != null) { saveGameDataButton.Font = symbolFont; }
         saveGameDataButton.Click += SaveGameDataButton_Click;
 
-        // Initialize Previous button
-        boxArtPreviousButton = new Button
-        {
-            Size = new Size(30, 25),
-            Enabled = false,
-            Anchor = AnchorStyles.Left,
-            Text = symbolFont != null ? "\u25C0" : "Previous"
-        };
-        if (symbolFont != null) { boxArtPreviousButton.Font = symbolFont; }
-
-        // Initialize Next button
-        boxArtNextButton = new Button
-        {
-            Size = new Size(30, 25),
-            Enabled = false,
-            Anchor = AnchorStyles.Right,
-            Text = symbolFont != null ? "\u25B6" : "Next"
-        };
-        if (symbolFont != null) { boxArtNextButton.Font = symbolFont; }
-
         gameListBox = new ListBox();
 
         gameDetailsTableLayoutPanel = new TableLayoutPanel
@@ -221,7 +201,7 @@ public class TopForm : Form
             Dock = DockStyle.Fill,
             ColumnCount = 1,
             RowCount = 4,
-            Margin = new Padding(0, 5, 5, 5)
+            Margin = new Padding(0, 5, 5, 5) // This will be adjusted
         };
         gameDetailsTableLayoutPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
 
@@ -250,8 +230,8 @@ public class TopForm : Form
         // Define Row Styles for gameDetailsTableLayoutPanel (order matters for visual layout)
         gameDetailsTableLayoutPanel.RowStyles.Add(new RowStyle(SizeType.AutoSize)); // Row 0: Run button
         gameDetailsTableLayoutPanel.RowStyles.Add(new RowStyle(SizeType.AutoSize)); // Row 1: Game Name
-        gameDetailsTableLayoutPanel.RowStyles.Add(new RowStyle(SizeType.Absolute, 250F)); // Row 2: Media Panel (Synopsis & Box Art)
-        gameDetailsTableLayoutPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 100F)); // Row 3: TabControl (fills remaining space)
+        // Row 2 is removed
+        gameDetailsTableLayoutPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 100F)); // Row 2: TabControl (fills remaining space)
 
         // --- Game Name Container Panel (Label and TextBox) ---
         TableLayoutPanel gameNameContainerPanel = new()
@@ -386,18 +366,16 @@ public class TopForm : Form
         gameDetailsTableLayoutPanel.Controls.Add(actionButtonsPanel, 0, 0);
         gameDetailsTableLayoutPanel.Controls.Add(gameDataPanel, 0, 1); // Add the new composite panel
 
-        // --- Synopsis TextBox Setup ---
+        // --- Synopsis TextBox Setup (will be placed in a tab) ---
         synopsisTextBox = new TextBox
         {
             Dock = DockStyle.Fill,
             Multiline = true,
             ReadOnly = true,
-            ScrollBars = ScrollBars.Vertical,
-            Margin = new Padding(3, 0, 0, 0) // Left margin (will be on the right)
+            ScrollBars = ScrollBars.Vertical
         };
 
-        // Initialize PictureBox for Box Art
-        boxArtPictureBox = new PictureBox
+        mediaDisplayPictureBox = new PictureBox
         {
             Dock = DockStyle.Fill,
             SizeMode = PictureBoxSizeMode.Zoom,
@@ -418,61 +396,10 @@ public class TopForm : Form
             Visible = false // Initially hidden
         };
 
-        // --- Box Art Panel with Carousel Controls ---
-        TableLayoutPanel boxArtPanel = new TableLayoutPanel
-        {
-            Dock = DockStyle.Fill,
-            RowCount = 2,
-            ColumnCount = 1,
-            Margin = new Padding(0, 0, 3, 0) // Right margin for the whole panel
-        };
-        boxArtPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 100F)); // Image
-        boxArtPanel.RowStyles.Add(new RowStyle(SizeType.AutoSize));    // Controls
-        boxArtPanel.Controls.Add(boxArtPictureBox, 0, 0);
-        boxArtPanel.Controls.Add(_videoView, 0, 0); // Add VideoView to the same cell
-
-        // --- Carousel Controls Panel ---
-        TableLayoutPanel carouselControlsPanel = new TableLayoutPanel
-        {
-            Dock = DockStyle.Fill,
-            ColumnCount = 3,
-            RowCount = 1,
-            Height = 30,
-            Margin = new Padding(0, 3, 0, 0) // Top margin
-        };
-        carouselControlsPanel.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize)); // Previous button
-        carouselControlsPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F)); // Label
-        carouselControlsPanel.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize)); // Next button
-        carouselControlsPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
-
-        boxArtImageNameLabel = new Label { Text = "", Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleCenter };
-
-        boxArtPreviousButton.Click += BoxArtPreviousButton_Click;
-        boxArtNextButton.Click += BoxArtNextButton_Click;
-
-        carouselControlsPanel.Controls.Add(boxArtPreviousButton, 0, 0);
-        carouselControlsPanel.Controls.Add(boxArtImageNameLabel, 1, 0);
-        carouselControlsPanel.Controls.Add(boxArtNextButton, 2, 0);
-
-        boxArtPanel.Controls.Add(carouselControlsPanel, 0, 1);
-
-        // Initialize the Box Art Carousel Manager
-        _boxArtCarouselManager = new BoxArtCarouselManager(boxArtPictureBox, _videoView, _mediaPlayer, _libVLC, boxArtImageNameLabel, boxArtPreviousButton, boxArtNextButton);
-        // --- Media Panel (for Synopsis and Box Art) ---
-        TableLayoutPanel mediaPanel = new TableLayoutPanel
-        {
-            Dock = DockStyle.Fill,
-            ColumnCount = 2,
-            RowCount = 1
-        };
-        mediaPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F)); // Column 0: Box Art
-        mediaPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F)); // Column 1: Synopsis
-        mediaPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 100F)); // Fill available height
-
-        mediaPanel.Controls.Add(boxArtPanel, 0, 0); // Add the new composite panel
-        mediaPanel.Controls.Add(synopsisTextBox, 1, 0); // Synopsis text box on the right
-
-        gameDetailsTableLayoutPanel.Controls.Add(mediaPanel, 0, 2); // Add mediaPanel to row 2
+        // The mediaPanel is removed. Its contents are now in the "Media" tab.
+        // The synopsisTextBox is moved to the "Synopsis" tab.
+        gameDetailsTableLayoutPanel.RowCount = 3;
+        gameDetailsTableLayoutPanel.RowStyles.RemoveAt(2); // Remove the style for the old media panel row
 
         // --- TabControl Setup for additional game details ---
         gameDetailsTabControl = new TabControl
@@ -480,6 +407,51 @@ public class TopForm : Form
             Dock = DockStyle.Fill, // Fill its cell in gameDetailsTableLayoutPanel
             Margin = new Padding(0, 5, 0, 0) // Add some top margin
         };
+
+        TabPage mediaTab = new TabPage("Media");
+        TabPage synopsisTab = new TabPage("Synopsis");
+        synopsisTab.Controls.Add(synopsisTextBox);
+
+        // --- Layout Panel for Media Tab ---
+        TableLayoutPanel mediaTabPanel = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            ColumnCount = 2,
+            RowCount = 1
+        };
+        mediaTabPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
+        mediaTabPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
+        mediaTabPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
+
+        // --- New DataGridView for Media List ---
+        mediaDataGridView = new DataGridView
+        {
+            Dock = DockStyle.Fill,
+            Margin = new Padding(3),
+            AllowUserToAddRows = false,
+            AllowUserToDeleteRows = false,
+            AllowUserToResizeRows = false,
+            AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill,
+            BackgroundColor = SystemColors.Window,
+            BorderStyle = BorderStyle.None,
+            CellBorderStyle = DataGridViewCellBorderStyle.SingleHorizontal,
+            ColumnHeadersVisible = false,
+            RowHeadersVisible = false,
+            SelectionMode = DataGridViewSelectionMode.FullRowSelect,
+            ReadOnly = true
+        };
+        mediaDataGridView.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Type", Name = "Type", AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells });
+        mediaDataGridView.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Name", Name = "Name", FillWeight = 100 });
+        mediaDataGridView.SelectionChanged += MediaDataGridView_SelectionChanged;
+
+        // --- Panel for PictureBox and VideoView ---
+        Panel mediaDisplayPanel = new Panel { Dock = DockStyle.Fill };
+        mediaDisplayPanel.Controls.Add(mediaDisplayPictureBox);
+        mediaDisplayPanel.Controls.Add(_videoView);
+
+        mediaTabPanel.Controls.Add(mediaDataGridView, 0, 0);
+        mediaTabPanel.Controls.Add(mediaDisplayPanel, 1, 0);
+        mediaTab.Controls.Add(mediaTabPanel);
 
         TabPage diskImagesTab = new TabPage("CD-ROM images");
 
@@ -601,9 +573,9 @@ public class TopForm : Form
 
 
         gameDetailsTabControl.TabPages.AddRange(new TabPage[] {
-            diskImagesTab, soundtrackTab, installDiscsTab, walkthroughTab, cheatsTab, notesTab
+            mediaTab, synopsisTab, diskImagesTab, soundtrackTab, installDiscsTab, walkthroughTab, cheatsTab, notesTab
         });
-        gameDetailsTableLayoutPanel.Controls.Add(gameDetailsTabControl, 0, 3); // Add TabControl to row 3
+        gameDetailsTableLayoutPanel.Controls.Add(gameDetailsTabControl, 0, 2); // Add TabControl to the new row 2
 
         // --- Left Column Panel (for Refresh Button and Game ListBox) ---
         TableLayoutPanel leftColumnPanel = new TableLayoutPanel
@@ -669,7 +641,11 @@ public class TopForm : Form
             parentalRatingComboBox.SelectedIndex = -1;
             parentalRatingComboBox.Enabled = false;
         }
-        _boxArtCarouselManager?.Clear();
+        if (mediaDataGridView != null)
+        {
+            mediaDataGridView.Rows.Clear();
+        }
+        StopAndClearMediaDisplay();
         if (synopsisTextBox != null)
         {
             synopsisTextBox.Text = string.Empty;
@@ -837,6 +813,11 @@ public class TopForm : Form
                     parentalRatingComboBox.Enabled = false;
                 }
 
+                // Stop any playing media from previous selection
+                StopAndClearMediaDisplay();
+                // Populate the new Media tab
+                PopulateMediaTab(selectedGame);
+
                 if (manualButton != null && !string.IsNullOrEmpty(selectedGame.ManualPath) && File.Exists(selectedGame.ManualPath))
                 {
                     manualButton.Enabled = true;
@@ -921,28 +902,6 @@ public class TopForm : Form
                 }
             }
 
-            // Handle Box Art Carousel via manager
-            var boxArtPaths = new List<string>();
-            if (selectedGame != null)
-            {
-                if (selectedGame.HasFrontBoxArt)
-                {
-                    boxArtPaths.Add(selectedGame.FrontBoxArtPath);
-                }
-                if (selectedGame.HasBackBoxArt)
-                {
-                    boxArtPaths.Add(selectedGame.BackBoxArtPath);
-                }
-                if (selectedGame.CaptureImagePaths.Any())
-                {
-                    boxArtPaths.AddRange(selectedGame.CaptureImagePaths);
-                }
-                if (selectedGame.VideoPaths.Any())
-                {
-                    boxArtPaths.AddRange(selectedGame.VideoPaths);
-                }
-            }
-            _boxArtCarouselManager?.LoadImages(boxArtPaths);
         }
     }
 
@@ -1088,24 +1047,83 @@ public class TopForm : Form
         UpdateIsoImageForSelection();
     }
 
-    private void BoxArtPreviousButton_Click(object? sender, EventArgs e)
+    private void PopulateMediaTab(GameConfiguration game)
     {
-        _boxArtCarouselManager?.GoToPrevious();
+        if (mediaDataGridView == null) return;
+
+        mediaDataGridView.Rows.Clear();
+        var mediaItems = new List<MediaItem>();
+
+        if (game.HasFrontBoxArt)
+            mediaItems.Add(new MediaItem(game.FrontBoxArtPath, "Front Box Art", MediaType.Image));
+        if (game.HasBackBoxArt)
+            mediaItems.Add(new MediaItem(game.BackBoxArtPath, "Back Box Art", MediaType.Image));
+
+        mediaItems.AddRange(game.CaptureImagePaths.Select(p => new MediaItem(p, Path.GetFileName(p), MediaType.Image)));
+        mediaItems.AddRange(game.VideoPaths.Select(p => new MediaItem(p, Path.GetFileName(p), MediaType.Video)));
+
+        foreach (var item in mediaItems)
+        {
+            var rowIndex = mediaDataGridView.Rows.Add(item.Type.ToString(), item.DisplayName);
+            mediaDataGridView.Rows[rowIndex].Tag = item;
+        }
+
+        if (mediaDataGridView.Rows.Count > 0)
+        {
+            mediaDataGridView.ClearSelection();
+            mediaDataGridView.Rows[0].Selected = true;
+        }
     }
 
-    private void BoxArtNextButton_Click(object? sender, EventArgs e)
+    private void MediaDataGridView_SelectionChanged(object? sender, EventArgs e)
     {
-        _boxArtCarouselManager?.GoToNext();
+        if (mediaDataGridView == null || mediaDataGridView.SelectedRows.Count == 0)
+        {
+            StopAndClearMediaDisplay();
+            return;
+        }
+
+        var selectedRow = mediaDataGridView.SelectedRows[0];
+        if (selectedRow.Tag is not MediaItem mediaItem) return;
+
+        StopAndClearMediaDisplay();
+
+        if (mediaItem.Type == MediaType.Image && mediaDisplayPictureBox != null)
+        {
+            try
+            {
+                mediaDisplayPictureBox.Image = Image.FromFile(mediaItem.FilePath);
+                mediaDisplayPictureBox.Visible = true;
+            }
+            catch (Exception ex) { AppLogger.Log($"Error loading media image '{mediaItem.FilePath}': {ex.Message}"); }
+        }
+        else if (mediaItem.Type == MediaType.Video && _videoView != null && _mediaPlayer != null)
+        {
+            try
+            {
+                _videoView.Visible = true;
+                using var media = new Media(_libVLC, new Uri(mediaItem.FilePath));
+                _mediaPlayer.Play(media);
+            }
+            catch (Exception ex) { AppLogger.Log($"Error playing media video '{mediaItem.FilePath}': {ex.Message}"); }
+        }
+    }
+
+    private void StopAndClearMediaDisplay()
+    {
+        _mediaPlayer?.Stop();
+        if (mediaDisplayPictureBox != null)
+        {
+            mediaDisplayPictureBox.Visible = false;
+            mediaDisplayPictureBox.Image?.Dispose();
+            mediaDisplayPictureBox.Image = null;
+        }
+        if (_videoView != null) _videoView.Visible = false;
     }
 
     protected override void Dispose(bool disposing)
     {
-        if (disposing)
-        {
-            _boxArtCarouselManager?.Dispose();
-            _mediaPlayer?.Dispose();
-            _libVLC?.Dispose();
-        }
+        if (disposing) { _mediaPlayer?.Dispose(); _libVLC?.Dispose(); }
         base.Dispose(disposing);
     }
     
