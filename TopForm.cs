@@ -984,7 +984,6 @@ public class TopForm : Form
         }
     }
 
-
     private async void RefreshButton_Click(object? sender, EventArgs e)
     {
         await RefreshGameListAsync();
@@ -1009,9 +1008,7 @@ public class TopForm : Form
             MessageBox.Show(this, "Game library location has been updated. Refreshing game list...", "Library Location Saved", MessageBoxButtons.OK, MessageBoxIcon.Information);
             await RefreshGameListAsync();
         }
-        // Optional: else, show a message that the operation was cancelled or no path was chosen.
     }
-
 
     private void ExitMenuItem_Click(object? sender, EventArgs e)
     {

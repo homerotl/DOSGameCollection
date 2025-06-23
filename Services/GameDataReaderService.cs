@@ -1,6 +1,6 @@
 using DOSGameCollection.Models;
 
-namespace DOSGameCollection;
+namespace DOSGameCollection.Services;
 
 public static class GameDataReaderService
 {

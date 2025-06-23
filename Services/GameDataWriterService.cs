@@ -1,6 +1,4 @@
-namespace DOSGameCollection;
-
-using System.Collections.Generic;
+namespace DOSGameCollection.Services;
 
 public static class GameDataWriterService
 {
