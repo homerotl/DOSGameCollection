@@ -113,7 +113,6 @@ public class TopForm : Form
         TableLayoutPanel tableLayoutPanel = new TableLayoutPanel
         {
             Dock = DockStyle.Fill,
-            CellBorderStyle = TableLayoutPanelCellBorderStyle.Single, // Keep for visual debugging
             ColumnCount = 2
         };
 
@@ -205,7 +204,6 @@ public class TopForm : Form
             Dock = DockStyle.Fill,
             ColumnCount = 1,
             RowCount = 4,
-            CellBorderStyle = TableLayoutPanelCellBorderStyle.Single, // Keep for visual debugging
             Margin = new Padding(0, 5, 5, 5)
         };
         gameDetailsTableLayoutPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
@@ -238,31 +236,31 @@ public class TopForm : Form
         gameDetailsTableLayoutPanel.RowStyles.Add(new RowStyle(SizeType.Absolute, 250F)); // Row 2: Media Panel (Synopsis & Box Art)
         gameDetailsTableLayoutPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 100F)); // Row 3: TabControl (fills remaining space)
 
-        // --- Game Name Container Panel (Label, TextBox, and Edit Button) ---
+        // --- Game Name Container Panel (Label and TextBox) ---
         TableLayoutPanel gameNameContainerPanel = new()
         {
-            Dock = DockStyle.Top,
-            AutoSize = true,
-            AutoSizeMode = AutoSizeMode.GrowAndShrink,
+            Dock = DockStyle.Fill, // Fill the cell
             ColumnCount = 2,
-            RowCount = 1,
-            Margin = new Padding(0)
+            RowCount = 2, // Use two rows to force content to the top
+            Margin = new Padding(0, 0, 3, 0) // Right margin
         };
-        gameNameContainerPanel.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));    // For Label
-        gameNameContainerPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F)); // For TextBox
+        gameNameContainerPanel.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+        gameNameContainerPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
+        gameNameContainerPanel.RowStyles.Add(new RowStyle(SizeType.AutoSize));      // Row for content
+        gameNameContainerPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 100F)); // Spacer row
 
         gameNameLabel = new Label
         {
-            Text = "Name:",
+            Text = "Game Name",
             Anchor = AnchorStyles.Left,
             TextAlign = ContentAlignment.MiddleLeft,
             AutoSize = true,
-            Margin = new Padding(0, 0, 3, 0) // Margin to the right
+            Margin = new Padding(0, 0, 3, 0)
         };
 
         gameNameTextBox = new TextBox
         {
-            Anchor = AnchorStyles.Left | AnchorStyles.Right, // Stretch horizontally, center vertically
+            Anchor = AnchorStyles.Left | AnchorStyles.Right,
             ReadOnly = true,
         };
         gameNameTextBox.KeyDown += GameNameTextBox_KeyDown;
@@ -270,9 +268,58 @@ public class TopForm : Form
         gameNameContainerPanel.Controls.Add(gameNameLabel, 0, 0);
         gameNameContainerPanel.Controls.Add(gameNameTextBox, 1, 0);
 
-        gameDetailsTableLayoutPanel.Controls.Add(actionButtonsPanel, 0, 0);
+        // --- Run Commands Layout Table ---
+        TableLayoutPanel runCommandsLayoutTable = new()
+        {
+            Dock = DockStyle.Fill, // Fill the cell
+            ColumnCount = 1,
+            RowCount = 2,
+            Margin = new Padding(3, 0, 0, 0) // Left margin
+        };
+        runCommandsLayoutTable.RowStyles.Add(new RowStyle(SizeType.AutoSize)); // For Label
+        runCommandsLayoutTable.RowStyles.Add(new RowStyle(SizeType.AutoSize)); // For TextBox
 
-        gameDetailsTableLayoutPanel.Controls.Add(gameNameContainerPanel, 0, 1);
+        Label runCommandsLabel = new Label
+        {
+            Text = "Run Commands",
+            Anchor = AnchorStyles.Left,
+            TextAlign = ContentAlignment.MiddleLeft,
+            AutoSize = true,
+            Margin = new Padding(0, 0, 0, 3) // Bottom margin
+        };
+
+        // Initialize runCommandsTextBox here, moved from the tab setup
+        runCommandsTextBox = new TextBox
+        {
+            Dock = DockStyle.Fill,
+            Multiline = true,
+            ReadOnly = true,
+            ScrollBars = ScrollBars.Vertical,
+            Font = new Font("Consolas", 9.75F, FontStyle.Regular),
+            Height = 75 // Set a fixed height for roughly 4 lines
+        };
+
+        runCommandsLayoutTable.Controls.Add(runCommandsLabel, 0, 0);
+        runCommandsLayoutTable.Controls.Add(runCommandsTextBox, 0, 1);
+
+        // --- New container for Game Name and Run Commands ---
+        TableLayoutPanel gameDataPanel = new()
+        {
+            Dock = DockStyle.Fill,
+            ColumnCount = 2,
+            RowCount = 2,
+            Margin = new Padding(0)
+        };
+        gameDataPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
+        gameDataPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
+        gameDataPanel.RowStyles.Add(new RowStyle(SizeType.AutoSize));      // Row for content
+        gameDataPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 100F)); // Spacer row to push content up
+
+        gameDataPanel.Controls.Add(gameNameContainerPanel, 0, 0);
+        gameDataPanel.Controls.Add(runCommandsLayoutTable, 1, 0);
+
+        gameDetailsTableLayoutPanel.Controls.Add(actionButtonsPanel, 0, 0);
+        gameDetailsTableLayoutPanel.Controls.Add(gameDataPanel, 0, 1); // Add the new composite panel
 
         // --- Synopsis TextBox Setup ---
         synopsisTextBox = new TextBox
@@ -369,33 +416,6 @@ public class TopForm : Form
             Margin = new Padding(0, 5, 0, 0) // Add some top margin
         };
 
-        // Create and add TabPages
-        TabPage runCommandsTab = new("Run Commands");
-
-        // --- Layout Panel for Run Commands Tab ---
-        TableLayoutPanel runCommandsPanel = new()
-        {
-            Dock = DockStyle.Fill,
-            ColumnCount = 2,
-            RowCount = 1,
-            Padding = new Padding(3)
-        };
-        runCommandsPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
-        runCommandsPanel.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
-        runCommandsPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
-
-        runCommandsTextBox = new TextBox
-        {
-            Dock = DockStyle.Fill,
-            Multiline = true,
-            ReadOnly = true,
-            ScrollBars = ScrollBars.Vertical,
-            Font = new Font("Consolas", 9.75F, FontStyle.Regular)
-        };
-
-        runCommandsPanel.Controls.Add(runCommandsTextBox, 0, 0);
-        runCommandsTab.Controls.Add(runCommandsPanel);
-        // Existing tabs
         TabPage diskImagesTab = new TabPage("CD-ROM images");
 
         // --- Layout Panel for CD-ROM Images Tab ---
@@ -516,7 +536,7 @@ public class TopForm : Form
 
 
         gameDetailsTabControl.TabPages.AddRange(new TabPage[] {
-            runCommandsTab, diskImagesTab, soundtrackTab, installDiscsTab, walkthroughTab, cheatsTab, notesTab
+            diskImagesTab, soundtrackTab, installDiscsTab, walkthroughTab, cheatsTab, notesTab
         });
         gameDetailsTableLayoutPanel.Controls.Add(gameDetailsTabControl, 0, 3); // Add TabControl to row 3
 
