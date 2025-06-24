@@ -1514,8 +1514,14 @@ public class TopForm : Form
         logDialog.ShowDialog(this);
     }
 
-    private void EditGameDataButton_Click(object? sender, EventArgs e)
+    private async void EditGameDataButton_Click(object? sender, EventArgs e)
     {
+        // If synopsis is being edited, cancel that edit first.
+        if (saveSynopsisButton?.Visible == true)
+        {
+            await CancelSynopsisEditAsync();
+        }
+
         if (gameNameTextBox == null || releaseYearTextBox == null || parentalRatingComboBox == null ||
             developerTextBox == null || publisherTextBox == null || runCommandsTextBox == null ||
             editGameDataButton == null || saveGameDataButton == null) return;
@@ -1689,6 +1695,12 @@ public class TopForm : Form
 
     private void EditSynopsisButton_Click(object? sender, EventArgs e)
     {
+        // If game data is being edited, cancel that edit first.
+        if (saveGameDataButton?.Visible == true)
+        {
+            CancelGameDataEdit();
+        }
+
         if (synopsisTextBox == null || editSynopsisButton == null || saveSynopsisButton == null) return;
 
         synopsisTextBox.ReadOnly = false;
@@ -1742,7 +1754,7 @@ public class TopForm : Form
             // Check if in synopsis edit mode
             else if (saveSynopsisButton?.Visible == true)
             {
-                CancelSynopsisEdit();
+                _ = CancelSynopsisEditAsync(); // Fire and forget is acceptable for ESC key press
                 e.SuppressKeyPress = true;
             }
         }
@@ -1783,9 +1795,9 @@ public class TopForm : Form
     /// <summary>
     /// Cancels the synopsis edit mode, reverting the text and UI state.
     /// </summary>
-    private async void CancelSynopsisEdit()
+    private async Task CancelSynopsisEditAsync()
     {
-        if (gameListBox?.SelectedItem is not GameConfiguration selectedGame ||
+        if (gameListBox?.SelectedItem is not GameConfiguration selectedGame || 
             synopsisTextBox == null || editSynopsisButton == null || saveSynopsisButton == null)
         {
             return;
@@ -1797,6 +1809,21 @@ public class TopForm : Form
         saveSynopsisButton.Visible = false;
 
         // Re-read original content from file to discard any changes made in the textbox
-        synopsisTextBox.Text = await File.ReadAllTextAsync(selectedGame.SynopsisFilePath).ConfigureAwait(false);
+        try
+        {
+            if (File.Exists(selectedGame.SynopsisFilePath))
+            {
+                synopsisTextBox.Text = await File.ReadAllTextAsync(selectedGame.SynopsisFilePath).ConfigureAwait(false);
+            }
+            else
+            {
+                synopsisTextBox.Text = string.Empty;
+            }
+        }
+        catch (Exception ex)
+        {
+            AppLogger.Log($"Error re-reading synopsis file on cancel '{selectedGame.SynopsisFilePath}': {ex.Message}");
+            synopsisTextBox.Text = "Error loading synopsis."; // Show an error in the textbox
+        }
     }
 }
