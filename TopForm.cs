@@ -14,6 +14,7 @@ public class TopForm : Form
     private Button? refreshButton; 
     private Button? editGameDataButton;
     private Button? saveGameDataButton;
+    private Button? cancelGameDataButton;
     private TableLayoutPanel? rightColumnPanel;
     private Label? gameNameLabel;
     private TextBox? gameNameTextBox;
@@ -25,6 +26,7 @@ public class TopForm : Form
     private TextBox? synopsisTextBox;
     private Button? editSynopsisButton;
     private Button? saveSynopsisButton;
+    private Button? cancelSynopsisButton;
     private MenuStrip? menuStrip; 
     private TabControl? extraInformationTabControl;
     private DataGridView? mediaDataGridView;
@@ -189,6 +191,16 @@ public class TopForm : Form
         if (symbolFont != null) { saveGameDataButton.Font = symbolFont; }
         saveGameDataButton.Click += SaveGameDataButton_Click;
 
+        cancelGameDataButton = new Button
+        {
+            AutoSize = true,
+            Margin = new Padding(0, 0, 5, 5),
+            Visible = false,
+            Text = symbolFont != null ? "\U0001F5D9" : "Cancel"
+        };
+        if (symbolFont != null) { cancelGameDataButton.Font = symbolFont; }
+        cancelGameDataButton.Click += CancelGameDataButton_Click;
+
         gameListBox = new ListBox();
 
         rightColumnPanel = new TableLayoutPanel
@@ -213,11 +225,13 @@ public class TopForm : Form
         actionButtonsPanel.Controls.Add(manualButton);
         actionButtonsPanel.Controls.Add(editGameDataButton);
         actionButtonsPanel.Controls.Add(saveGameDataButton);
+        actionButtonsPanel.Controls.Add(cancelGameDataButton);
 
         // --- ToolTips for Action Buttons ---
         ToolTip actionButtonToolTip = new();
         actionButtonToolTip.SetToolTip(runButton, "Launch");
         actionButtonToolTip.SetToolTip(saveGameDataButton, "Save Game Data");
+        actionButtonToolTip.SetToolTip(cancelGameDataButton, "Cancel");
         actionButtonToolTip.SetToolTip(manualButton, "Manual");
         actionButtonToolTip.SetToolTip(refreshButton, "Reload");
         actionButtonToolTip.SetToolTip(editGameDataButton, "Edit Game Data");
@@ -472,8 +486,21 @@ public class TopForm : Form
         if (symbolFont != null) { saveSynopsisButton.Font = symbolFont; }
         saveSynopsisButton.Click += SaveSynopsisButton_Click;
 
+        cancelSynopsisButton = new Button
+        {
+            AutoSize = true,
+            Margin = new Padding(0, 0, 5, 5),
+            Visible = false,
+            Text = symbolFont != null ? "\U0001F5D9" : "Cancel"
+        };
+        if (symbolFont != null) { cancelSynopsisButton.Font = symbolFont; }
+        cancelSynopsisButton.Click += CancelSynopsisButton_Click;
+
+        actionButtonToolTip.SetToolTip(cancelSynopsisButton, "Cancel");
+
         synopsisButtonsPanel.Controls.Add(editSynopsisButton);
         synopsisButtonsPanel.Controls.Add(saveSynopsisButton);
+        synopsisButtonsPanel.Controls.Add(cancelSynopsisButton);
         synopsisPanel.Controls.AddRange([synopsisButtonsPanel, synopsisTextBox]);
         synopsisTab.Controls.Add(synopsisPanel);
 
@@ -808,6 +835,10 @@ public class TopForm : Form
         {
             saveSynopsisButton.Visible = false;
         }
+        if (cancelSynopsisButton != null)
+        {
+            cancelSynopsisButton.Visible = false;
+        }
         if (runButton != null)
         {
             runButton.Enabled = false;
@@ -822,6 +853,7 @@ public class TopForm : Form
             editGameDataButton.Visible = true;
         }
         if (saveGameDataButton != null) saveGameDataButton.Visible = false;
+        if (cancelGameDataButton != null) cancelGameDataButton.Visible = false;
         if (isoImagesDataGridView != null)
         {
             isoImagesDataGridView.Rows.Clear();
@@ -938,6 +970,7 @@ public class TopForm : Form
             editGameDataButton.Visible = true;
         }
         if (saveGameDataButton != null) saveGameDataButton.Visible = false;
+        if (cancelGameDataButton != null) cancelGameDataButton.Visible = false;
         if (isoImagesDataGridView != null)
         {
             isoImagesDataGridView.Rows.Clear();
@@ -974,6 +1007,10 @@ public class TopForm : Form
         if (saveSynopsisButton != null)
         {
             saveSynopsisButton.Visible = false;
+        }
+        if (cancelSynopsisButton != null)
+        {
+            cancelSynopsisButton.Visible = false;
         }
         if (soundtrackDataGridView != null)
         {
@@ -1514,6 +1551,16 @@ public class TopForm : Form
         logDialog.ShowDialog(this);
     }
 
+    private async void CancelSynopsisButton_Click(object? sender, EventArgs e)
+    {
+        await CancelSynopsisEditAsync();
+    }
+
+    private void CancelGameDataButton_Click(object? sender, EventArgs e)
+    {
+        CancelGameDataEdit();
+    }
+
     private async void EditGameDataButton_Click(object? sender, EventArgs e)
     {
         // If synopsis is being edited, cancel that edit first.
@@ -1523,7 +1570,7 @@ public class TopForm : Form
         }
 
         if (gameNameTextBox == null || releaseYearTextBox == null || parentalRatingComboBox == null ||
-            developerTextBox == null || publisherTextBox == null || runCommandsTextBox == null ||
+            developerTextBox == null || publisherTextBox == null || runCommandsTextBox == null || cancelGameDataButton == null ||
             editGameDataButton == null || saveGameDataButton == null) return;
 
         gameNameTextBox.ReadOnly = false;
@@ -1535,6 +1582,7 @@ public class TopForm : Form
 
         editGameDataButton.Visible = false;
         saveGameDataButton.Visible = true;
+        cancelGameDataButton.Visible = true;
 
         gameNameTextBox.Focus();
         gameNameTextBox.SelectAll();
@@ -1557,7 +1605,7 @@ public class TopForm : Form
             developerTextBox == null ||
             publisherTextBox == null ||
             runCommandsTextBox == null ||
-            editGameDataButton == null ||
+            editGameDataButton == null || cancelGameDataButton == null ||
             saveGameDataButton == null)
         {
             return;
@@ -1624,6 +1672,7 @@ public class TopForm : Form
         publisherTextBox.ReadOnly = true;
         editGameDataButton.Visible = true;
         saveGameDataButton.Visible = false;
+        cancelGameDataButton.Visible = false;
 
         // Check if anything actually changed
         bool nameChanged = !string.IsNullOrWhiteSpace(newName) && !newName.Equals(originalName, StringComparison.Ordinal);
@@ -1701,11 +1750,12 @@ public class TopForm : Form
             CancelGameDataEdit();
         }
 
-        if (synopsisTextBox == null || editSynopsisButton == null || saveSynopsisButton == null) return;
+        if (synopsisTextBox == null || editSynopsisButton == null || saveSynopsisButton == null || cancelSynopsisButton == null) return;
 
         synopsisTextBox.ReadOnly = false;
         editSynopsisButton.Visible = false;
         saveSynopsisButton.Visible = true;
+        cancelSynopsisButton.Visible = true;
         synopsisTextBox.Focus();
     }
 
@@ -1713,6 +1763,7 @@ public class TopForm : Form
     {
         if (gameListBox?.SelectedItem is not GameConfiguration selectedGame ||
             synopsisTextBox == null ||
+            cancelSynopsisButton == null ||
             editSynopsisButton == null ||
             saveSynopsisButton == null)
         {
@@ -1723,6 +1774,7 @@ public class TopForm : Form
         synopsisTextBox.ReadOnly = true;
         editSynopsisButton.Visible = true;
         saveSynopsisButton.Visible = false;
+        cancelSynopsisButton.Visible = false;
 
         string newSynopsis = synopsisTextBox.Text;
 
@@ -1767,6 +1819,7 @@ public class TopForm : Form
     {
         if (gameListBox?.SelectedItem is not GameConfiguration selectedGame ||
             gameNameTextBox == null || releaseYearTextBox == null || parentalRatingComboBox == null ||
+            cancelGameDataButton == null ||
             developerTextBox == null || publisherTextBox == null || runCommandsTextBox == null ||
             editGameDataButton == null || saveGameDataButton == null)
         {
@@ -1782,6 +1835,7 @@ public class TopForm : Form
         publisherTextBox.ReadOnly = true;
         editGameDataButton.Visible = true;
         saveGameDataButton.Visible = false;
+        cancelGameDataButton.Visible = false;
 
         // Revert UI fields to their original values from the in-memory model
         gameNameTextBox.Text = selectedGame.GameName;
@@ -1798,7 +1852,7 @@ public class TopForm : Form
     private async Task CancelSynopsisEditAsync()
     {
         if (gameListBox?.SelectedItem is not GameConfiguration selectedGame || 
-            synopsisTextBox == null || editSynopsisButton == null || saveSynopsisButton == null)
+            synopsisTextBox == null || editSynopsisButton == null || saveSynopsisButton == null || cancelSynopsisButton == null)
         {
             return;
         }
@@ -1807,6 +1861,7 @@ public class TopForm : Form
         synopsisTextBox.ReadOnly = true;
         editSynopsisButton.Visible = true;
         saveSynopsisButton.Visible = false;
+        cancelSynopsisButton.Visible = false;
 
         // Re-read original content from file to discard any changes made in the textbox
         try
