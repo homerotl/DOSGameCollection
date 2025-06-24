@@ -42,6 +42,8 @@ public class TopForm : Form
         InitializeComponent();
         _appConfigService = new AppConfigService();
         Load += TopForm_Load;
+        KeyPreview = true; // Allows the form to preview key events before the focused control.
+        KeyDown += TopForm_KeyDown;
     }
 
     private record MediaItem(string FilePath, string DisplayName, MediaType Type);
@@ -1725,5 +1727,76 @@ public class TopForm : Form
                 synopsisTextBox.Text = result.OriginalContent; // Revert textbox to original content on error
             }
         }
+    }
+
+    private void TopForm_KeyDown(object? sender, KeyEventArgs e)
+    {
+        if (e.KeyCode == Keys.Escape)
+        {
+            // Check if in game data edit mode
+            if (saveGameDataButton?.Visible == true)
+            {
+                CancelGameDataEdit();
+                e.SuppressKeyPress = true; // Prevent any further processing of the key press (e.g., 'ding' sound)
+            }
+            // Check if in synopsis edit mode
+            else if (saveSynopsisButton?.Visible == true)
+            {
+                CancelSynopsisEdit();
+                e.SuppressKeyPress = true;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Cancels the game data edit mode, reverting all changes and UI state.
+    /// </summary>
+    private void CancelGameDataEdit()
+    {
+        if (gameListBox?.SelectedItem is not GameConfiguration selectedGame ||
+            gameNameTextBox == null || releaseYearTextBox == null || parentalRatingComboBox == null ||
+            developerTextBox == null || publisherTextBox == null || runCommandsTextBox == null ||
+            editGameDataButton == null || saveGameDataButton == null)
+        {
+            return;
+        }
+
+        // Revert UI state to read-only
+        gameNameTextBox.ReadOnly = true;
+        runCommandsTextBox.ReadOnly = true;
+        releaseYearTextBox.ReadOnly = true;
+        parentalRatingComboBox.Enabled = false;
+        developerTextBox.ReadOnly = true;
+        publisherTextBox.ReadOnly = true;
+        editGameDataButton.Visible = true;
+        saveGameDataButton.Visible = false;
+
+        // Revert UI fields to their original values from the in-memory model
+        gameNameTextBox.Text = selectedGame.GameName;
+        releaseYearTextBox.Text = selectedGame.ReleaseYear?.ToString() ?? string.Empty;
+        parentalRatingComboBox.SelectedItem = selectedGame.ParentalRating ?? "";
+        developerTextBox.Text = selectedGame.Developer ?? string.Empty;
+        publisherTextBox.Text = selectedGame.Publisher ?? string.Empty;
+        runCommandsTextBox.Text = string.Join(Environment.NewLine, selectedGame.DosboxCommands);
+    }
+
+    /// <summary>
+    /// Cancels the synopsis edit mode, reverting the text and UI state.
+    /// </summary>
+    private async void CancelSynopsisEdit()
+    {
+        if (gameListBox?.SelectedItem is not GameConfiguration selectedGame ||
+            synopsisTextBox == null || editSynopsisButton == null || saveSynopsisButton == null)
+        {
+            return;
+        }
+
+        // Revert UI state
+        synopsisTextBox.ReadOnly = true;
+        editSynopsisButton.Visible = true;
+        saveSynopsisButton.Visible = false;
+
+        // Re-read original content from file to discard any changes made in the textbox
+        synopsisTextBox.Text = await File.ReadAllTextAsync(selectedGame.SynopsisFilePath).ConfigureAwait(false);
     }
 }
