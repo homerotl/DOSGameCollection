@@ -15,14 +15,14 @@ This program expects games to be arranged in a specific folder structure like so
         --/dosbox-staging.conf
         --/manual.pdf
         --/game-files <- This will be mounted as C:
-        --/disc-images
-            --/disc-info.txt
-            --/disc_01.img
-            --/disc_02.img
-            --/disc_01.png
-            --/disc_02.png
+        --/disk-images
+            --/file-info.txt
+            --/disk_01.img
+            --/disk_02.img
+            --/disk_01.png
+            --/disk_02.png
         --/isos
-            --/disc-info.txt
+            --/file-info.txt
             --/game_cd_1.iso
             --/game_cd_2.iso
             --/game_cd_1.png (picture or scan of the media itself)
@@ -35,7 +35,7 @@ This program expects games to be arranged in a specific folder structure like so
             --/personal-notes.txt
             --/walkthrough
                 --/page_01.txt (or pdf)
-                --/walkthrough-info.txt
+                --/file-info.txt
             --/box-art
                 --/front.png
                 --/back.png
@@ -44,20 +44,22 @@ This program expects games to be arranged in a specific folder structure like so
                 --/capture-info.txt
                 --/capture-001.png
             --/videos
-                --/video-info.txt
+                --/file-info.txt
                 --/video-001.avi
             --/inserts
-                --/insert-info.txt
+                --/file-info.txt
                 --/insert_01.pdf
                 --/insert_02.png
             --/ost (original soundtrack, .mp3)
                 --/midi
-                  --/track-info.txt
+                  --/file-info.txt
                   --/track_01.mid
-                --/track-info.txt
+                --/file-info.txt
                 --/cover.png
                 --/track_01.mp3
         --/other (other files which don't fit in any other category)
+          --/file-info.txt 
+          
 ```
 
 ## Game file specification

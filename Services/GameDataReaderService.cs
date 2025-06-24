@@ -185,7 +185,7 @@ public static class GameDataReaderService
         {
             // Parse disc-info.txt for ISOs
             var isoDisplayNames = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-            string isoInfoPath = Path.Combine(isoDirectory, "disc-info.txt");
+            string isoInfoPath = Path.Combine(isoDirectory, "file-info.txt");
             if (File.Exists(isoInfoPath))
             {
                 string[] infoLines = await File.ReadAllLinesAsync(isoInfoPath);
@@ -241,17 +241,17 @@ public static class GameDataReaderService
             }
         }
 
-        // Scan for disc images (.img files)
-        string discImagesDirectory = Path.Combine(gameDirectoryPath, "disc-images");
-        if (Directory.Exists(discImagesDirectory))
+        // Scan for floppy disk images (.img files) in the 'isos' directory
+        string diskImagesDirectory = Path.Combine(gameDirectoryPath, "disk-images");
+        if (Directory.Exists(diskImagesDirectory))
         {
             try
             {
                  var displayNames = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-                string discInfoPath = Path.Combine(discImagesDirectory, "disc-info.txt");
-                if (File.Exists(discInfoPath))
+                string diskInfoPath = Path.Combine(diskImagesDirectory, "file-info.txt");
+                if (File.Exists(diskInfoPath))
                 {
-                    string[] infoLines = await File.ReadAllLinesAsync(discInfoPath);
+                    string[] infoLines = await File.ReadAllLinesAsync(diskInfoPath);
                     foreach (var line in infoLines)
                     {
                         if (string.IsNullOrWhiteSpace(line) || line.StartsWith("#") || line.StartsWith(";")) continue;
@@ -263,7 +263,7 @@ public static class GameDataReaderService
                     }
                 }
 
-                var imgFiles = Directory.EnumerateFiles(discImagesDirectory, "*.img")
+                var imgFiles = Directory.EnumerateFiles(diskImagesDirectory, "*.img")
                                         .OrderBy(f => f, StringComparer.OrdinalIgnoreCase);
 
                 foreach (var imgFilePath in imgFiles)
@@ -286,7 +286,7 @@ public static class GameDataReaderService
             catch (Exception ex)
             {
                 // Log this error but don't prevent the game from loading
-                AppLogger.Log($"Error scanning for disc images in '{discImagesDirectory}': {ex.Message}");
+                AppLogger.Log($"Error scanning for floppy disk images in '{diskImagesDirectory}': {ex.Message}");
             }
         }
 
