@@ -151,9 +151,16 @@ public static class GameDataReaderService
         {
             try
             {
-                config.CaptureImagePaths = Directory.EnumerateFiles(capturesDirectory, "*.png")
-                                                    .OrderBy(f => f, StringComparer.OrdinalIgnoreCase)
-                                                    .ToList();
+                var displayNames = await ParseDisplayNamesAsync(capturesDirectory);
+                var captureFiles = Directory.EnumerateFiles(capturesDirectory, "*.png")
+                                            .OrderBy(f => f, StringComparer.OrdinalIgnoreCase);
+
+                foreach (var filePath in captureFiles)
+                {
+                    string fileName = Path.GetFileName(filePath);
+                    displayNames.TryGetValue(fileName, out var displayName);
+                    config.CaptureFiles.Add(new MediaFileInfo(filePath, displayName ?? fileName));
+                }
             }
             catch (Exception ex)
             {
@@ -161,17 +168,24 @@ public static class GameDataReaderService
             }
         }
 
-        // Scan for videos (.avi files)
+        // Scan for videos
         string videosDirectory = Path.Combine(gameDirectoryPath, "media", "videos");
         if (Directory.Exists(videosDirectory))
         {
             try
             {
+                var displayNames = await ParseDisplayNamesAsync(videosDirectory);
                 var allowedVideoExtensions = new[] { "*.avi", "*.mp4", "*.mpg" };
-                config.VideoPaths = allowedVideoExtensions
+                var videoFiles = allowedVideoExtensions
                                         .SelectMany(ext => Directory.EnumerateFiles(videosDirectory, ext, SearchOption.TopDirectoryOnly))
-                                        .OrderBy(f => f, StringComparer.OrdinalIgnoreCase)
-                                        .ToList();
+                                        .OrderBy(f => f, StringComparer.OrdinalIgnoreCase);
+
+                foreach (var filePath in videoFiles)
+                {
+                    string fileName = Path.GetFileName(filePath);
+                    displayNames.TryGetValue(fileName, out var displayName);
+                    config.VideoFiles.Add(new MediaFileInfo(filePath, displayName ?? fileName));
+                }
             }
             catch (Exception ex)
             {
@@ -183,22 +197,8 @@ public static class GameDataReaderService
         string isoDirectory = Path.Combine(gameDirectoryPath, "isos");
         if (Directory.Exists(isoDirectory) && isoFileNames.Any())
         {
-            // Parse disc-info.txt for ISOs
-            var isoDisplayNames = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-            string isoInfoPath = Path.Combine(isoDirectory, "file-info.txt");
-            if (File.Exists(isoInfoPath))
-            {
-                string[] infoLines = await File.ReadAllLinesAsync(isoInfoPath);
-                foreach (var line in infoLines)
-                {
-                    if (string.IsNullOrWhiteSpace(line) || line.StartsWith("#") || line.StartsWith(";")) continue;
-                    var parts = line.Split(new[] { ',' }, 2);
-                    if (parts.Length == 2)
-                    {
-                        isoDisplayNames[parts[0].Trim()] = parts[1].Trim();
-                    }
-                }
-            }
+            // Parse file-info.txt for ISOs
+            var isoDisplayNames = await ParseDisplayNamesAsync(isoDirectory);
 
             // Process each ISO file from the config
             foreach (var isoFileName in isoFileNames)
@@ -241,27 +241,13 @@ public static class GameDataReaderService
             }
         }
 
-        // Scan for floppy disk images (.img files) in the 'isos' directory
+        // Scan for floppy disk images (.img files)
         string diskImagesDirectory = Path.Combine(gameDirectoryPath, "disk-images");
         if (Directory.Exists(diskImagesDirectory))
         {
             try
             {
-                 var displayNames = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-                string diskInfoPath = Path.Combine(diskImagesDirectory, "file-info.txt");
-                if (File.Exists(diskInfoPath))
-                {
-                    string[] infoLines = await File.ReadAllLinesAsync(diskInfoPath);
-                    foreach (var line in infoLines)
-                    {
-                        if (string.IsNullOrWhiteSpace(line) || line.StartsWith("#") || line.StartsWith(";")) continue;
-                        var parts = line.Split(new[] { ',' }, 2);
-                        if (parts.Length == 2)
-                        {
-                            displayNames[parts[0].Trim()] = parts[1].Trim();
-                        }
-                    }
-                }
+                var displayNames = await ParseDisplayNamesAsync(diskImagesDirectory);
 
                 var imgFiles = Directory.EnumerateFiles(diskImagesDirectory, "*.img")
                                         .OrderBy(f => f, StringComparer.OrdinalIgnoreCase);
@@ -291,5 +277,41 @@ public static class GameDataReaderService
         }
 
         return config;
+    }
+
+    /// <summary>
+    /// Parses a "file-info.txt" file in a given directory to extract display names for files.
+    /// </summary>
+    /// <param name="directoryPath">The directory containing the file-info.txt file.</param>
+    /// <returns>A dictionary mapping file names to their display names.</returns>
+    private static async Task<Dictionary<string, string>> ParseDisplayNamesAsync(string directoryPath)
+    {
+        var displayNames = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        string infoFilePath = Path.Combine(directoryPath, "file-info.txt");
+
+        if (!File.Exists(infoFilePath))
+        {
+            return displayNames;
+        }
+
+        try
+        {
+            string[] infoLines = await File.ReadAllLinesAsync(infoFilePath);
+            foreach (var line in infoLines)
+            {
+                if (string.IsNullOrWhiteSpace(line) || line.StartsWith("#") || line.StartsWith(";")) continue;
+                var parts = line.Split(new[] { ',' }, 2);
+                if (parts.Length == 2)
+                {
+                    displayNames[parts[0].Trim()] = parts[1].Trim();
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            AppLogger.Log($"Error reading display name file '{infoFilePath}': {ex.Message}");
+        }
+
+        return displayNames;
     }
 }

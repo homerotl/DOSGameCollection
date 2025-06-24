@@ -1178,8 +1178,8 @@ public class TopForm : Form
         if (game.HasBackBoxArt)
             mediaItems.Add(new MediaItem(game.BackBoxArtPath, "Back Box Art", MediaType.Image));
 
-        mediaItems.AddRange(game.CaptureImagePaths.Select(p => new MediaItem(p, Path.GetFileName(p), MediaType.Image)));
-        mediaItems.AddRange(game.VideoPaths.Select(p => new MediaItem(p, Path.GetFileName(p), MediaType.Video)));
+        mediaItems.AddRange(game.CaptureFiles.Select(f => new MediaItem(f.FilePath, f.DisplayName, MediaType.Image)));
+        mediaItems.AddRange(game.VideoFiles.Select(f => new MediaItem(f.FilePath, f.DisplayName, MediaType.Video)));
 
         foreach (var item in mediaItems)
         {

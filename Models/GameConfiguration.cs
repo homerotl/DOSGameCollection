@@ -9,8 +9,9 @@ public class GameConfiguration
     public List<DiscImageInfo> IsoImages { get; set; } = [];
     public List<string> DosboxCommands { get; set; } = [];
     public List<DiscImageInfo> DiscImages { get; set; } = [];
-    public List<string> CaptureImagePaths { get; set; } = [];
-    public List<string> VideoPaths { get; set; } = [];
+    public List<MediaFileInfo> CaptureFiles { get; set; } = [];
+    public List<MediaFileInfo> VideoFiles { get; set; } = [];
+
     public string? ParentalRating { get; set; }
     public required string GameDirectoryPath { get; set; }
 
