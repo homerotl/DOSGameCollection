@@ -23,6 +23,8 @@ public class TopForm : Form
     private TextBox? publisherTextBox;
     private PictureBox? mediaDisplayPictureBox;
     private TextBox? synopsisTextBox;
+    private Button? editSynopsisButton;
+    private Button? saveSynopsisButton;
     private MenuStrip? menuStrip; 
     private TabControl? extraInformationTabControl;
     private DataGridView? mediaDataGridView;
@@ -427,7 +429,48 @@ public class TopForm : Form
 
         TabPage mediaTab = new("Media");
         TabPage synopsisTab = new("Synopsis");
-        synopsisTab.Controls.Add(synopsisTextBox);
+
+        TableLayoutPanel synopsisPanel = new()
+        {
+            Dock = DockStyle.Fill,
+            ColumnCount = 1,
+            RowCount = 2
+        };
+        synopsisPanel.RowStyles.Add(new RowStyle(SizeType.AutoSize)); // For buttons
+        synopsisPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 100F)); // For textbox
+
+        FlowLayoutPanel synopsisButtonsPanel = new()
+        {
+            FlowDirection = FlowDirection.LeftToRight,
+            Dock = DockStyle.Top,
+            AutoSize = true,
+            Margin = new Padding(0, 0, 0, 5)
+        };
+
+        editSynopsisButton = new Button
+        {
+            AutoSize = true,
+            Margin = new Padding(0, 0, 5, 5),
+            Enabled = false,
+            Text = symbolFont != null ? "\u270E" : "Edit"
+        };
+        if (symbolFont != null) { editSynopsisButton.Font = symbolFont; }
+        editSynopsisButton.Click += EditSynopsisButton_Click;
+
+        saveSynopsisButton = new Button
+        {
+            AutoSize = true,
+            Margin = new Padding(0, 0, 5, 5),
+            Visible = false,
+            Text = symbolFont != null ? "\uD83D\uDCBE" : "Save"
+        };
+        if (symbolFont != null) { saveSynopsisButton.Font = symbolFont; }
+        saveSynopsisButton.Click += SaveSynopsisButton_Click;
+
+        synopsisButtonsPanel.Controls.Add(editSynopsisButton);
+        synopsisButtonsPanel.Controls.Add(saveSynopsisButton);
+        synopsisPanel.Controls.AddRange([synopsisButtonsPanel, synopsisTextBox]);
+        synopsisTab.Controls.Add(synopsisPanel);
 
         // --- Layout Panel for Media Tab ---
         TableLayoutPanel mediaTabPanel = new()
@@ -693,6 +736,16 @@ public class TopForm : Form
         if (synopsisTextBox != null)
         {
             synopsisTextBox.Text = string.Empty;
+            synopsisTextBox.ReadOnly = true;
+        }
+        if (editSynopsisButton != null)
+        {
+            editSynopsisButton.Enabled = false;
+            editSynopsisButton.Visible = true;
+        }
+        if (saveSynopsisButton != null)
+        {
+            saveSynopsisButton.Visible = false;
         }
         if (runButton != null)
         {
@@ -834,6 +887,19 @@ public class TopForm : Form
         {
             runCommandsTextBox.Clear();
             runCommandsTextBox.ReadOnly = true;
+        }
+        if (synopsisTextBox != null)
+        {
+            synopsisTextBox.ReadOnly = true;
+        }
+        if (editSynopsisButton != null)
+        {
+            editSynopsisButton.Enabled = (gameListBox?.SelectedItem != null);
+            editSynopsisButton.Visible = true;
+        }
+        if (saveSynopsisButton != null)
+        {
+            saveSynopsisButton.Visible = false;
         }
 
         if (gameNameTextBox != null && gameListBox != null)
@@ -1436,6 +1502,48 @@ public class TopForm : Form
             parentalRatingComboBox.SelectedItem = originalRating ?? "";
             developerTextBox.Text = originalDeveloper ?? "";
             publisherTextBox.Text = originalPublisher ?? "";
+        }
+    }
+
+    private void EditSynopsisButton_Click(object? sender, EventArgs e)
+    {
+        if (synopsisTextBox == null || editSynopsisButton == null || saveSynopsisButton == null) return;
+
+        synopsisTextBox.ReadOnly = false;
+        editSynopsisButton.Visible = false;
+        saveSynopsisButton.Visible = true;
+        synopsisTextBox.Focus();
+    }
+
+    private async void SaveSynopsisButton_Click(object? sender, EventArgs e)
+    {
+        if (gameListBox?.SelectedItem is not GameConfiguration selectedGame ||
+            synopsisTextBox == null ||
+            editSynopsisButton == null ||
+            saveSynopsisButton == null)
+        {
+            return;
+        }
+
+        // Revert UI state first
+        synopsisTextBox.ReadOnly = true;
+        editSynopsisButton.Visible = true;
+        saveSynopsisButton.Visible = false;
+
+        string newSynopsis = synopsisTextBox.Text;
+
+        // Delegate the save logic (read, compare, write) to the service
+        SynopsisWriterService.SynopsisSaveResult result =
+            await SynopsisWriterService.TrySaveSynopsisAsync(selectedGame.SynopsisFilePath, newSynopsis);
+
+        if (!result.Success)
+        {
+            // An error occurred during the save operation (or reading original content)
+            MessageBox.Show(this, result.ErrorMessage, "Save Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            if (result.OriginalContent != null)
+            {
+                synopsisTextBox.Text = result.OriginalContent; // Revert textbox to original content on error
+            }
         }
     }
 }
