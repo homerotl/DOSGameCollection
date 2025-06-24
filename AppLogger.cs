@@ -23,5 +23,12 @@ public static class AppLogger
             return string.Join(Environment.NewLine, _logMessages);
         }
     }
-}
 
+    /// <summary>
+    /// Clears all stored log messages.
+    /// </summary>
+    public static void ClearLogs()
+    {
+        lock (_lock) { _logMessages.Clear(); }
+    }
+}

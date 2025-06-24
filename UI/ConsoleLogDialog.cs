@@ -5,12 +5,15 @@ namespace DOSGameCollection.UI;
 
 public class ConsoleLogDialog : Form
 {
-    public ConsoleLogDialog(string logContents)
+    private TextBox logTextBox;
+
+    public ConsoleLogDialog(string initialLogContent)
     {
-        InitializeComponent(logContents);
+        InitializeComponent();
+        logTextBox.Text = initialLogContent;
     }
 
-    private void InitializeComponent(string logContents)
+    private void InitializeComponent()
     {
         this.Text = "Console Log";
         this.FormBorderStyle = FormBorderStyle.Sizable;
@@ -29,15 +32,14 @@ public class ConsoleLogDialog : Form
         mainPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
         mainPanel.RowStyles.Add(new RowStyle(SizeType.AutoSize));
 
-        var logTextBox = new TextBox
+        logTextBox = new TextBox
         {
             Multiline = true,
             ReadOnly = true,
             ScrollBars = ScrollBars.Both,
             WordWrap = false,
             Dock = DockStyle.Fill,
-            Font = new Font("Consolas", 9F),
-            Text = logContents
+            Font = new Font("Consolas", 9F)
         };
 
         var buttonPanel = new FlowLayoutPanel
@@ -50,12 +52,21 @@ public class ConsoleLogDialog : Form
         var okButton = new Button { Text = "OK", DialogResult = DialogResult.OK, Size = new Size(75, 25) };
         okButton.Click += (sender, e) => this.Close();
 
+        var clearButton = new Button { Text = "Clear", Size = new Size(75, 25) };
+        clearButton.Click += ClearButton_Click;
+
         buttonPanel.Controls.Add(okButton);
+        buttonPanel.Controls.Add(clearButton);
         mainPanel.Controls.Add(logTextBox, 0, 0);
         mainPanel.Controls.Add(buttonPanel, 0, 1);
 
         this.Controls.Add(mainPanel);
         this.AcceptButton = okButton;
     }
-}
 
+    private void ClearButton_Click(object? sender, EventArgs e)
+    {
+        AppLogger.ClearLogs();
+        logTextBox.Clear();
+    }
+}
