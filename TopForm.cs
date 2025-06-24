@@ -28,6 +28,8 @@ public class TopForm : Form
     private MenuStrip? menuStrip; 
     private TabControl? extraInformationTabControl;
     private DataGridView? mediaDataGridView;
+    private DataGridView? soundtrackDataGridView;
+    private PictureBox? soundtrackCoverPictureBox;
     private DataGridView? isoImagesDataGridView;
     private PictureBox? isoImagePictureBox;
     private DataGridView? floppyDiskDataGridView; 
@@ -424,7 +426,8 @@ public class TopForm : Form
         extraInformationTabControl = new TabControl
         {
             Dock = DockStyle.Fill,
-            Margin = new Padding(0, 5, 0, 0)
+            Margin = new Padding(0, 5, 0, 0),
+            Enabled = false // Initially disabled
         };
 
         TabPage mediaTab = new("Media");
@@ -590,6 +593,62 @@ public class TopForm : Form
         isoImagesDataGridView.SelectionChanged += DiskImagesDataGridView_SelectionChanged;
 
         TabPage soundtrackTab = new("Soundtrack");
+
+        // --- Layout Panel for Soundtrack Tab ---
+        TableLayoutPanel soundtrackPanel = new()
+        {
+            Dock = DockStyle.Fill,
+            ColumnCount = 2,
+            RowCount = 1
+        };
+        soundtrackPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
+        soundtrackPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
+        soundtrackPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
+
+        // --- DataGridView for Soundtrack List ---
+        soundtrackDataGridView = new DataGridView
+        {
+            Dock = DockStyle.Fill,
+            Margin = new Padding(3),
+            AllowUserToAddRows = false,
+            AllowUserToDeleteRows = false,
+            AllowUserToResizeRows = false,
+            AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill,
+            BackgroundColor = SystemColors.Window,
+            BorderStyle = BorderStyle.None,
+            CellBorderStyle = DataGridViewCellBorderStyle.SingleHorizontal,
+            ColumnHeadersVisible = false,
+            RowHeadersVisible = false,
+            SelectionMode = DataGridViewSelectionMode.FullRowSelect,
+            ReadOnly = true,
+            MultiSelect = false
+        };
+
+        var musicTypeColumn = new DataGridViewTextBoxColumn { HeaderText = "Type", Name = "Type", AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells };
+        if (symbolFont != null) { musicTypeColumn.DefaultCellStyle.Font = FormatTools.GetSymbolFont(10F); }
+        soundtrackDataGridView.Columns.Add(musicTypeColumn);
+        soundtrackDataGridView.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Name", Name = "Name", FillWeight = 100 });
+        var soundtrackLinkColumn = new DataGridViewTextBoxColumn { HeaderText = "Link", Name = "Link", AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells };
+        if (symbolFont != null) { soundtrackLinkColumn.DefaultCellStyle.Font = FormatTools.GetSymbolFont(10F); }
+        soundtrackDataGridView.Columns.Add(soundtrackLinkColumn);
+        soundtrackDataGridView.CellClick += SoundtrackDataGridView_CellClick;
+        soundtrackDataGridView.CellMouseEnter += SoundtrackDataGridView_CellMouseEnter;
+        soundtrackDataGridView.CellMouseLeave += SoundtrackDataGridView_CellMouseLeave;
+
+        // --- PictureBox for Soundtrack Cover ---
+        soundtrackCoverPictureBox = new PictureBox
+        {
+            Dock = DockStyle.Fill,
+            Margin = new Padding(3),
+            SizeMode = PictureBoxSizeMode.Zoom,
+            BorderStyle = BorderStyle.FixedSingle,
+            BackColor = Color.Black
+        };
+
+        soundtrackPanel.Controls.Add(soundtrackDataGridView, 0, 0);
+        soundtrackPanel.Controls.Add(soundtrackCoverPictureBox, 1, 0);
+        soundtrackTab.Controls.Add(soundtrackPanel);
+
         TabPage floppyDisksTab = new("Floppy disks");
 
         // --- Layout Panel for floppy disk images Tab ---
@@ -784,6 +843,19 @@ public class TopForm : Form
             runCommandsTextBox.Clear();
             runCommandsTextBox.ReadOnly = true;
         }
+        if (soundtrackDataGridView != null)
+        {
+            soundtrackDataGridView.Rows.Clear();
+        }
+        if (soundtrackCoverPictureBox != null && soundtrackCoverPictureBox.Image != null)
+        {
+            soundtrackCoverPictureBox.Image.Dispose();
+            soundtrackCoverPictureBox.Image = null;
+        }
+        if (extraInformationTabControl != null)
+        {
+            extraInformationTabControl.Enabled = false;
+        }
         _loadedGameConfigs.Clear();
 
         if (string.IsNullOrEmpty(_appConfigService.LibraryPath) || !Directory.Exists(_appConfigService.LibraryPath))
@@ -901,6 +973,19 @@ public class TopForm : Form
         {
             saveSynopsisButton.Visible = false;
         }
+        if (soundtrackDataGridView != null)
+        {
+            soundtrackDataGridView.Rows.Clear();
+        }
+        if (soundtrackCoverPictureBox != null)
+        {
+            soundtrackCoverPictureBox.Image?.Dispose();
+            soundtrackCoverPictureBox.Image = null;
+        }
+        if (extraInformationTabControl != null)
+        {
+            extraInformationTabControl.Enabled = false; // Disable tabs if no game is selected or selection is cleared
+        }
 
         if (gameNameTextBox != null && gameListBox != null)
         {
@@ -909,6 +994,10 @@ public class TopForm : Form
 
             if (selectedGame != null)
             {
+                if (extraInformationTabControl != null)
+                {
+                    extraInformationTabControl.Enabled = true; // Enable tabs when a game is selected
+                }
                 gameNameTextBox.Text = selectedGame.GameName;
                 if (releaseYearTextBox != null)
                 {
@@ -932,6 +1021,8 @@ public class TopForm : Form
                 ClearMediaDisplay();
 
                 PopulateMediaTab(selectedGame);
+
+                PopulateSoundtrackTab(selectedGame);
 
                 if (manualButton != null && !string.IsNullOrEmpty(selectedGame.ManualPath) && File.Exists(selectedGame.ManualPath))
                 {
@@ -1019,6 +1110,10 @@ public class TopForm : Form
                 if (synopsisTextBox != null)
                 {
                     synopsisTextBox.Text = string.Empty; // Clear synopsis if no selection
+                }
+                if (extraInformationTabControl != null)
+                {
+                    extraInformationTabControl.Enabled = false; // Ensure tabs are disabled if selection is cleared
                 }
             }
         }
@@ -1206,6 +1301,91 @@ public class TopForm : Form
         {
             mediaDataGridView.ClearSelection();
             mediaDataGridView.Rows[0].Selected = true;
+        }
+    }
+
+    private void PopulateSoundtrackTab(GameConfiguration game)
+    {
+        if (soundtrackDataGridView == null || soundtrackCoverPictureBox == null) return;
+
+        // Clear previous state
+        soundtrackDataGridView.Rows.Clear();
+        soundtrackCoverPictureBox.Image?.Dispose();
+        soundtrackCoverPictureBox.Image = null;
+
+        // Load cover art if it exists
+        if (!string.IsNullOrEmpty(game.SoundtrackCoverPath) && File.Exists(game.SoundtrackCoverPath))
+        {
+            try
+            {
+                soundtrackCoverPictureBox.Image = Image.FromFile(game.SoundtrackCoverPath);
+            }
+            catch (Exception ex)
+            {
+                AppLogger.Log($"Error loading soundtrack cover image '{game.SoundtrackCoverPath}': {ex.Message}");
+            }
+        }
+
+        // Populate the grid with soundtrack files
+        foreach (var track in game.SoundtrackFiles)
+        {
+            // 🎵 for music
+            string typeDisplay = FormatTools.SegoeUiSymbolExists ? "\U0001F3B5" : "Music";
+            string linkSymbol = FormatTools.SegoeUiSymbolExists ? "\U0001F517" : "Open";
+
+            var rowIndex = soundtrackDataGridView.Rows.Add(typeDisplay, track.DisplayName, linkSymbol);
+            var row = soundtrackDataGridView.Rows[rowIndex];
+            row.Tag = track; // Store the MediaFileInfo object
+            row.Cells[2].ToolTipText = "Open";
+        }
+    }
+
+    private void SoundtrackDataGridView_CellClick(object? sender, DataGridViewCellEventArgs e)
+    {
+        // We only care about clicks on the "Link" column (index 2). Ignore headers too.
+        if (e.RowIndex < 0 || e.ColumnIndex != 2) return;
+
+        if (soundtrackDataGridView?.Rows[e.RowIndex].Tag is MediaFileInfo trackInfo)
+        {
+            if (!string.IsNullOrEmpty(trackInfo.FilePath) && File.Exists(trackInfo.FilePath))
+            {
+                try
+                {
+                    ProcessStartInfo psi = new()
+                    {
+                        FileName = trackInfo.FilePath,
+                        UseShellExecute = true // Use the default OS application
+                    };
+                    Process.Start(psi);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(this, $"Could not open media file '{trackInfo.FilePath}'.\nError: {ex.Message}", "Error Opening File", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
+        }
+    }
+
+    private void SoundtrackDataGridView_CellMouseEnter(object? sender, DataGridViewCellEventArgs e)
+    {
+        if (soundtrackDataGridView == null) return;
+
+        // Change cursor to hand only when over the "Link" column (index 2) in a valid row.
+        if (e.RowIndex >= 0 && e.ColumnIndex == 2)
+        {
+            soundtrackDataGridView.Cursor = Cursors.Hand;
+        }
+        else
+        {
+            soundtrackDataGridView.Cursor = Cursors.Default;
+        }
+    }
+
+    private void SoundtrackDataGridView_CellMouseLeave(object? sender, DataGridViewCellEventArgs e)
+    {
+        if (soundtrackDataGridView != null)
+        {
+            soundtrackDataGridView.Cursor = Cursors.Default;
         }
     }
 

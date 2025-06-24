@@ -11,6 +11,9 @@ public class GameConfiguration
     public List<DiscImageInfo> DiscImages { get; set; } = [];
     public List<MediaFileInfo> CaptureFiles { get; set; } = [];
     public List<MediaFileInfo> VideoFiles { get; set; } = [];
+    // Add these two properties to your GameConfiguration class
+    public List<MediaFileInfo> SoundtrackFiles { get; set; } = [];
+    public string? SoundtrackCoverPath { get; set; }
 
     public string? ParentalRating { get; set; }
     public required string GameDirectoryPath { get; set; }

@@ -193,6 +193,33 @@ public static class GameDataReaderService
             }
         }
 
+        // Scan for soundtrack
+        string ostDirectory = Path.Combine(gameDirectoryPath, "media", "ost");
+        if (Directory.Exists(ostDirectory))
+        {
+            try
+            {
+                // Check for cover art
+                string coverPath = Path.Combine(ostDirectory, "cover.png");
+                if (File.Exists(coverPath))
+                {
+                    config.SoundtrackCoverPath = coverPath;
+                }
+
+                // Scan for .mp3 files and their display names
+                var displayNames = await ParseDisplayNamesAsync(ostDirectory);
+                var mp3Files = Directory.EnumerateFiles(ostDirectory, "*.mp3")
+                                        .OrderBy(f => f, StringComparer.OrdinalIgnoreCase);
+                foreach (var filePath in mp3Files)
+                {
+                    string fileName = Path.GetFileName(filePath);
+                    displayNames.TryGetValue(fileName, out var displayName);
+                    config.SoundtrackFiles.Add(new MediaFileInfo(filePath, displayName ?? fileName));
+                }
+            }
+            catch (Exception ex) { AppLogger.Log($"Error scanning for soundtrack in '{ostDirectory}': {ex.Message}"); }
+        }
+
         // Process collected ISO paths
         string isoDirectory = Path.Combine(gameDirectoryPath, "isos");
         if (Directory.Exists(isoDirectory) && isoFileNames.Any())
