@@ -22,11 +22,10 @@ public class TopForm : Form
     private ComboBox? parentalRatingComboBox;
     private TextBox? developerTextBox;
     private TextBox? publisherTextBox;
-    private PictureBox? mediaDisplayPictureBox;
     private MenuStrip? menuStrip; 
     private TabControl? extraInformationTabControl;
-    private DataGridView? mediaDataGridView;
-    private TextEditorTabPanel? synopsisTabPanel;
+    private MediaTabPanel? mediaTabPanel;
+    private MediaTabPanel? insertsTabPanel;
     private DataGridView? soundtrackDataGridView;
     private PictureBox? soundtrackCoverPictureBox;
     private DataGridView? isoImagesDataGridView;
@@ -34,6 +33,7 @@ public class TopForm : Form
     private DataGridView? floppyDiskDataGridView; 
     private PictureBox? floppyDiskImagePictureBox;
     private TextBox? runCommandsTextBox; 
+    private TextEditorTabPanel? synopsisTabPanel;
     private TextEditorTabPanel? notesTabPanel;
     private List<GameConfiguration> _loadedGameConfigs = [];
     private readonly AppConfigService _appConfigService;
@@ -45,9 +45,6 @@ public class TopForm : Form
         KeyPreview = true; // Allows the form to preview key events before the focused control.
         KeyDown += TopForm_KeyDown;
     }
-
-    private record MediaItem(string FilePath, string DisplayName, MediaType Type);
-    private enum MediaType { Image, Video }
 
     private void InitializeComponent()
     {
@@ -419,14 +416,6 @@ public class TopForm : Form
         rightColumnPanel.Controls.Add(actionButtonsPanel, 0, 0);
         rightColumnPanel.Controls.Add(gameConfigPanel, 0, 1); // Add the new composite panel
 
-        mediaDisplayPictureBox = new PictureBox
-        {
-            Dock = DockStyle.Fill,
-            SizeMode = PictureBoxSizeMode.Zoom,
-            BorderStyle = BorderStyle.FixedSingle,
-            BackColor = Color.Black
-        };
-
         // --- TabControl Setup for additional game details ---
         extraInformationTabControl = new TabControl
         {
@@ -436,66 +425,12 @@ public class TopForm : Form
         };
 
         TabPage mediaTab = new("Media");
-
-        // --- Layout Panel for Media Tab ---
-        TableLayoutPanel mediaTabPanel = new()
-        {
-            Dock = DockStyle.Fill,
-            ColumnCount = 2,
-            RowCount = 1
-        };
-        mediaTabPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
-        mediaTabPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
-        mediaTabPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
-
-        // --- New DataGridView for Media List ---
-        mediaDataGridView = new DataGridView
-        {
-            Dock = DockStyle.Fill,
-            Margin = new Padding(3),
-            AllowUserToAddRows = false,
-            AllowUserToDeleteRows = false,
-            AllowUserToResizeRows = false,
-            AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill,
-            BackgroundColor = SystemColors.Window,
-            BorderStyle = BorderStyle.None,
-            CellBorderStyle = DataGridViewCellBorderStyle.SingleHorizontal,
-            ColumnHeadersVisible = false,
-            RowHeadersVisible = false,
-            SelectionMode = DataGridViewSelectionMode.FullRowSelect,
-            ReadOnly = true,
-            MultiSelect = false
-        };
-        // Column 1: Type (Image/Video Icon)
-        var mediaTypeColumn = new DataGridViewTextBoxColumn { HeaderText = "Type", Name = "Type", AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells };
-        if (FormatTools.SegoeUiSymbolExists)
-        {
-            // Use a slightly larger font for the symbols to be clear
-            mediaTypeColumn.DefaultCellStyle.Font = FormatTools.GetSymbolFont(10F);
-        }
-        mediaDataGridView.Columns.Add(mediaTypeColumn);
-        // Column 2: Name
-        mediaDataGridView.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Name", Name = "Name", FillWeight = 100 });
-        // Column 3: Link (Clickable)
-        var linkColumn = new DataGridViewTextBoxColumn { HeaderText = "Link", Name = "Link", AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells };
-        if (FormatTools.SegoeUiSymbolExists)
-        {
-            linkColumn.DefaultCellStyle.Font = FormatTools.GetSymbolFont(10F);
-        }
-        mediaDataGridView.Columns.Add(linkColumn);
-
-        mediaDataGridView.SelectionChanged += MediaDataGridView_SelectionChanged;
-        mediaDataGridView.CellClick += MediaDataGridView_CellClick;
-        mediaDataGridView.CellMouseEnter += MediaDataGridView_CellMouseEnter;
-        mediaDataGridView.CellMouseLeave += MediaDataGridView_CellMouseLeave;
-
-        // --- Panel for PictureBox and VideoView ---
-        Panel mediaDisplayPanel = new() { Dock = DockStyle.Fill };
-        mediaDisplayPanel.Controls.Add(mediaDisplayPictureBox);
-
-        mediaTabPanel.Controls.Add(mediaDataGridView, 0, 0);
-        mediaTabPanel.Controls.Add(mediaDisplayPanel, 1, 0);
+        mediaTabPanel = new MediaTabPanel { Dock = DockStyle.Fill };
         mediaTab.Controls.Add(mediaTabPanel);
+
+        TabPage insertsTab = new("Inserts");
+        insertsTabPanel = new MediaTabPanel { Dock = DockStyle.Fill };
+        insertsTab.Controls.Add(insertsTabPanel);
 
         TabPage isoImagesTab = new("CD-ROM images");
 
@@ -688,7 +623,7 @@ public class TopForm : Form
 
 
         extraInformationTabControl.TabPages.AddRange([
-            mediaTab, synopsisTab, isoImagesTab, soundtrackTab, floppyDisksTab, walkthroughTab, cheatsTab, notesTab
+            mediaTab, synopsisTab, insertsTab, isoImagesTab, soundtrackTab, floppyDisksTab, walkthroughTab, cheatsTab, notesTab
         ]);
         rightColumnPanel.Controls.Add(extraInformationTabControl, 0, 2);
 
@@ -738,8 +673,6 @@ public class TopForm : Form
 
     private async Task RefreshGameListAsync()
     {
-        ClearMediaDisplay();
-
         // Clear existing game list and related UI elements
         if (gameListBox != null)
         {
@@ -766,10 +699,8 @@ public class TopForm : Form
         {
             publisherTextBox.Text = string.Empty;
         }
-        if (mediaDataGridView != null)
-        {
-            mediaDataGridView.Rows.Clear();
-        }
+        mediaTabPanel?.Clear();
+        insertsTabPanel?.Clear();
         synopsisTabPanel?.Clear();
         notesTabPanel?.Clear();
         if (runButton != null)
@@ -975,9 +906,21 @@ public class TopForm : Form
                     publisherTextBox.Text = selectedGame.Publisher ?? string.Empty;
                 }
 
-                ClearMediaDisplay();
+                // Populate Media Tab
+                var mediaItems = new List<MediaTabPanel.MediaItem>();
+                if (selectedGame.HasFrontBoxArt)
+                    mediaItems.Add(new(selectedGame.FrontBoxArtPath, "Front Box Art", MediaTabPanel.MediaType.Image));
+                if (selectedGame.HasBackBoxArt)
+                    mediaItems.Add(new(selectedGame.BackBoxArtPath, "Back Box Art", MediaTabPanel.MediaType.Image));
+                mediaItems.AddRange(selectedGame.CaptureFiles.Select(f => new MediaTabPanel.MediaItem(f.FilePath, f.DisplayName, MediaTabPanel.MediaType.Image)));
+                mediaItems.AddRange(selectedGame.VideoFiles.Select(f => new MediaTabPanel.MediaItem(f.FilePath, f.DisplayName, MediaTabPanel.MediaType.Video)));
+                mediaTabPanel?.Populate(mediaItems);
 
-                PopulateMediaTab(selectedGame);
+                // Populate Inserts Tab
+                var insertItems = selectedGame.InsertFiles.Select(f => new MediaTabPanel.MediaItem(f.FilePath, f.DisplayName,
+                    Path.GetExtension(f.FilePath).Equals(".pdf", StringComparison.OrdinalIgnoreCase) ? MediaTabPanel.MediaType.Pdf : MediaTabPanel.MediaType.Image
+                ));
+                insertsTabPanel?.Populate(insertItems);
 
                 PopulateSoundtrackTab(selectedGame);
 
@@ -1053,6 +996,8 @@ public class TopForm : Form
                 {
                     publisherTextBox.Text = string.Empty;
                 }
+                mediaTabPanel?.Clear();
+                insertsTabPanel?.Clear();
                 synopsisTabPanel?.Clear();
                 notesTabPanel?.Clear();
                 if (extraInformationTabControl != null)
@@ -1205,49 +1150,6 @@ public class TopForm : Form
         UpdateIsoImageForSelection();
     }
 
-    private void PopulateMediaTab(GameConfiguration game)
-    {
-        if (mediaDataGridView == null) return;
-
-        mediaDataGridView.Rows.Clear();
-        var mediaItems = new List<MediaItem>();
-
-        if (game.HasFrontBoxArt)
-            mediaItems.Add(new MediaItem(game.FrontBoxArtPath, "Front Box Art", MediaType.Image));
-        if (game.HasBackBoxArt)
-            mediaItems.Add(new MediaItem(game.BackBoxArtPath, "Back Box Art", MediaType.Image));
-
-        mediaItems.AddRange(game.CaptureFiles.Select(f => new MediaItem(f.FilePath, f.DisplayName, MediaType.Image)));
-        mediaItems.AddRange(game.VideoFiles.Select(f => new MediaItem(f.FilePath, f.DisplayName, MediaType.Video)));
-
-        foreach (var item in mediaItems)
-        {
-            string typeDisplay;
-            if (FormatTools.SegoeUiSymbolExists)
-            {
-                // 🖼️ for Image, 🎞️ for Video
-                typeDisplay = item.Type == MediaType.Image ? "\U0001F5BC" : "\U0001F39E";
-            }
-            else
-            {
-                typeDisplay = item.Type.ToString(); // Fallback to text
-            }
-
-            string linkSymbol = FormatTools.SegoeUiSymbolExists ? "\U0001F517" : "Open";
-
-            var rowIndex = mediaDataGridView.Rows.Add(typeDisplay, item.DisplayName, linkSymbol);
-            var row = mediaDataGridView.Rows[rowIndex];
-            row.Tag = item;
-            row.Cells[2].ToolTipText = "Open"; // Set tooltip for the link column
-        }
-
-        if (mediaDataGridView.Rows.Count > 0)
-        {
-            mediaDataGridView.ClearSelection();
-            mediaDataGridView.Rows[0].Selected = true;
-        }
-    }
-
     private void PopulateSoundtrackTab(GameConfiguration game)
     {
         if (soundtrackDataGridView == null || soundtrackCoverPictureBox == null) return;
@@ -1330,94 +1232,6 @@ public class TopForm : Form
         if (soundtrackDataGridView != null)
         {
             soundtrackDataGridView.Cursor = Cursors.Default;
-        }
-    }
-
-    private void MediaDataGridView_SelectionChanged(object? sender, EventArgs e)
-    {
-        // Clear the display first.
-        ClearMediaDisplay();
-
-        if (mediaDataGridView == null || mediaDataGridView.SelectedRows.Count == 0)
-        {
-            return;
-        }
-
-        var selectedRow = mediaDataGridView.SelectedRows[0];
-        if (selectedRow.Tag is not MediaItem mediaItem)
-        {
-            return;
-        }
-
-        if (mediaDisplayPictureBox != null)
-        {
-            mediaDisplayPictureBox.Visible = true;
-        }
-
-        if (mediaItem.Type == MediaType.Image && mediaDisplayPictureBox != null)
-        {
-            try
-            {
-                mediaDisplayPictureBox.Image = Image.FromFile(mediaItem.FilePath);
-            }
-            catch (Exception ex) { AppLogger.Log($"Error loading media image '{mediaItem.FilePath}': {ex.Message}"); } // Log the error
-        }
-    }
-
-    private void MediaDataGridView_CellClick(object? sender, DataGridViewCellEventArgs e)
-    {
-        // We only care about clicks on the "Link" column (index 2). Ignore headers too.
-        if (e.RowIndex < 0 || e.ColumnIndex != 2) return;
-
-        // The "Link" column was clicked.
-        if (mediaDataGridView?.Rows[e.RowIndex].Tag is MediaItem mediaItem)
-        {
-            if (!string.IsNullOrEmpty(mediaItem.FilePath) && File.Exists(mediaItem.FilePath))
-            {
-                try
-                {
-                    ProcessStartInfo psi = new()
-                    {
-                        FileName = mediaItem.FilePath,
-                        UseShellExecute = true // Use the default OS application
-                    };
-                    Process.Start(psi);
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show(this, $"Could not open media file '{mediaItem.FilePath}'.\nError: {ex.Message}", "Error Opening File", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                }
-            }
-        }
-    }
-
-    private void MediaDataGridView_CellMouseEnter(object? sender, DataGridViewCellEventArgs e)
-    {
-        if (mediaDataGridView == null) return;
-
-        // Change cursor to hand only when over the "Link" column (index 2) in a valid row.
-        if (e.RowIndex >= 0 && e.ColumnIndex == 2)
-        {
-            mediaDataGridView.Cursor = Cursors.Hand;
-        }
-        else
-        {
-            mediaDataGridView.Cursor = Cursors.Default;
-        }
-    }
-
-    private void MediaDataGridView_CellMouseLeave(object? sender, DataGridViewCellEventArgs e)
-    {
-        if (mediaDataGridView != null) mediaDataGridView.Cursor = Cursors.Default;
-    }
-
-    private void ClearMediaDisplay()
-    {
-        if (mediaDisplayPictureBox != null)
-        {
-            mediaDisplayPictureBox.Visible = false;
-            mediaDisplayPictureBox.Image?.Dispose();
-            mediaDisplayPictureBox.Image = null;
         }
     }
     

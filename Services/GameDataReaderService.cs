@@ -14,6 +14,69 @@ public static class GameDataReaderService
 
     private enum ParsingState { None, Isos, Commands }
 
+    /// <summary>
+    /// Scans a directory for media files with specified extensions and reads their display names from file-info.txt.
+    /// </summary>
+    /// <param name="directoryPath">The path to the directory to scan.</param>
+    /// <param name="allowedExtensions">An array of allowed file extensions (e.g., ".png", ".mp4").</param>
+    /// <returns>A list of MediaFileInfo objects.</returns>
+    private static async Task<List<MediaFileInfo>> GetMediaFilesAsync(string directoryPath, string[] allowedExtensions)
+    {
+        var mediaFiles = new List<MediaFileInfo>();
+        if (!Directory.Exists(directoryPath))
+        {
+            return mediaFiles;
+        }
+
+        var fileInfoMap = await ParseDisplayNamesAsync(directoryPath);
+
+        var files = Directory.EnumerateFiles(directoryPath)
+                             .Where(f => allowedExtensions.Contains(Path.GetExtension(f).ToLowerInvariant()))
+                             .OrderBy(f => f, StringComparer.OrdinalIgnoreCase);
+
+        foreach (var file in files)
+        {
+            var fileName = Path.GetFileName(file);
+            var displayName = fileInfoMap.GetValueOrDefault(fileName, Path.GetFileNameWithoutExtension(fileName));
+            mediaFiles.Add(new MediaFileInfo(file, displayName));
+        }
+
+        return mediaFiles;
+    }
+
+    /// <summary>
+    /// Scans a directory for disc image files (.img, .iso, .cue) and reads their display names from file-info.txt.
+    /// </summary>
+    /// <param name="directoryPath">The path to the directory to scan.</param>
+    /// <returns>A list of DiscImageInfo objects.</returns>
+    private static async Task<List<DiscImageInfo>> GetDiscImagesAsync(string directoryPath)
+    {
+        var discImages = new List<DiscImageInfo>();
+        if (!Directory.Exists(directoryPath))
+        {
+            return discImages;
+        }
+
+        var fileInfoMap = await ParseDisplayNamesAsync(directoryPath);
+
+        var files = Directory.EnumerateFiles(directoryPath, "*.img")
+                             .Concat(Directory.EnumerateFiles(directoryPath, "*.iso"))
+                             .Concat(Directory.EnumerateFiles(directoryPath, "*.cue")) // Include .cue for CD images
+                             .OrderBy(f => f, StringComparer.OrdinalIgnoreCase);
+
+        foreach (var file in files)
+        {
+            var fileInfo = new FileInfo(file);
+            var fileName = fileInfo.Name;
+            var displayName = fileInfoMap.GetValueOrDefault(fileName, Path.GetFileNameWithoutExtension(fileName));
+            var pngPath = Path.ChangeExtension(file, ".png");
+
+            discImages.Add(new DiscImageInfo { ImgFileName = file, DisplayName = displayName, PngFilePath = File.Exists(pngPath) ? pngPath : null, FileSizeInBytes = fileInfo.Length });
+        }
+
+        return discImages;
+    }
+
     public static async Task<GameConfiguration?> ParseCfgFileAsync(string cfgFilePath, string gameDirectoryPath)
     {
         if (!File.Exists(cfgFilePath))
@@ -24,7 +87,8 @@ public static class GameDataReaderService
 
         GameConfiguration config = new()
         {
-            GameDirectoryPath = gameDirectoryPath
+            GameDirectoryPath = gameDirectoryPath,
+            GameName = Path.GetFileName(gameDirectoryPath) // Default name if not in config
         };
 
         var isoFileNames = new List<string>();
@@ -141,167 +205,29 @@ public static class GameDataReaderService
             config.ManualPath = potentialManualPath;
         }
 
-        // Check for box art
-        config.HasFrontBoxArt = File.Exists(config.FrontBoxArtPath);
-        config.HasBackBoxArt = File.Exists(config.BackBoxArtPath);
+        // Set box art existence flags
+        config.HasFrontBoxArt = File.Exists(config.FrontBoxArtPath); // Existing property
+        config.HasBackBoxArt = File.Exists(config.BackBoxArtPath);   // Existing property
 
-        // Scan for capture images (.png files)
-        string capturesDirectory = Path.Combine(gameDirectoryPath, "media", "captures");
-        if (Directory.Exists(capturesDirectory))
-        {
-            try
-            {
-                var displayNames = await ParseDisplayNamesAsync(capturesDirectory);
-                var captureFiles = Directory.EnumerateFiles(capturesDirectory, "*.png")
-                                            .OrderBy(f => f, StringComparer.OrdinalIgnoreCase);
+        // Scan for media files using the new helper
+        config.CaptureFiles = await GetMediaFilesAsync(Path.Combine(gameDirectoryPath, "media", "captures"), [".png"]);
+        config.VideoFiles = await GetMediaFilesAsync(Path.Combine(gameDirectoryPath, "media", "videos"), [".avi", ".mp4", ".mpg"]);
+        config.InsertFiles = await GetMediaFilesAsync(Path.Combine(gameDirectoryPath, "media", "inserts"), [".png", ".pdf"]); // NEW
 
-                foreach (var filePath in captureFiles)
-                {
-                    string fileName = Path.GetFileName(filePath);
-                    displayNames.TryGetValue(fileName, out var displayName);
-                    config.CaptureFiles.Add(new MediaFileInfo(filePath, displayName ?? fileName));
-                }
-            }
-            catch (Exception ex)
-            {
-                AppLogger.Log($"Error scanning for captures in '{capturesDirectory}': {ex.Message}");
-            }
-        }
-
-        // Scan for videos
-        string videosDirectory = Path.Combine(gameDirectoryPath, "media", "videos");
-        if (Directory.Exists(videosDirectory))
-        {
-            try
-            {
-                var displayNames = await ParseDisplayNamesAsync(videosDirectory);
-                var allowedVideoExtensions = new[] { "*.avi", "*.mp4", "*.mpg" };
-                var videoFiles = allowedVideoExtensions
-                                        .SelectMany(ext => Directory.EnumerateFiles(videosDirectory, ext, SearchOption.TopDirectoryOnly))
-                                        .OrderBy(f => f, StringComparer.OrdinalIgnoreCase);
-
-                foreach (var filePath in videoFiles)
-                {
-                    string fileName = Path.GetFileName(filePath);
-                    displayNames.TryGetValue(fileName, out var displayName);
-                    config.VideoFiles.Add(new MediaFileInfo(filePath, displayName ?? fileName));
-                }
-            }
-            catch (Exception ex)
-            {
-                AppLogger.Log($"Error scanning for videos in '{videosDirectory}': {ex.Message}");
-            }
-        }
-
-        // Scan for soundtrack
+        // Scan for soundtrack files
         string ostDirectory = Path.Combine(gameDirectoryPath, "media", "ost");
-        if (Directory.Exists(ostDirectory))
+        config.SoundtrackFiles = (await GetMediaFilesAsync(ostDirectory, [".mp3", ".ogg", ".flac"]))
+                                 .Concat(await GetMediaFilesAsync(Path.Combine(ostDirectory, "midi"), [".mid"]))
+                                 .ToList();
+        string soundtrackCoverPath = Path.Combine(ostDirectory, "cover.png");
+        if (File.Exists(soundtrackCoverPath))
         {
-            try
-            {
-                // Check for cover art
-                string coverPath = Path.Combine(ostDirectory, "cover.png");
-                if (File.Exists(coverPath))
-                {
-                    config.SoundtrackCoverPath = coverPath;
-                }
-
-                // Scan for .mp3 files and their display names
-                var displayNames = await ParseDisplayNamesAsync(ostDirectory);
-                var mp3Files = Directory.EnumerateFiles(ostDirectory, "*.mp3")
-                                        .OrderBy(f => f, StringComparer.OrdinalIgnoreCase);
-                foreach (var filePath in mp3Files)
-                {
-                    string fileName = Path.GetFileName(filePath);
-                    displayNames.TryGetValue(fileName, out var displayName);
-                    config.SoundtrackFiles.Add(new MediaFileInfo(filePath, displayName ?? fileName));
-                }
-            }
-            catch (Exception ex) { AppLogger.Log($"Error scanning for soundtrack in '{ostDirectory}': {ex.Message}"); }
+            config.SoundtrackCoverPath = soundtrackCoverPath;
         }
 
-        // Process collected ISO paths
-        string isoDirectory = Path.Combine(gameDirectoryPath, "isos");
-        if (Directory.Exists(isoDirectory) && isoFileNames.Any())
-        {
-            // Parse file-info.txt for ISOs
-            var isoDisplayNames = await ParseDisplayNamesAsync(isoDirectory);
-
-            // Process each ISO file from the config
-            foreach (var isoFileName in isoFileNames)
-            {
-                long actualFileSize = 0; // Declare here to be accessible later
-
-                string fullIsoPath = Path.Combine(isoDirectory, isoFileName);
-                if (File.Exists(fullIsoPath))
-                {
-                    string fileExtension = Path.GetExtension(isoFileName);
-
-                    if (fileExtension.Equals(".cue", StringComparison.OrdinalIgnoreCase))
-                    {
-                        string binFilePath = Path.ChangeExtension(fullIsoPath, ".bin");
-                        if (File.Exists(binFilePath))
-                        {
-                            actualFileSize = new FileInfo(binFilePath).Length;
-                        }
-                        else
-                        {
-                            AppLogger.Log($"Warning: .bin file not found for '{isoFileName}' at '{binFilePath}'. File size will be reported as 0.");
-                        }
-                    }
-                    else // Assume .iso or other direct image file
-                    {
-                        actualFileSize = new FileInfo(fullIsoPath).Length;
-                    }
-
-                    string pngFilePath = Path.ChangeExtension(fullIsoPath, ".png");
-                    isoDisplayNames.TryGetValue(isoFileName, out var displayName);
-
-                    config.IsoImages.Add(new DiscImageInfo
-                    {
-                        ImgFileName = isoFileName,
-                        FileSizeInBytes = actualFileSize,
-                        PngFilePath = File.Exists(pngFilePath) ? pngFilePath : null,
-                        DisplayName = displayName
-                    });
-                }
-            }
-        }
-
-        // Scan for floppy disk images (.img files)
-        string diskImagesDirectory = Path.Combine(gameDirectoryPath, "disk-images");
-        if (Directory.Exists(diskImagesDirectory))
-        {
-            try
-            {
-                var displayNames = await ParseDisplayNamesAsync(diskImagesDirectory);
-
-                var imgFiles = Directory.EnumerateFiles(diskImagesDirectory, "*.img")
-                                        .OrderBy(f => f, StringComparer.OrdinalIgnoreCase);
-
-                foreach (var imgFilePath in imgFiles)
-                {
-                    string imgFileName = Path.GetFileName(imgFilePath);
-                    string pngFilePath = Path.ChangeExtension(imgFilePath, ".png");
-                    var fileInfo = new FileInfo(imgFilePath);
-
-                    displayNames.TryGetValue(imgFileName, out var displayName);
-
-                    config.DiscImages.Add(new DiscImageInfo
-                    {
-                        ImgFileName = imgFileName,
-                        FileSizeInBytes = fileInfo.Length,
-                        PngFilePath = File.Exists(pngFilePath) ? pngFilePath : null,
-                        DisplayName = displayName
-                    });
-                }
-            }
-            catch (Exception ex)
-            {
-                // Log this error but don't prevent the game from loading
-                AppLogger.Log($"Error scanning for floppy disk images in '{diskImagesDirectory}': {ex.Message}");
-            }
-        }
+        // Scan for disc images using the new helper
+        config.DiscImages = await GetDiscImagesAsync(Path.Combine(gameDirectoryPath, "disk-images"));
+        config.IsoImages = await GetDiscImagesAsync(Path.Combine(gameDirectoryPath, "isos"));
 
         return config;
     }
