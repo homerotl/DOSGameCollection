@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Reflection;
 using DOSGameCollection.Models;
 using DOSGameCollection.UI;
+using DOSGameCollection.UI;
 using DOSGameCollection.Services;
 
 namespace DOSGameCollection;
@@ -26,12 +27,10 @@ public class TopForm : Form
     private TabControl? extraInformationTabControl;
     private MediaTabPanel? mediaTabPanel;
     private MediaTabPanel? insertsTabPanel;
+    private DiscImageTabPanel? isoImagesTabPanel;
+    private DiscImageTabPanel? floppyDisksTabPanel;
     private DataGridView? soundtrackDataGridView;
     private PictureBox? soundtrackCoverPictureBox;
-    private DataGridView? isoImagesDataGridView;
-    private PictureBox? isoImagePictureBox;
-    private DataGridView? floppyDiskDataGridView; 
-    private PictureBox? floppyDiskImagePictureBox;
     private TextBox? runCommandsTextBox; 
     private TextEditorTabPanel? synopsisTabPanel;
     private TextEditorTabPanel? notesTabPanel;
@@ -433,61 +432,8 @@ public class TopForm : Form
         insertsTab.Controls.Add(insertsTabPanel);
 
         TabPage isoImagesTab = new("CD-ROM images");
-
-        // --- Layout Panel for CD-ROM Images Tab ---
-        TableLayoutPanel isoImagesPanel = new TableLayoutPanel
-        {
-            Dock = DockStyle.Fill,
-            ColumnCount = 2,
-            RowCount = 1
-        };
-        isoImagesPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
-        isoImagesPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
-        isoImagesPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
-
-        isoImagesDataGridView = new DataGridView
-        {
-            Dock = DockStyle.Fill,
-            Margin = new Padding(3),
-            AllowUserToAddRows = false,
-            AllowUserToDeleteRows = false,
-            AllowUserToResizeRows = false,
-            AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill,
-            BackgroundColor = SystemColors.Window,
-            BorderStyle = BorderStyle.None,
-            CellBorderStyle = DataGridViewCellBorderStyle.SingleHorizontal,
-            ColumnHeadersVisible = false,
-            RowHeadersVisible = false,
-            SelectionMode = DataGridViewSelectionMode.FullRowSelect,
-            ReadOnly = true,
-            MultiSelect = false
-        };
-
-        isoImagesPanel.Controls.Add(isoImagesDataGridView, 0, 0);
-
-        // PictureBox for the selected CD-ROM image
-        isoImagePictureBox = new PictureBox
-        {
-            Dock = DockStyle.Fill,
-            Margin = new Padding(3),
-            SizeMode = PictureBoxSizeMode.Zoom,
-            BorderStyle = BorderStyle.FixedSingle,
-            BackColor = Color.Black
-        };
-        isoImagesPanel.Controls.Add(isoImagePictureBox, 1, 0);
-
-        isoImagesTab.Controls.Add(isoImagesPanel);
-
-        // Modify columns for diskImagesDataGridView
-        isoImagesDataGridView.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Name", Name = "DisplayName", FillWeight = 70 });
-        isoImagesDataGridView.Columns.Add(new DataGridViewTextBoxColumn
-        {
-            HeaderText = "Size",
-            Name = "FileSize",
-            AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells,
-            DefaultCellStyle = new DataGridViewCellStyle { Alignment = DataGridViewContentAlignment.MiddleRight }
-        });
-        isoImagesDataGridView.SelectionChanged += DiskImagesDataGridView_SelectionChanged;
+        isoImagesTabPanel = new DiscImageTabPanel { Dock = DockStyle.Fill };
+        isoImagesTab.Controls.Add(isoImagesTabPanel);
 
         TabPage soundtrackTab = new("Soundtrack");
 
@@ -547,60 +493,8 @@ public class TopForm : Form
         soundtrackTab.Controls.Add(soundtrackPanel);
 
         TabPage floppyDisksTab = new("Floppy disks");
-
-        // --- Layout Panel for floppy disk images Tab ---
-        TableLayoutPanel floppyDiskPanel = new()
-        {
-            Dock = DockStyle.Fill,
-            ColumnCount = 2,
-            RowCount = 1
-        };
-        floppyDiskPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
-        floppyDiskPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
-        floppyDiskPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
-
-        // DataGridView for floppy disk images
-        floppyDiskDataGridView = new DataGridView
-        {
-            Dock = DockStyle.Fill,
-            Margin = new Padding(3),
-            AllowUserToAddRows = false,
-            AllowUserToDeleteRows = false,
-            AllowUserToResizeRows = false,
-            AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill,
-            BackgroundColor = SystemColors.Window,
-            BorderStyle = BorderStyle.None,
-            CellBorderStyle = DataGridViewCellBorderStyle.SingleHorizontal,
-            ColumnHeadersVisible = false,
-            RowHeadersVisible = false,
-            SelectionMode = DataGridViewSelectionMode.FullRowSelect,
-            ReadOnly = true,
-            MultiSelect = false
-        };
-        floppyDiskDataGridView.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Name", Name = "DisplayName", FillWeight = 70 });
-        floppyDiskDataGridView.Columns.Add(new DataGridViewTextBoxColumn
-        {
-            HeaderText = "Size",
-            Name = "FileSize",
-            AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells,
-            DefaultCellStyle = new DataGridViewCellStyle { Alignment = DataGridViewContentAlignment.MiddleRight }
-        });
-
-        floppyDiskDataGridView.SelectionChanged += InstallDiscsDataGridView_SelectionChanged;
-        floppyDiskPanel.Controls.Add(floppyDiskDataGridView, 0, 0);
-
-        // PictureBox for the selected install disc image
-        floppyDiskImagePictureBox = new PictureBox 
-        {
-            Dock = DockStyle.Fill,
-            Margin = new Padding(3),
-            SizeMode = PictureBoxSizeMode.Zoom,
-            BorderStyle = BorderStyle.FixedSingle,
-            BackColor = Color.Black
-        };
-        floppyDiskPanel.Controls.Add(floppyDiskImagePictureBox, 1, 0);
-
-        floppyDisksTab.Controls.Add(floppyDiskPanel);
+        floppyDisksTabPanel = new DiscImageTabPanel { Dock = DockStyle.Fill };
+        floppyDisksTab.Controls.Add(floppyDisksTabPanel);
 
         TabPage walkthroughTab = new TabPage("Walkthrough");
         TabPage cheatsTab = new TabPage("Cheats");
@@ -703,6 +597,8 @@ public class TopForm : Form
         insertsTabPanel?.Clear();
         synopsisTabPanel?.Clear();
         notesTabPanel?.Clear();
+        isoImagesTabPanel?.Clear();
+        floppyDisksTabPanel?.Clear();
         if (runButton != null)
         {
             runButton.Enabled = false;
@@ -718,24 +614,6 @@ public class TopForm : Form
         }
         if (saveGameDataButton != null) saveGameDataButton.Visible = false;
         if (cancelGameDataButton != null) cancelGameDataButton.Visible = false;
-        if (isoImagesDataGridView != null)
-        {
-            isoImagesDataGridView.Rows.Clear();
-        }
-        if (isoImagePictureBox != null && isoImagePictureBox.Image != null)
-        {
-            isoImagePictureBox.Image.Dispose();
-            isoImagePictureBox.Image = null;
-        }
-        if (floppyDiskDataGridView != null)
-        {
-            floppyDiskDataGridView.Rows.Clear();
-        }
-        if (floppyDiskImagePictureBox != null && floppyDiskImagePictureBox.Image != null)
-        {
-            floppyDiskImagePictureBox.Image.Dispose();
-            floppyDiskImagePictureBox.Image = null;
-        }
         if (runCommandsTextBox != null)
         {
             runCommandsTextBox.Clear();
@@ -835,25 +713,8 @@ public class TopForm : Form
         }
         if (saveGameDataButton != null) saveGameDataButton.Visible = false;
         if (cancelGameDataButton != null) cancelGameDataButton.Visible = false;
-        if (isoImagesDataGridView != null)
-        {
-            isoImagesDataGridView.Rows.Clear();
-        }
-        if (isoImagePictureBox != null)
-        {
-            isoImagePictureBox.Image?.Dispose();
-            isoImagePictureBox.Image = null;
-        }
-
-        if (floppyDiskDataGridView != null)
-        {
-            floppyDiskDataGridView.Rows.Clear();
-        }
-        if (floppyDiskImagePictureBox != null)
-        {
-            floppyDiskImagePictureBox.Image?.Dispose();
-            floppyDiskImagePictureBox.Image = null;
-        }
+        isoImagesTabPanel?.Clear();
+        floppyDisksTabPanel?.Clear();
         if (runCommandsTextBox != null)
         {
             runCommandsTextBox.Clear();
@@ -924,6 +785,9 @@ public class TopForm : Form
 
                 PopulateSoundtrackTab(selectedGame);
 
+                isoImagesTabPanel?.Populate(selectedGame.IsoImages);
+                floppyDisksTabPanel?.Populate(selectedGame.DiscImages);
+
                 // Load Synopsis and Notes
                 if (synopsisTabPanel != null)
                 {
@@ -939,42 +803,9 @@ public class TopForm : Form
                     manualButton.Enabled = true;
                 }
 
-                // Populate isos ListBox
-                if (isoImagesDataGridView != null)
-                {
-                    foreach (DiscImageInfo isoInfo in selectedGame.IsoImages)
-                    {
-                        var rowIndex = isoImagesDataGridView.Rows.Add(isoInfo.ToString(), FormatTools.FormatFileSize(isoInfo.FileSizeInBytes));
-                        isoImagesDataGridView.Rows[rowIndex].Tag = isoInfo;
-                    }
-
-                    if (isoImagesDataGridView.Rows.Count > 0)
-                    {
-                        isoImagesDataGridView.Rows[0].Selected = true;
-                    }
-
-                    UpdateIsoImageForSelection();
-                }
-
                 if (runCommandsTextBox != null)
                 {
                     runCommandsTextBox.Text = string.Join(Environment.NewLine, selectedGame.DosboxCommands);
-                }
-
-                // Populate Install Discs ListBox
-                if (floppyDiskDataGridView != null)
-                {
-                    foreach (DiscImageInfo discInfo in selectedGame.DiscImages)
-                    {
-                        var rowIndex = floppyDiskDataGridView.Rows.Add(discInfo.ToString(), FormatTools.FormatFileSize(discInfo.FileSizeInBytes));
-                        floppyDiskDataGridView.Rows[rowIndex].Tag = discInfo;
-                    }
-
-                    if (floppyDiskDataGridView.Rows.Count > 0)
-                    {
-                        floppyDiskDataGridView.Rows[0].Selected = true;
-                    }
-                    UpdateInstallDiscImageForSelection();
                 }
             }
             else // No game selected
@@ -1000,6 +831,8 @@ public class TopForm : Form
                 insertsTabPanel?.Clear();
                 synopsisTabPanel?.Clear();
                 notesTabPanel?.Clear();
+                isoImagesTabPanel?.Clear();
+                floppyDisksTabPanel?.Clear();
                 if (extraInformationTabControl != null)
                 {
                     extraInformationTabControl.Enabled = false; // Ensure tabs are disabled if selection is cleared
@@ -1075,79 +908,6 @@ public class TopForm : Form
     private void ExitMenuItem_Click(object? sender, EventArgs e)
     {
         Application.Exit();
-    }
-
-    private void UpdateInstallDiscImageForSelection()
-    {
-        // Clear previous image
-        if (floppyDiskImagePictureBox != null)
-        {
-            floppyDiskImagePictureBox.Image?.Dispose();
-            floppyDiskImagePictureBox.Image = null;
-        }
-
-        if (floppyDiskDataGridView?.SelectedRows.Count > 0)
-        {
-            var selectedRow = floppyDiskDataGridView.SelectedRows[0];
-            if (selectedRow.Tag is DiscImageInfo selectedDisc)
-            {
-                if (!string.IsNullOrEmpty(selectedDisc.PngFilePath) && File.Exists(selectedDisc.PngFilePath))
-                {
-                    try
-                    {
-                        if (floppyDiskImagePictureBox != null)
-                        {
-                            floppyDiskImagePictureBox.Image = Image.FromFile(selectedDisc.PngFilePath);
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        AppLogger.Log($"Error loading disc image picture '{selectedDisc.PngFilePath}': {ex.Message}");
-                    }
-                }
-            }
-        }
-    }
-    private void InstallDiscsDataGridView_SelectionChanged(object? sender, EventArgs e)
-    {
-        UpdateInstallDiscImageForSelection();
-    }
-
-    private void UpdateIsoImageForSelection()
-    {
-        // Clear previous image
-        if (isoImagePictureBox != null)
-        {
-            isoImagePictureBox.Image?.Dispose();
-            isoImagePictureBox.Image = null;
-        }
-
-        if (isoImagesDataGridView?.SelectedRows.Count > 0)
-        {
-            var selectedRow = isoImagesDataGridView.SelectedRows[0];
-            if (selectedRow.Tag is DiscImageInfo selectedDisc)
-            {
-                if (!string.IsNullOrEmpty(selectedDisc.PngFilePath) && File.Exists(selectedDisc.PngFilePath))
-                {
-                    try
-                    {
-                        if (isoImagePictureBox != null)
-                        {
-                            isoImagePictureBox.Image = Image.FromFile(selectedDisc.PngFilePath);
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        AppLogger.Log($"Error loading disc image picture '{selectedDisc.PngFilePath}': {ex.Message}");
-                    }
-                }
-            }
-        }
-    }
-
-    private void DiskImagesDataGridView_SelectionChanged(object? sender, EventArgs e)
-    {
-        UpdateIsoImageForSelection();
     }
 
     private void PopulateSoundtrackTab(GameConfiguration game)
