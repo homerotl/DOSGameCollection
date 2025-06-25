@@ -12,14 +12,16 @@ This program expects games to be arranged in a specific folder structure like so
 /Library
     --/[Game Name]
         --/game.cfg
-        --/dosbox-staging.conf
+        --/dosbox-staging.conf (DOSBox Staging configuration file)
+        --/mapper.cfg (DOSBOX Mapper configuration file)
         --/manual.pdf
-        --/game-files <- This will be mounted as C:
+        --/game-files (This will be mounted as C)
+        --/notes.txt
         --/disk-images
-            --/file-info.txt
+            --/file-info.txt (CSV file with display names for files, when different)
             --/disk_01.img
             --/disk_02.img
-            --/disk_01.png
+            --/disk_01.png (picture or scan of the media itself)
             --/disk_02.png
         --/isos
             --/file-info.txt
@@ -28,18 +30,15 @@ This program expects games to be arranged in a specific folder structure like so
             --/game_cd_1.png (picture or scan of the media itself)
         --/media
             --/synopsis.txt
-            --/main.png
             --/icon.png
             --/background.png
             --/cheats-and-secrets.txt
-            --/personal-notes.txt
             --/walkthrough
                 --/page_01.txt (or pdf)
                 --/file-info.txt
             --/box-art
                 --/front.png
                 --/back.png
-                --/art_01.png
             --/captures
                 --/capture-info.txt
                 --/capture-001.png
@@ -59,7 +58,6 @@ This program expects games to be arranged in a specific folder structure like so
                 --/track_01.mp3
         --/other (other files which don't fit in any other category)
           --/file-info.txt 
-          
 ```
 
 ## Game file specification
@@ -89,11 +87,9 @@ CD GAMES\FOLDER
 SETUP.EXE
 ```
 
-Both specifications are more of good wishes than reality. At this stage not all the properties and files are used, but this is the blueprint for future development.
+## File Information example
 
-## Disk images disc-info.txt file
-
-An example of the format for the disc-info.txt text file is as follows:
+An example of the format for the "file-info.txt" file is as follows:
 
 ```
 disc_01.img,Installation disk 1

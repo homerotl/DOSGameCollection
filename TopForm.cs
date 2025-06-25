@@ -23,13 +23,10 @@ public class TopForm : Form
     private TextBox? developerTextBox;
     private TextBox? publisherTextBox;
     private PictureBox? mediaDisplayPictureBox;
-    private TextBox? synopsisTextBox;
-    private Button? editSynopsisButton;
-    private Button? saveSynopsisButton;
-    private Button? cancelSynopsisButton;
     private MenuStrip? menuStrip; 
     private TabControl? extraInformationTabControl;
     private DataGridView? mediaDataGridView;
+    private TextEditorTabPanel? synopsisTabPanel;
     private DataGridView? soundtrackDataGridView;
     private PictureBox? soundtrackCoverPictureBox;
     private DataGridView? isoImagesDataGridView;
@@ -37,6 +34,7 @@ public class TopForm : Form
     private DataGridView? floppyDiskDataGridView; 
     private PictureBox? floppyDiskImagePictureBox;
     private TextBox? runCommandsTextBox; 
+    private TextEditorTabPanel? notesTabPanel;
     private List<GameConfiguration> _loadedGameConfigs = [];
     private readonly AppConfigService _appConfigService;
     public TopForm()
@@ -421,15 +419,6 @@ public class TopForm : Form
         rightColumnPanel.Controls.Add(actionButtonsPanel, 0, 0);
         rightColumnPanel.Controls.Add(gameConfigPanel, 0, 1); // Add the new composite panel
 
-        // --- Synopsis TextBox Setup (will be placed in a tab) ---
-        synopsisTextBox = new TextBox
-        {
-            Dock = DockStyle.Fill,
-            Multiline = true,
-            ReadOnly = true,
-            ScrollBars = ScrollBars.Vertical
-        };
-
         mediaDisplayPictureBox = new PictureBox
         {
             Dock = DockStyle.Fill,
@@ -447,62 +436,6 @@ public class TopForm : Form
         };
 
         TabPage mediaTab = new("Media");
-        TabPage synopsisTab = new("Synopsis");
-
-        TableLayoutPanel synopsisPanel = new()
-        {
-            Dock = DockStyle.Fill,
-            ColumnCount = 1,
-            RowCount = 2
-        };
-        synopsisPanel.RowStyles.Add(new RowStyle(SizeType.AutoSize)); // For buttons
-        synopsisPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 100F)); // For textbox
-
-        FlowLayoutPanel synopsisButtonsPanel = new()
-        {
-            FlowDirection = FlowDirection.LeftToRight,
-            Dock = DockStyle.Top,
-            AutoSize = true,
-            Margin = new Padding(0, 0, 0, 5)
-        };
-
-        editSynopsisButton = new Button
-        {
-            AutoSize = true,
-            Margin = new Padding(0, 0, 5, 5),
-            Enabled = false,
-            Text = symbolFont != null ? "\u270E" : "Edit"
-        };
-        if (symbolFont != null) { editSynopsisButton.Font = symbolFont; }
-        editSynopsisButton.Click += EditSynopsisButton_Click;
-
-        saveSynopsisButton = new Button
-        {
-            AutoSize = true,
-            Margin = new Padding(0, 0, 5, 5),
-            Visible = false,
-            Text = symbolFont != null ? "\uD83D\uDCBE" : "Save"
-        };
-        if (symbolFont != null) { saveSynopsisButton.Font = symbolFont; }
-        saveSynopsisButton.Click += SaveSynopsisButton_Click;
-
-        cancelSynopsisButton = new Button
-        {
-            AutoSize = true,
-            Margin = new Padding(0, 0, 5, 5),
-            Visible = false,
-            Text = symbolFont != null ? "\U0001F5D9" : "Cancel"
-        };
-        if (symbolFont != null) { cancelSynopsisButton.Font = symbolFont; }
-        cancelSynopsisButton.Click += CancelSynopsisButton_Click;
-
-        actionButtonToolTip.SetToolTip(cancelSynopsisButton, "Cancel");
-
-        synopsisButtonsPanel.Controls.Add(editSynopsisButton);
-        synopsisButtonsPanel.Controls.Add(saveSynopsisButton);
-        synopsisButtonsPanel.Controls.Add(cancelSynopsisButton);
-        synopsisPanel.Controls.AddRange([synopsisButtonsPanel, synopsisTextBox]);
-        synopsisTab.Controls.Add(synopsisPanel);
 
         // --- Layout Panel for Media Tab ---
         TableLayoutPanel mediaTabPanel = new()
@@ -738,6 +671,22 @@ public class TopForm : Form
         TabPage cheatsTab = new TabPage("Cheats");
         TabPage notesTab = new TabPage("Notes");
 
+        TabPage synopsisTab = new("Synopsis");
+        synopsisTabPanel = new TextEditorTabPanel
+        {
+            Dock = DockStyle.Fill
+        };
+        synopsisTabPanel.EditModeStarted += HandleEditModeStarted;
+        synopsisTab.Controls.Add(synopsisTabPanel);
+
+        notesTabPanel = new TextEditorTabPanel
+        {
+            Dock = DockStyle.Fill
+        };
+        notesTabPanel.EditModeStarted += HandleEditModeStarted;
+        notesTab.Controls.Add(notesTabPanel);
+
+
         extraInformationTabControl.TabPages.AddRange([
             mediaTab, synopsisTab, isoImagesTab, soundtrackTab, floppyDisksTab, walkthroughTab, cheatsTab, notesTab
         ]);
@@ -821,24 +770,8 @@ public class TopForm : Form
         {
             mediaDataGridView.Rows.Clear();
         }
-        if (synopsisTextBox != null)
-        {
-            synopsisTextBox.Text = string.Empty;
-            synopsisTextBox.ReadOnly = true;
-        }
-        if (editSynopsisButton != null)
-        {
-            editSynopsisButton.Enabled = false;
-            editSynopsisButton.Visible = true;
-        }
-        if (saveSynopsisButton != null)
-        {
-            saveSynopsisButton.Visible = false;
-        }
-        if (cancelSynopsisButton != null)
-        {
-            cancelSynopsisButton.Visible = false;
-        }
+        synopsisTabPanel?.Clear();
+        notesTabPanel?.Clear();
         if (runButton != null)
         {
             runButton.Enabled = false;
@@ -995,23 +928,8 @@ public class TopForm : Form
             runCommandsTextBox.Clear();
             runCommandsTextBox.ReadOnly = true;
         }
-        if (synopsisTextBox != null)
-        {
-            synopsisTextBox.ReadOnly = true;
-        }
-        if (editSynopsisButton != null)
-        {
-            editSynopsisButton.Enabled = (gameListBox?.SelectedItem != null);
-            editSynopsisButton.Visible = true;
-        }
-        if (saveSynopsisButton != null)
-        {
-            saveSynopsisButton.Visible = false;
-        }
-        if (cancelSynopsisButton != null)
-        {
-            cancelSynopsisButton.Visible = false;
-        }
+        synopsisTabPanel?.Clear();
+        notesTabPanel?.Clear();
         if (soundtrackDataGridView != null)
         {
             soundtrackDataGridView.Rows.Clear();
@@ -1063,30 +981,19 @@ public class TopForm : Form
 
                 PopulateSoundtrackTab(selectedGame);
 
+                // Load Synopsis and Notes
+                if (synopsisTabPanel != null)
+                {
+                    synopsisTabPanel.FilePath = selectedGame.SynopsisFilePath;
+                }
+                if (notesTabPanel != null)
+                {
+                    notesTabPanel.FilePath = Path.Combine(selectedGame.GameDirectoryPath, "notes.txt");
+                }
+
                 if (manualButton != null && !string.IsNullOrEmpty(selectedGame.ManualPath) && File.Exists(selectedGame.ManualPath))
                 {
                     manualButton.Enabled = true;
-                }
-
-                // Load Synopsis
-                if (synopsisTextBox != null)
-                {
-                    if (File.Exists(selectedGame.SynopsisFilePath))
-                    {
-                        try
-                        {
-                            synopsisTextBox.Text = await File.ReadAllTextAsync(selectedGame.SynopsisFilePath);
-                        }
-                        catch (Exception ex)
-                        {
-                            AppLogger.Log($"Error reading synopsis file '{selectedGame.SynopsisFilePath}': {ex.Message}");
-                            synopsisTextBox.Text = string.Empty; // Clear on error
-                        }
-                    }
-                    else
-                    {
-                        synopsisTextBox.Text = string.Empty; // File doesn't exist
-                    }
                 }
 
                 // Populate isos ListBox
@@ -1146,10 +1053,8 @@ public class TopForm : Form
                 {
                     publisherTextBox.Text = string.Empty;
                 }
-                if (synopsisTextBox != null)
-                {
-                    synopsisTextBox.Text = string.Empty; // Clear synopsis if no selection
-                }
+                synopsisTabPanel?.Clear();
+                notesTabPanel?.Clear();
                 if (extraInformationTabControl != null)
                 {
                     extraInformationTabControl.Enabled = false; // Ensure tabs are disabled if selection is cleared
@@ -1551,27 +1456,27 @@ public class TopForm : Form
         logDialog.ShowDialog(this);
     }
 
-    private async void CancelSynopsisButton_Click(object? sender, EventArgs e)
-    {
-        await CancelSynopsisEditAsync();
-    }
-
     private void CancelGameDataButton_Click(object? sender, EventArgs e)
     {
         CancelGameDataEdit();
     }
 
-    private async void EditGameDataButton_Click(object? sender, EventArgs e)
+    private void EditGameDataButton_Click(object? sender, EventArgs e)
     {
-        // If synopsis is being edited, cancel that edit first.
-        if (saveSynopsisButton?.Visible == true)
+        // If synopsis or notes are being edited, cancel that edit first.
+        if (synopsisTabPanel?.IsEditing == true)
         {
-            await CancelSynopsisEditAsync();
+            synopsisTabPanel.CancelEditMode();
+        }
+        if (notesTabPanel?.IsEditing == true)
+        {
+            notesTabPanel.CancelEditMode();
         }
 
         if (gameNameTextBox == null || releaseYearTextBox == null || parentalRatingComboBox == null ||
             developerTextBox == null || publisherTextBox == null || runCommandsTextBox == null || cancelGameDataButton == null ||
             editGameDataButton == null || saveGameDataButton == null) return;
+
 
         gameNameTextBox.ReadOnly = false;
         runCommandsTextBox.ReadOnly = false;
@@ -1742,73 +1647,30 @@ public class TopForm : Form
         }
     }
 
-    private void EditSynopsisButton_Click(object? sender, EventArgs e)
-    {
-        // If game data is being edited, cancel that edit first.
-        if (saveGameDataButton?.Visible == true)
-        {
-            CancelGameDataEdit();
-        }
-
-        if (synopsisTextBox == null || editSynopsisButton == null || saveSynopsisButton == null || cancelSynopsisButton == null) return;
-
-        synopsisTextBox.ReadOnly = false;
-        editSynopsisButton.Visible = false;
-        saveSynopsisButton.Visible = true;
-        cancelSynopsisButton.Visible = true;
-        synopsisTextBox.Focus();
-    }
-
-    private async void SaveSynopsisButton_Click(object? sender, EventArgs e)
-    {
-        if (gameListBox?.SelectedItem is not GameConfiguration selectedGame ||
-            synopsisTextBox == null ||
-            cancelSynopsisButton == null ||
-            editSynopsisButton == null ||
-            saveSynopsisButton == null)
-        {
-            return;
-        }
-
-        // Revert UI state first
-        synopsisTextBox.ReadOnly = true;
-        editSynopsisButton.Visible = true;
-        saveSynopsisButton.Visible = false;
-        cancelSynopsisButton.Visible = false;
-
-        string newSynopsis = synopsisTextBox.Text;
-
-        // Delegate the save logic (read, compare, write) to the service
-        SynopsisWriterService.SynopsisSaveResult result =
-            await SynopsisWriterService.TrySaveSynopsisAsync(selectedGame.SynopsisFilePath, newSynopsis);
-
-        if (!result.Success)
-        {
-            // An error occurred during the save operation (or reading original content)
-            MessageBox.Show(this, result.ErrorMessage, "Save Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            if (result.OriginalContent != null)
-            {
-                synopsisTextBox.Text = result.OriginalContent; // Revert textbox to original content on error
-            }
-        }
-    }
-
     private void TopForm_KeyDown(object? sender, KeyEventArgs e)
     {
         if (e.KeyCode == Keys.Escape)
         {
-            // Check if in game data edit mode
+            // Check if in game data edit mode first, as it's the "highest" level edit.
             if (saveGameDataButton?.Visible == true)
             {
                 CancelGameDataEdit();
-                e.SuppressKeyPress = true; // Prevent any further processing of the key press (e.g., 'ding' sound)
-            }
-            // Check if in synopsis edit mode
-            else if (saveSynopsisButton?.Visible == true)
-            {
-                _ = CancelSynopsisEditAsync(); // Fire and forget is acceptable for ESC key press
                 e.SuppressKeyPress = true;
+                return; // Exit after handling
             }
+
+            // If not in game data edit, check the text panels.
+            // The HandleKeyDown method will suppress the key if it's in edit mode.
+            synopsisTabPanel?.HandleKeyDown(e);
+            notesTabPanel?.HandleKeyDown(e);
+        }
+    }
+
+    private void HandleEditModeStarted(object? sender, EventArgs e)
+    {
+        if (saveGameDataButton?.Visible == true)
+        {
+            CancelGameDataEdit();
         }
     }
 
@@ -1844,41 +1706,5 @@ public class TopForm : Form
         developerTextBox.Text = selectedGame.Developer ?? string.Empty;
         publisherTextBox.Text = selectedGame.Publisher ?? string.Empty;
         runCommandsTextBox.Text = string.Join(Environment.NewLine, selectedGame.DosboxCommands);
-    }
-
-    /// <summary>
-    /// Cancels the synopsis edit mode, reverting the text and UI state.
-    /// </summary>
-    private async Task CancelSynopsisEditAsync()
-    {
-        if (gameListBox?.SelectedItem is not GameConfiguration selectedGame || 
-            synopsisTextBox == null || editSynopsisButton == null || saveSynopsisButton == null || cancelSynopsisButton == null)
-        {
-            return;
-        }
-
-        // Revert UI state
-        synopsisTextBox.ReadOnly = true;
-        editSynopsisButton.Visible = true;
-        saveSynopsisButton.Visible = false;
-        cancelSynopsisButton.Visible = false;
-
-        // Re-read original content from file to discard any changes made in the textbox
-        try
-        {
-            if (File.Exists(selectedGame.SynopsisFilePath))
-            {
-                synopsisTextBox.Text = await File.ReadAllTextAsync(selectedGame.SynopsisFilePath).ConfigureAwait(false);
-            }
-            else
-            {
-                synopsisTextBox.Text = string.Empty;
-            }
-        }
-        catch (Exception ex)
-        {
-            AppLogger.Log($"Error re-reading synopsis file on cancel '{selectedGame.SynopsisFilePath}': {ex.Message}");
-            synopsisTextBox.Text = "Error loading synopsis."; // Show an error in the textbox
-        }
     }
 }
