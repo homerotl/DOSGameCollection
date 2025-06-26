@@ -23,30 +23,36 @@ jobs:
     - name: Restore dependencies
       run: dotnet restore
 
+    - name: Get Release Tag
+      id: get_tag
+      # Strips 'refs/tags/' to get the tag with 'v' (e.g., v1.0.0)
+      # Also creates a version without the 'v' prefix (e.g., 1.0.0) for the assembly version
+      run: |
+        TAG_WITH_V=${GITHUB_REF#refs/tags/}
+        echo "TAG_WITH_V=$TAG_WITH_V" >> $GITHUB_OUTPUT
+        echo "TAG_NO_V=${TAG_WITH_V#v}" >> $GITHUB_OUTPUT
+
     - name: Build and Publish
       # Publishes the application in Release mode for Windows x64, self-contained, and as a single file.
       # This means the user won't need to install the .NET runtime separately.
-      run: dotnet publish --configuration Release --output publish_output --self-contained true --runtime win-x64 /p:PublishSingleFile=true /p:UseAppHost=true
+      # We pass the version number from the tag to the build.
+      run: dotnet publish --configuration Release --output publish_output --self-contained true --runtime win-x64 /p:PublishSingleFile=true /p:UseAppHost=true /p:Version=${{ steps.get_tag.outputs.TAG_NO_V }} /p:InformationalVersion=${{ steps.get_tag.outputs.TAG_WITH_V }}
 
     - name: Create Release Archive
       # Using PowerShell's Compress-Archive for zipping the published output on Windows
-      run: Compress-Archive -Path publish_output\* -DestinationPath DOSGameCollection.zip
-
-    - name: Get Release Tag
-      id: get_tag
-      run: echo "TAG=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+      run: Compress-Archive -Path publish_output\* -DestinationPath DOSGameCollection-${{ steps.get_tag.outputs.TAG_WITH_V }}.zip
 
     - name: Create GitHub Release and Upload Asset
       uses: softprops/action-gh-release@v1
       if: startsWith(github.ref, 'refs/tags/') # Ensure this step only runs if triggered by a tag push
       with:
-        tag_name: ${{ steps.get_tag.outputs.TAG }}
-        name: Release ${{ steps.get_tag.outputs.TAG }}
+        tag_name: ${{ steps.get_tag.outputs.TAG_WITH_V }}
+        name: Release ${{ steps.get_tag.outputs.TAG_WITH_V }}
         body: |
-          Automated release build for version ${{ steps.get_tag.outputs.TAG }}.
+          Automated release build for version ${{ steps.get_tag.outputs.TAG_WITH_V }}.
           
           **Changes:**
           - Initial release or summary of new features/fixes.
-        files: DOSGameCollection.zip
+        files: DOSGameCollection-${{ steps.get_tag.outputs.TAG_WITH_V }}.zip
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # This token is automatically provided by GitHub Actions

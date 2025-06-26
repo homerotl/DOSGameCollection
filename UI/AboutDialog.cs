@@ -1,5 +1,6 @@
 using System.Drawing;
 using System.Windows.Forms;
+using System.Reflection;
 
 namespace DOSGameCollection.UI;
 
@@ -15,14 +16,16 @@ public class AboutDialog : Form
         this.Text = "About DOSGameCollection";
         this.FormBorderStyle = FormBorderStyle.FixedDialog;
         this.StartPosition = FormStartPosition.CenterParent;
-        this.ClientSize = new Size(320, 120);
+        this.ClientSize = new Size(320, 160);
         this.MaximizeBox = false;
         this.MinimizeBox = false;
         this.ShowInTaskbar = false;
 
+        string version = GetAppVersion();
+
         var aboutLabel = new Label
         {
-            Text = "DOSGameCollection\n\nAn application to manage and launch your DOS games.",
+            Text = $"DOSGameCollection\n\nVersion: {version}\n\nAn application to manage and launch your DOS games.",
             TextAlign = ContentAlignment.MiddleCenter,
             Dock = DockStyle.Fill
         };
@@ -39,5 +42,16 @@ public class AboutDialog : Form
         this.Controls.Add(aboutLabel);
         this.Controls.Add(okButton);
         this.AcceptButton = okButton;
+    }
+
+    private string GetAppVersion()
+    {
+        // Get the informational version from the assembly. This is set by the build process via a command-line property.
+        var version = Assembly.GetExecutingAssembly()
+                              .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?
+                              .InformationalVersion;
+
+        // Provide a fallback if the version isn't set (e.g., during local development where the property isn't passed).
+        return string.IsNullOrEmpty(version) ? "dev" : version;
     }
 }
