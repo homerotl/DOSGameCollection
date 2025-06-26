@@ -25,6 +25,7 @@ jobs:
 
     - name: Get Release Tag
       id: get_tag
+      shell: bash
       # Strips 'refs/tags/' to get the tag with 'v' (e.g., v1.0.0)
       # Also creates a version without the 'v' prefix (e.g., 1.0.0) for the assembly version
       run: |
