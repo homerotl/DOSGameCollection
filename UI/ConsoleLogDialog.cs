@@ -10,7 +10,11 @@ public class ConsoleLogDialog : Form
     public ConsoleLogDialog(string initialLogContent)
     {
         InitializeComponent();
-        logTextBox.Text = initialLogContent;
+        
+        if (logTextBox != null)
+        {
+            logTextBox.Text = initialLogContent;
+        }
     }
 
     private void InitializeComponent()

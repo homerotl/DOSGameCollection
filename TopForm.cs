@@ -2,7 +2,6 @@ using System.Diagnostics;
 using System.Reflection;
 using DOSGameCollection.Models;
 using DOSGameCollection.UI;
-using DOSGameCollection.UI;
 using DOSGameCollection.Services;
 
 namespace DOSGameCollection;
