@@ -1,0 +1,50 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+jobs:
+  build-and-release:
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '9.0.x'
+
+    - name: Restore dependencies
+      run: dotnet restore
+
+    - name: Build and Publish
+      # Publishes the application in Release mode for Windows x64, self-contained, and as a single file.
+      # This means the user won't need to install the .NET runtime separately.
+      run: dotnet publish --configuration Release --output publish_output --self-contained true --runtime win-x64 /p:PublishSingleFile=true /p:UseAppHost=true
+
+    - name: Create Release Archive
+      # Using PowerShell's Compress-Archive for zipping the published output on Windows
+      run: Compress-Archive -Path publish_output\* -DestinationPath DOSGameCollection.zip
+
+    - name: Get Release Tag
+      id: get_tag
+      run: echo "TAG=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+
+    - name: Create GitHub Release and Upload Asset
+      uses: softprops/action-gh-release@v1
+      if: startsWith(github.ref, 'refs/tags/') # Ensure this step only runs if triggered by a tag push
+      with:
+        tag_name: ${{ steps.get_tag.outputs.TAG }}
+        name: Release ${{ steps.get_tag.outputs.TAG }}
+        body: |
+          Automated release build for version ${{ steps.get_tag.outputs.TAG }}.
+          
+          **Changes:**
+          - Initial release or summary of new features/fixes.
+        files: DOSGameCollection.zip
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # This token is automatically provided by GitHub Actions
