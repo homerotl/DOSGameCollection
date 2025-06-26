@@ -46,7 +46,7 @@ public class TopForm : Form
 
     private void InitializeComponent()
     {
-        Text = $"DOSGameCollection - build {BuildInfo.BuildVersion}";
+        Text = "DOSGameCollection";
         Name = "TopForm";
         ClientSize = new System.Drawing.Size(800, 600); 
         MinimumSize = new System.Drawing.Size(800, 600); 
