@@ -205,6 +205,13 @@ public static class GameDataReaderService
             config.ManualPath = potentialManualPath;
         }
 
+        // Check for cheats-and-secrets.txt in the game directory
+        string potentialCheatsPath = Path.Combine(gameDirectoryPath, "cheats-and-secrets.txt");
+        if (File.Exists(potentialCheatsPath))
+        {
+            config.CheatsFilePath = potentialCheatsPath;
+        }
+
         // Set box art existence flags
         config.HasFrontBoxArt = File.Exists(config.FrontBoxArtPath); // Existing property
         config.HasBackBoxArt = File.Exists(config.BackBoxArtPath);   // Existing property

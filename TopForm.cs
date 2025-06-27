@@ -33,6 +33,7 @@ public class TopForm : Form
     private TextBox? runCommandsTextBox; 
     private TextEditorTabPanel? synopsisTabPanel;
     private TextEditorTabPanel? notesTabPanel;
+    private TextEditorTabPanel? cheatsTabPanel;
     private List<GameConfiguration> _loadedGameConfigs = [];
     private readonly AppConfigService _appConfigService;
     public TopForm()
@@ -514,6 +515,13 @@ public class TopForm : Form
         notesTabPanel.EditModeStarted += HandleEditModeStarted;
         notesTab.Controls.Add(notesTabPanel);
 
+        cheatsTabPanel = new TextEditorTabPanel
+        {
+            Dock = DockStyle.Fill
+        };
+        cheatsTabPanel.EditModeStarted += HandleEditModeStarted;
+        cheatsTab.Controls.Add(cheatsTabPanel);
+
 
         extraInformationTabControl.TabPages.AddRange([
             mediaTab, synopsisTab, insertsTab, isoImagesTab, soundtrackTab, floppyDisksTab, walkthroughTab, cheatsTab, notesTab
@@ -596,6 +604,7 @@ public class TopForm : Form
         insertsTabPanel?.Clear();
         synopsisTabPanel?.Clear();
         notesTabPanel?.Clear();
+        cheatsTabPanel?.Clear();
         isoImagesTabPanel?.Clear();
         floppyDisksTabPanel?.Clear();
         if (runButton != null)
@@ -721,6 +730,7 @@ public class TopForm : Form
         }
         synopsisTabPanel?.Clear();
         notesTabPanel?.Clear();
+        cheatsTabPanel?.Clear();
         if (soundtrackDataGridView != null)
         {
             soundtrackDataGridView.Rows.Clear();
@@ -796,6 +806,12 @@ public class TopForm : Form
                 {
                     notesTabPanel.FilePath = Path.Combine(selectedGame.GameDirectoryPath, "notes.txt");
                 }
+                if (cheatsTabPanel != null)
+                {
+                    // The FilePath will either be the one found by the scanner, or a path to a new file.
+                    // The component handles creating it on first save.
+                    cheatsTabPanel.FilePath = selectedGame.CheatsFilePath ?? Path.Combine(selectedGame.GameDirectoryPath, "cheats-and-secrets.txt");
+                }
 
                 if (manualButton != null && !string.IsNullOrEmpty(selectedGame.ManualPath) && File.Exists(selectedGame.ManualPath))
                 {
@@ -830,6 +846,7 @@ public class TopForm : Form
                 insertsTabPanel?.Clear();
                 synopsisTabPanel?.Clear();
                 notesTabPanel?.Clear();
+                cheatsTabPanel?.Clear();
                 isoImagesTabPanel?.Clear();
                 floppyDisksTabPanel?.Clear();
                 if (extraInformationTabControl != null)
@@ -1236,6 +1253,7 @@ public class TopForm : Form
             // The HandleKeyDown method will suppress the key if it's in edit mode.
             synopsisTabPanel?.HandleKeyDown(e);
             notesTabPanel?.HandleKeyDown(e);
+            cheatsTabPanel?.HandleKeyDown(e);
         }
     }
 

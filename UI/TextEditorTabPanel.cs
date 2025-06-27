@@ -197,6 +197,12 @@ public class TextEditorTabPanel : UserControl
             bool fileExists = File.Exists(_filePath);
             if (newContent != _originalContent || (!fileExists && !string.IsNullOrEmpty(newContent)))
             {
+                // Ensure the directory exists before writing the file.
+                string? directory = Path.GetDirectoryName(_filePath);
+                if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))
+                {
+                    Directory.CreateDirectory(directory);
+                }
                 await File.WriteAllTextAsync(_filePath, newContent);
                 _originalContent = newContent; // Update original content on successful save
             }

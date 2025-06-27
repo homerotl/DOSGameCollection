@@ -17,6 +17,7 @@ This program expects games to be arranged in a specific folder structure like so
         --/manual.pdf
         --/game-files (This will be mounted as C)
         --/notes.txt
+        --/cheats-and-secrets.txt
         --/disk-images
             --/file-info.txt (CSV file with display names for files, when different)
             --/disk_01.img
@@ -32,7 +33,7 @@ This program expects games to be arranged in a specific folder structure like so
             --/synopsis.txt
             --/icon.png
             --/background.png
-            --/cheats-and-secrets.txt
+
             --/walkthrough
                 --/page_01.txt (or pdf)
                 --/file-info.txt
