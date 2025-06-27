@@ -207,19 +207,43 @@ public class TopForm : Form
         rightColumnPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
 
         // --- Action Buttons Panel 
-        FlowLayoutPanel actionButtonsPanel = new FlowLayoutPanel
+        TableLayoutPanel actionButtonsPanel = new()
         {
-            FlowDirection = FlowDirection.LeftToRight,
-            Dock = DockStyle.Top, // Ensure it uses the available width of its cell
+            ColumnCount = 2,
+            RowCount = 1,
+            Dock = DockStyle.Top,
             AutoSize = true,
-            Margin = new Padding(0, 0, 0, 5) // Bottom margin for the panel
+            Margin = new Padding(0)
+            //BackColor = Color.Red // For debugging layout
         };
+        actionButtonsPanel.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));      // Left-aligned buttons
+        actionButtonsPanel.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));      // Right-aligned buttons
 
-        actionButtonsPanel.Controls.Add(runButton);
-        actionButtonsPanel.Controls.Add(manualButton);
-        actionButtonsPanel.Controls.Add(editGameDataButton);
-        actionButtonsPanel.Controls.Add(saveGameDataButton);
-        actionButtonsPanel.Controls.Add(cancelGameDataButton);
+        FlowLayoutPanel leftActionButtons = new()
+        {
+            AutoSize = true,
+            Dock = DockStyle.Left,
+            FlowDirection = FlowDirection.LeftToRight,
+            Margin = new Padding(0)
+            // BackColor = Color.Blue for debugging layout
+        };
+        leftActionButtons.Controls.Add(runButton);
+        leftActionButtons.Controls.Add(manualButton);
+
+        FlowLayoutPanel rightActionButtons = new()
+        {
+            AutoSize = true,
+            Dock = DockStyle.Right,
+            FlowDirection = FlowDirection.RightToLeft, 
+            Margin = new Padding(0)
+            // BackColor = Color.Green for debugging layout
+        };
+        rightActionButtons.Controls.Add(editGameDataButton);
+        rightActionButtons.Controls.Add(saveGameDataButton);
+        rightActionButtons.Controls.Add(cancelGameDataButton);
+        
+        actionButtonsPanel.Controls.Add(leftActionButtons, 0, 0);
+        actionButtonsPanel.Controls.Add(rightActionButtons, 1, 0);
 
         // --- ToolTips for Action Buttons ---
         ToolTip actionButtonToolTip = new();
@@ -1062,7 +1086,11 @@ public class TopForm : Form
         {
             notesTabPanel.CancelEditMode();
         }
-
+        if (cheatsTabPanel?.IsEditing == true)
+        {
+            cheatsTabPanel.CancelEditMode();
+        }
+        
         if (gameNameTextBox == null || releaseYearTextBox == null || parentalRatingComboBox == null ||
             developerTextBox == null || publisherTextBox == null || runCommandsTextBox == null || cancelGameDataButton == null ||
             editGameDataButton == null || saveGameDataButton == null) return;

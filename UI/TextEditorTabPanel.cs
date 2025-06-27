@@ -50,8 +50,8 @@ public class TextEditorTabPanel : UserControl
             ColumnCount = 1,
             RowCount = 2
         };
+        mainPanel.RowStyles.Add(new RowStyle(SizeType.AutoSize));      // For buttons
         mainPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 100F)); // For textbox
-        mainPanel.RowStyles.Add(new RowStyle(SizeType.AutoSize)); // For buttons
 
         FlowLayoutPanel buttonsPanel = new()
         {
@@ -96,9 +96,9 @@ public class TextEditorTabPanel : UserControl
         toolTip.SetToolTip(saveButton, "Save");
         toolTip.SetToolTip(cancelButton, "Cancel");
 
-        buttonsPanel.Controls.Add(editButton);
-        buttonsPanel.Controls.Add(saveButton);
-        buttonsPanel.Controls.Add(cancelButton);
+        buttonsPanel.Controls.Add(editButton);   // This will be on the far right.
+        buttonsPanel.Controls.Add(cancelButton); // This will be to the left of the edit button.
+        buttonsPanel.Controls.Add(saveButton);   // This will be to the left of the cancel button.
 
         contentTextBox = new TextBox
         {
@@ -108,7 +108,7 @@ public class TextEditorTabPanel : UserControl
             ScrollBars = ScrollBars.Vertical
         };
 
-        mainPanel.Controls.AddRange([contentTextBox, buttonsPanel]);
+        mainPanel.Controls.AddRange([buttonsPanel, contentTextBox]);
         Controls.Add(mainPanel);
     }
 
