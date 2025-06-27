@@ -430,7 +430,7 @@ public class TopForm : Form
         insertsTabPanel = new MediaTabPanel { Dock = DockStyle.Fill };
         insertsTab.Controls.Add(insertsTabPanel);
 
-        TabPage isoImagesTab = new("CD-ROM images");
+        TabPage isoImagesTab = new("CD-ROM");
         isoImagesTabPanel = new DiscImageTabPanel { Dock = DockStyle.Fill };
         isoImagesTab.Controls.Add(isoImagesTabPanel);
 
