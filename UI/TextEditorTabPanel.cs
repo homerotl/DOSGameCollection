@@ -56,8 +56,7 @@ public class TextEditorTabPanel : UserControl
 
         FlowLayoutPanel buttonsPanel = new()
         {
-            FlowDirection = FlowDirection.RightToLeft,
-            Dock = DockStyle.Fill,
+            Dock = DockStyle.Right,
             AutoSize = true,
             Margin = new Padding(0, 5, 0, 0)
         };
@@ -92,9 +91,9 @@ public class TextEditorTabPanel : UserControl
         toolTip.SetToolTip(saveButton, "Save");
         toolTip.SetToolTip(cancelButton, "Cancel");
 
-        buttonsPanel.Controls.Add(editButton);   // This will be on the far right.
-        buttonsPanel.Controls.Add(cancelButton); // This will be to the left of the edit button.
-        buttonsPanel.Controls.Add(saveButton);   // This will be to the left of the cancel button.
+        buttonsPanel.Controls.Add(cancelButton);
+        buttonsPanel.Controls.Add(saveButton);
+        buttonsPanel.Controls.Add(editButton);
 
         contentTextBox = new TextBox
         {

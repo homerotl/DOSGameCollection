@@ -200,13 +200,12 @@ public class TopForm : Form
         {
             AutoSize = true,
             Dock = DockStyle.Right,
-            FlowDirection = FlowDirection.RightToLeft, 
             Margin = new Padding(0)
             // BackColor = Color.Green for debugging layout
         };
-        rightActionButtons.Controls.Add(editGameDataButton);
-        rightActionButtons.Controls.Add(saveGameDataButton);
         rightActionButtons.Controls.Add(cancelGameDataButton);
+        rightActionButtons.Controls.Add(saveGameDataButton);
+        rightActionButtons.Controls.Add(editGameDataButton);
         
         actionButtonsPanel.Controls.Add(leftActionButtons, 0, 0);
         actionButtonsPanel.Controls.Add(rightActionButtons, 1, 0);
