@@ -212,6 +212,13 @@ public static class GameDataReaderService
             config.CheatsFilePath = potentialCheatsPath;
         }
 
+        // Check for walkthrough.txt in the game directory
+        string potentialWalkthroughPath = Path.Combine(gameDirectoryPath, "walkthrough.txt");
+        if (File.Exists(potentialWalkthroughPath))
+        {
+            config.WalkthroughFilePath = potentialWalkthroughPath;
+        }
+
         // Set box art existence flags
         config.HasFrontBoxArt = File.Exists(config.FrontBoxArtPath); // Existing property
         config.HasBackBoxArt = File.Exists(config.BackBoxArtPath);   // Existing property

@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Reflection;
+using System.IO;
 using DOSGameCollection.Models;
 using DOSGameCollection.UI;
 using DOSGameCollection.Services;
@@ -9,7 +10,7 @@ namespace DOSGameCollection;
 public class TopForm : Form
 {
     private ListBox? gameListBox;
-    private Button? runButton;
+    private Button? playGameButton;
     private Button? manualButton;
     private Button? refreshButton; 
     private Button? editGameDataButton;
@@ -34,6 +35,7 @@ public class TopForm : Form
     private TextEditorTabPanel? synopsisTabPanel;
     private TextEditorTabPanel? notesTabPanel;
     private TextEditorTabPanel? cheatsTabPanel;
+    private TextEditorTabPanel? walkthroughTabPanel;
     private List<GameConfiguration> _loadedGameConfigs = [];
     private readonly AppConfigService _appConfigService;
     public TopForm()
@@ -51,31 +53,6 @@ public class TopForm : Form
         Name = "TopForm";
         ClientSize = new System.Drawing.Size(800, 600); 
         MinimumSize = new System.Drawing.Size(800, 600); 
-
-        // --- Set Form Icon ---
-        try
-        {
-            Assembly assembly = Assembly.GetExecutingAssembly();
-
-            string resourceName = "DOSGameCollection.appicon.ico"; 
-
-            using (Stream? iconStream = assembly.GetManifestResourceStream(resourceName))
-            {
-                if (iconStream != null)
-                {
-                    Icon = new System.Drawing.Icon(iconStream);
-                }
-                else
-                {
-                    AppLogger.Log($"Warning: Embedded resource '{resourceName}' not found.");
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            AppLogger.Log($"Error loading embedded icon: {ex.Message}");
-            // Optionally handle the error, e.g., log it or show a message
-        }
 
         // --- MenuStrip Setup ---
         menuStrip = new MenuStrip
@@ -138,62 +115,79 @@ public class TopForm : Form
         refreshButton = new Button
         {
             Anchor = AnchorStyles.Left,
-            AutoSize = true,
-            Margin = new Padding(5, 5, 5, 3),
-            Text = symbolFont != null ? "\u21BB" : "Refresh"
+            Size = new Size(35, 35),
+            Margin = new Padding(5),
         };
-        if (symbolFont != null) { refreshButton.Font = symbolFont; }
         refreshButton.Click += RefreshButton_Click;
 
-        runButton = new Button
+        playGameButton = new Button
         {
-            AutoSize = true,
-            Margin = new Padding(0, 0, 5, 5), 
+            Anchor = AnchorStyles.Left,
+            Size = new Size(35, 35),
+            Margin = new Padding(5),
             Enabled = false,
-            Text = symbolFont != null ? "\U0001F680" : "Run"
         };
-        if (symbolFont != null) { runButton.Font = symbolFont; }
-        runButton.Click += RunButton_Click; 
+        playGameButton.Click += RunButton_Click; 
 
         manualButton = new Button
         {
-            AutoSize = true,
-            Margin = new Padding(0, 0, 5, 5),
+            Anchor = AnchorStyles.Left,
+            Size = new Size(35, 35),
+            Margin = new Padding(5),
             Enabled = false,
-            Text = symbolFont != null ? "\U0001F56E" : "Manual"
         };
-        if (symbolFont != null) { manualButton.Font = symbolFont; }
         manualButton.Click += ManualButton_Click;
 
         editGameDataButton = new Button
         {
-            AutoSize = true,
-            Margin = new Padding(0, 0, 5, 5),
-            Enabled = false, 
-            Text = symbolFont != null ? "\u270E" : "Edit"
+            Anchor = AnchorStyles.Left,
+            Size = new Size(35, 35),
+            Margin = new Padding(5),
+            Enabled = false,
         };
-        if (symbolFont != null) { editGameDataButton.Font = symbolFont; }
         editGameDataButton.Click += EditGameDataButton_Click;
-
-        saveGameDataButton = new Button
-        {
-            AutoSize = true,
-            Margin = new Padding(0, 0, 5, 5),
-            Visible = false, 
-            Text = symbolFont != null ? "\uD83D\uDCBE" : "Save"
-        };
-        if (symbolFont != null) { saveGameDataButton.Font = symbolFont; }
-        saveGameDataButton.Click += SaveGameDataButton_Click;
 
         cancelGameDataButton = new Button
         {
-            AutoSize = true,
-            Margin = new Padding(0, 0, 5, 5),
-            Visible = false,
-            Text = symbolFont != null ? "\U0001F5D9" : "Cancel"
+            Anchor = AnchorStyles.Left,
+            Size = new Size(35, 35),
+            Margin = new Padding(5),
         };
-        if (symbolFont != null) { cancelGameDataButton.Font = symbolFont; }
         cancelGameDataButton.Click += CancelGameDataButton_Click;
+
+        saveGameDataButton = new Button
+        {
+            Anchor = AnchorStyles.Left,
+            Size = new Size(35, 35),
+            Margin = new Padding(5),
+        };
+        saveGameDataButton.Click += SaveGameDataButton_Click;
+
+        // Load embedded resources
+        Assembly assembly = Assembly.GetExecutingAssembly();
+    
+        // Button icons
+        using (Stream? imageStream = assembly.GetManifestResourceStream("DOSGameCollection.Resources.icons.refresh.png"))
+        { if (imageStream != null) { refreshButton.Image = Image.FromStream(imageStream); } }
+        
+        using (Stream? imageStream = assembly.GetManifestResourceStream("DOSGameCollection.Resources.icons.play.png"))
+        { if (imageStream != null) { playGameButton.Image = Image.FromStream(imageStream); } }
+
+        using (Stream? imageStream = assembly.GetManifestResourceStream("DOSGameCollection.Resources.icons.manual.png"))
+        { if (imageStream != null) { manualButton.Image = Image.FromStream(imageStream); } }
+
+        using (Stream? imageStream = assembly.GetManifestResourceStream("DOSGameCollection.Resources.icons.edit.png"))
+        { if (imageStream != null) { editGameDataButton.Image = Image.FromStream(imageStream); } }
+
+        using (Stream? imageStream = assembly.GetManifestResourceStream("DOSGameCollection.Resources.icons.cancel.png"))
+        { if (imageStream != null) { cancelGameDataButton.Image = Image.FromStream(imageStream); } }
+
+       using (Stream? imageStream = assembly.GetManifestResourceStream("DOSGameCollection.Resources.icons.ok.png"))
+        { if (imageStream != null) { saveGameDataButton.Image = Image.FromStream(imageStream); } }
+
+        // App icon
+        using (Stream? iconStream = assembly.GetManifestResourceStream("DOSGameCollection.appicon.ico"))
+        { if (iconStream != null) { Icon = new System.Drawing.Icon(iconStream); } }
 
         gameListBox = new ListBox();
 
@@ -227,7 +221,7 @@ public class TopForm : Form
             Margin = new Padding(0)
             // BackColor = Color.Blue for debugging layout
         };
-        leftActionButtons.Controls.Add(runButton);
+        leftActionButtons.Controls.Add(playGameButton);
         leftActionButtons.Controls.Add(manualButton);
 
         FlowLayoutPanel rightActionButtons = new()
@@ -247,11 +241,11 @@ public class TopForm : Form
 
         // --- ToolTips for Action Buttons ---
         ToolTip actionButtonToolTip = new();
-        actionButtonToolTip.SetToolTip(runButton, "Launch");
+        actionButtonToolTip.SetToolTip(playGameButton, "Play Game");
         actionButtonToolTip.SetToolTip(saveGameDataButton, "Save Game Data");
         actionButtonToolTip.SetToolTip(cancelGameDataButton, "Cancel");
-        actionButtonToolTip.SetToolTip(manualButton, "Manual");
-        actionButtonToolTip.SetToolTip(refreshButton, "Reload");
+        actionButtonToolTip.SetToolTip(manualButton, "Game Manual");
+        actionButtonToolTip.SetToolTip(refreshButton, "Refresh Game List");
         actionButtonToolTip.SetToolTip(editGameDataButton, "Edit Game Data");
 
         // Define Row Styles for gameDetailsTableLayoutPanel
@@ -546,6 +540,13 @@ public class TopForm : Form
         cheatsTabPanel.EditModeStarted += HandleEditModeStarted;
         cheatsTab.Controls.Add(cheatsTabPanel);
 
+        walkthroughTabPanel = new TextEditorTabPanel
+        {
+            Dock = DockStyle.Fill
+        };
+        walkthroughTabPanel.EditModeStarted += HandleEditModeStarted;
+        walkthroughTab.Controls.Add(walkthroughTabPanel);
+
 
         extraInformationTabControl.TabPages.AddRange([
             mediaTab, synopsisTab, insertsTab, isoImagesTab, soundtrackTab, floppyDisksTab, walkthroughTab, cheatsTab, notesTab
@@ -558,7 +559,8 @@ public class TopForm : Form
             Dock = DockStyle.Fill,
             ColumnCount = 1,
             RowCount = 2,
-            Margin = new Padding(0) // No margin for the panel itself
+            Margin = new Padding(0), // No margin for the panel itself
+            //BackColor = Color.Red // For debugging layout
         };
         leftColumnPanel.RowStyles.Add(new RowStyle(SizeType.AutoSize)); // Row for Refresh button
         leftColumnPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 100F)); // Row for GameListBox
@@ -629,11 +631,12 @@ public class TopForm : Form
         synopsisTabPanel?.Clear();
         notesTabPanel?.Clear();
         cheatsTabPanel?.Clear();
+        walkthroughTabPanel?.Clear();
         isoImagesTabPanel?.Clear();
         floppyDisksTabPanel?.Clear();
-        if (runButton != null)
+        if (playGameButton != null)
         {
-            runButton.Enabled = false;
+            playGameButton.Enabled = false;
         }
         if (manualButton != null)
         {
@@ -730,9 +733,9 @@ public class TopForm : Form
 
     private async void GameListBox_SelectedIndexChanged(object? sender, EventArgs e)
     {
-        if (runButton != null)
+        if (playGameButton != null)
         {
-            runButton.Enabled = (gameListBox?.SelectedItem != null);
+            playGameButton.Enabled = (gameListBox?.SelectedItem != null);
         }
         if (manualButton != null)
         {
@@ -755,6 +758,7 @@ public class TopForm : Form
         synopsisTabPanel?.Clear();
         notesTabPanel?.Clear();
         cheatsTabPanel?.Clear();
+        walkthroughTabPanel?.Clear();
         if (soundtrackDataGridView != null)
         {
             soundtrackDataGridView.Rows.Clear();
@@ -836,6 +840,12 @@ public class TopForm : Form
                     // The component handles creating it on first save.
                     cheatsTabPanel.FilePath = selectedGame.CheatsFilePath ?? Path.Combine(selectedGame.GameDirectoryPath, "cheats-and-secrets.txt");
                 }
+                if (walkthroughTabPanel != null)
+                {
+                    // The FilePath will either be the one found by the scanner, or a path to a new file.
+                    // The component handles creating it on first save.
+                    walkthroughTabPanel.FilePath = selectedGame.WalkthroughFilePath ?? Path.Combine(selectedGame.GameDirectoryPath, "walkthrough.txt");
+                }
 
                 if (manualButton != null && !string.IsNullOrEmpty(selectedGame.ManualPath) && File.Exists(selectedGame.ManualPath))
                 {
@@ -871,6 +881,7 @@ public class TopForm : Form
                 synopsisTabPanel?.Clear();
                 notesTabPanel?.Clear();
                 cheatsTabPanel?.Clear();
+                walkthroughTabPanel?.Clear();
                 isoImagesTabPanel?.Clear();
                 floppyDisksTabPanel?.Clear();
                 if (extraInformationTabControl != null)
@@ -1090,6 +1101,10 @@ public class TopForm : Form
         {
             cheatsTabPanel.CancelEditMode();
         }
+        if (walkthroughTabPanel?.IsEditing == true)
+        {
+            walkthroughTabPanel.CancelEditMode();
+        }
         
         if (gameNameTextBox == null || releaseYearTextBox == null || parentalRatingComboBox == null ||
             developerTextBox == null || publisherTextBox == null || runCommandsTextBox == null || cancelGameDataButton == null ||
@@ -1282,6 +1297,7 @@ public class TopForm : Form
             synopsisTabPanel?.HandleKeyDown(e);
             notesTabPanel?.HandleKeyDown(e);
             cheatsTabPanel?.HandleKeyDown(e);
+            walkthroughTabPanel?.HandleKeyDown(e);
         }
     }
 

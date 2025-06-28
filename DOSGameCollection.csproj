@@ -10,5 +10,11 @@
   </PropertyGroup>
   <ItemGroup>
     <EmbeddedResource Include="appicon.ico" />
+    <EmbeddedResource Include="Resources\icons\refresh.png" />
+    <EmbeddedResource Include="Resources\icons\play.png" />
+    <EmbeddedResource Include="Resources\icons\manual.png" />
+    <EmbeddedResource Include="Resources\icons\edit.png" />
+    <EmbeddedResource Include="Resources\icons\cancel.png" />
+    <EmbeddedResource Include="Resources\icons\ok.png" />
   </ItemGroup>
 </Project>

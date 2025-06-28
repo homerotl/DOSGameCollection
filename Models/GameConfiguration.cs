@@ -39,6 +39,8 @@ public class GameConfiguration
 
     public string? CheatsFilePath { get; set; } // Path to the cheats file, if it exists
 
+    public string? WalkthroughFilePath { get; set; } // Path to the walkthrough file, if it exists
+
     public override string ToString()
     {
         return GameName;

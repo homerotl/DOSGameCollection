@@ -105,7 +105,8 @@ public class TextEditorTabPanel : UserControl
             Dock = DockStyle.Fill,
             Multiline = true,
             ReadOnly = true,
-            ScrollBars = ScrollBars.Vertical
+            ScrollBars = ScrollBars.Vertical,
+            Font = new Font("Consolas", 9.75F, FontStyle.Regular),
         };
 
         mainPanel.Controls.AddRange([buttonsPanel, contentTextBox]);
