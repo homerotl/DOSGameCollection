@@ -11,6 +11,7 @@ public class TopForm : Form
     private ListBox? gameListBox;
     private Button? playGameButton;
     private Button? manualButton;
+    private Button? dosboxConfigButton;
     private Button? refreshButton; 
     private Button? editGameDataButton;
     private Button? saveGameDataButton;
@@ -123,6 +124,11 @@ public class TopForm : Form
         { Anchor = AnchorStyles.Left, Size = new Size(35, 35), Margin = new Padding(5), Enabled = false };
         manualButton.Click += ManualButton_Click;
 
+        dosboxConfigButton = new Button
+        { Anchor = AnchorStyles.Left, Size = new Size(35, 35), Margin = new Padding(5), Enabled = false };
+        dosboxConfigButton.Click += DosboxConfigButton_Click;
+
+
         editGameDataButton = new Button
         { Anchor = AnchorStyles.Left, Size = new Size(35, 35), Margin = new Padding(5), Enabled = false };
         editGameDataButton.Click += EditGameDataButton_Click;
@@ -147,6 +153,9 @@ public class TopForm : Form
 
         using (Stream? imageStream = assembly.GetManifestResourceStream("DOSGameCollection.Resources.icons.manual.png"))
         { if (imageStream != null) { manualButton.Image = Image.FromStream(imageStream); } }
+
+        using (Stream? imageStream = assembly.GetManifestResourceStream("DOSGameCollection.Resources.icons.config.png"))
+        { if (imageStream != null) { dosboxConfigButton.Image = Image.FromStream(imageStream); } }
 
         using (Stream? imageStream = assembly.GetManifestResourceStream("DOSGameCollection.Resources.icons.edit.png"))
         { if (imageStream != null) { editGameDataButton.Image = Image.FromStream(imageStream); } }
@@ -195,6 +204,7 @@ public class TopForm : Form
         };
         leftActionButtons.Controls.Add(playGameButton);
         leftActionButtons.Controls.Add(manualButton);
+        leftActionButtons.Controls.Add(dosboxConfigButton);
 
         FlowLayoutPanel rightActionButtons = new()
         {
@@ -217,6 +227,7 @@ public class TopForm : Form
         actionButtonToolTip.SetToolTip(cancelGameDataButton, "Cancel");
         actionButtonToolTip.SetToolTip(manualButton, "Game Manual");
         actionButtonToolTip.SetToolTip(refreshButton, "Refresh Game List");
+        actionButtonToolTip.SetToolTip(dosboxConfigButton, "Open DOSBox Config");
         actionButtonToolTip.SetToolTip(editGameDataButton, "Edit Game Data");
 
         // Define Row Styles for gameDetailsTableLayoutPanel
@@ -613,6 +624,10 @@ public class TopForm : Form
         {
             manualButton.Enabled = false;
         }
+        if (dosboxConfigButton != null)
+        {
+            dosboxConfigButton.Enabled = false;
+        }
         if (editGameDataButton != null)
         {
             editGameDataButton.Enabled = false;
@@ -711,6 +726,10 @@ public class TopForm : Form
         if (manualButton != null)
         {
             manualButton.Enabled = false;
+        }
+        if (dosboxConfigButton != null)
+        {
+            dosboxConfigButton.Enabled = false;
         }
         if (editGameDataButton != null)
         {
@@ -822,6 +841,11 @@ public class TopForm : Form
                 {
                     manualButton.Enabled = true;
                 }
+                if (dosboxConfigButton != null)
+                {
+                    string configPath = Path.Combine(selectedGame.GameDirectoryPath, "dosbox-staging.conf");
+                    dosboxConfigButton.Enabled = File.Exists(configPath);
+                }
 
                 if (runCommandsTextBox != null)
                 {
@@ -897,6 +921,34 @@ public class TopForm : Form
             if (manualButton != null)
             {
                 manualButton.Enabled = false; // Ensure it's disabled if something went wrong
+            }
+        }
+    }
+
+    private void DosboxConfigButton_Click(object? sender, EventArgs e)
+    {
+        if (gameListBox?.SelectedItem is GameConfiguration selectedGame)
+        {
+            string configPath = Path.Combine(selectedGame.GameDirectoryPath, "dosbox-staging.conf");
+
+            if (File.Exists(configPath))
+            {
+                try
+                {
+                    ProcessStartInfo psi = new(configPath)
+                    {
+                        UseShellExecute = true // Use the default OS application for .conf files
+                    };
+                    Process.Start(psi);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(this, $"Could not open the DOSBox configuration file.\nError: {ex.Message}", "Error Opening File", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
+            else
+            {
+                MessageBox.Show(this, "The DOSBox configuration file (dosbox-staging.conf) was not found for this game.", "File Not Found", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             }
         }
     }
