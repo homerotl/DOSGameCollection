@@ -5,7 +5,7 @@ namespace DOSGameCollection.Services;
 
 public static class GameLauncherService
 {
-    public static void LaunchGame(GameConfiguration gameConfig, string? dosboxExePath, IWin32Window owner)
+    public static void LaunchGame(GameConfiguration gameConfig, string? dosboxExePath, List<string> commandsToRun, IWin32Window owner)
     {
         if (string.IsNullOrEmpty(dosboxExePath) || !File.Exists(dosboxExePath))
         {
@@ -54,7 +54,7 @@ public static class GameLauncherService
 
         dosboxArgs.Add("-c \"C:\"");
 
-        foreach (string command in gameConfig.DosboxCommands)
+        foreach (string command in commandsToRun)
         {
             dosboxArgs.Add($"-c \"{command}\"");
         }

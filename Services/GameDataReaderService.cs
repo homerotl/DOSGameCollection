@@ -11,8 +11,9 @@ public static class GameDataReaderService
     private const string ParentalRatingPrefix = "game.parental.rating=";
     private const string IsoSectionHeader = "[isos]";
     private const string CommandsSectionHeader = "[commands]";
+    private const string SetupCommandsSectionHeader = "[setup-commands]";
 
-    private enum ParsingState { None, Isos, Commands }
+    private enum ParsingState { None, Isos, Commands, SetupCommands }
 
     /// <summary>
     /// Scans a directory for media files with specified extensions and reads their display names from file-info.txt.
@@ -119,6 +120,11 @@ public static class GameDataReaderService
                     currentState = ParsingState.Commands;
                     continue;
                 }
+                else if (trimmedLine.Equals(SetupCommandsSectionHeader, StringComparison.OrdinalIgnoreCase))
+                {
+                    currentState = ParsingState.SetupCommands;
+                    continue;
+                }
                 else if (trimmedLine.StartsWith(GameNamePrefix, StringComparison.OrdinalIgnoreCase))
                 {
                     config.GameName = trimmedLine.Substring(GameNamePrefix.Length).Trim();
@@ -170,6 +176,9 @@ public static class GameDataReaderService
                         break;
                     case ParsingState.Commands:
                         config.DosboxCommands.Add(trimmedLine);
+                        break;
+                    case ParsingState.SetupCommands:
+                        config.SetupCommands.Add(trimmedLine);
                         break;
                     case ParsingState.None:
                         break;

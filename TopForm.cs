@@ -12,6 +12,7 @@ public class TopForm : Form
     private Button? playGameButton;
     private Button? manualButton;
     private Button? dosboxConfigButton;
+    private Button? gameConfigButton;
     private Button? refreshButton; 
     private Button? editGameDataButton;
     private Button? saveGameDataButton;
@@ -51,7 +52,7 @@ public class TopForm : Form
     {
         Text = "DOSGameCollection";
         Name = "TopForm";
-        ClientSize = new System.Drawing.Size(800, 600); 
+        ClientSize = new System.Drawing.Size(1200, 675); 
         MinimumSize = new System.Drawing.Size(800, 600); 
 
         // --- MenuStrip Setup ---
@@ -105,7 +106,7 @@ public class TopForm : Form
             ColumnCount = 2
         };
 
-        mainLayoutPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 200F));
+        mainLayoutPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 250F));
         mainLayoutPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
 
         var symbolFont = FormatTools.GetSymbolFont();
@@ -127,6 +128,10 @@ public class TopForm : Form
         dosboxConfigButton = new Button
         { Anchor = AnchorStyles.Left, Size = new Size(35, 35), Margin = new Padding(5), Enabled = false };
         dosboxConfigButton.Click += DosboxConfigButton_Click;
+
+        gameConfigButton = new Button
+        { Anchor = AnchorStyles.Left, Size = new Size(35, 35), Margin = new Padding(5), Enabled = false };
+        gameConfigButton.Click += GameConfigButton_Click;
 
 
         editGameDataButton = new Button
@@ -154,8 +159,11 @@ public class TopForm : Form
         using (Stream? imageStream = assembly.GetManifestResourceStream("DOSGameCollection.Resources.icons.manual.png"))
         { if (imageStream != null) { manualButton.Image = Image.FromStream(imageStream); } }
 
-        using (Stream? imageStream = assembly.GetManifestResourceStream("DOSGameCollection.Resources.icons.config.png"))
+        using (Stream? imageStream = assembly.GetManifestResourceStream("DOSGameCollection.Resources.icons.dosbox-stg.png"))
         { if (imageStream != null) { dosboxConfigButton.Image = Image.FromStream(imageStream); } }
+
+        using (Stream? imageStream = assembly.GetManifestResourceStream("DOSGameCollection.Resources.icons.gears.png"))
+        { if (imageStream != null) { gameConfigButton.Image = Image.FromStream(imageStream); } }
 
         using (Stream? imageStream = assembly.GetManifestResourceStream("DOSGameCollection.Resources.icons.edit.png"))
         { if (imageStream != null) { editGameDataButton.Image = Image.FromStream(imageStream); } }
@@ -203,6 +211,7 @@ public class TopForm : Form
             // BackColor = Color.Blue for debugging layout
         };
         leftActionButtons.Controls.Add(playGameButton);
+        leftActionButtons.Controls.Add(gameConfigButton);
         leftActionButtons.Controls.Add(manualButton);
         leftActionButtons.Controls.Add(dosboxConfigButton);
 
@@ -228,6 +237,7 @@ public class TopForm : Form
         actionButtonToolTip.SetToolTip(manualButton, "Game Manual");
         actionButtonToolTip.SetToolTip(refreshButton, "Refresh Game List");
         actionButtonToolTip.SetToolTip(dosboxConfigButton, "Open DOSBox Config");
+        actionButtonToolTip.SetToolTip(gameConfigButton, "Run Game Setup");
         actionButtonToolTip.SetToolTip(editGameDataButton, "Edit Game Data");
 
         // Define Row Styles for gameDetailsTableLayoutPanel
@@ -628,6 +638,10 @@ public class TopForm : Form
         {
             dosboxConfigButton.Enabled = false;
         }
+        if (gameConfigButton != null)
+        {
+            gameConfigButton.Enabled = false;
+        }
         if (editGameDataButton != null)
         {
             editGameDataButton.Enabled = false;
@@ -846,6 +860,10 @@ public class TopForm : Form
                     string configPath = Path.Combine(selectedGame.GameDirectoryPath, "dosbox-staging.conf");
                     dosboxConfigButton.Enabled = File.Exists(configPath);
                 }
+                if (gameConfigButton != null)
+                {
+                    gameConfigButton.Enabled = selectedGame.SetupCommands.Any();
+                }
 
                 if (runCommandsTextBox != null)
                 {
@@ -891,7 +909,7 @@ public class TopForm : Form
     {
         if (gameListBox?.SelectedItem is GameConfiguration selectedGame)
         {
-            GameLauncherService.LaunchGame(selectedGame, _appConfigService.DosboxExePath, this);
+            GameLauncherService.LaunchGame(selectedGame, _appConfigService.DosboxExePath, selectedGame.DosboxCommands, this);
         }
     }
 
@@ -950,6 +968,15 @@ public class TopForm : Form
             {
                 MessageBox.Show(this, "The DOSBox configuration file (dosbox-staging.conf) was not found for this game.", "File Not Found", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             }
+        }
+    }
+
+    private void GameConfigButton_Click(object? sender, EventArgs e)
+    {
+        if (gameListBox?.SelectedItem is GameConfiguration selectedGame && selectedGame.SetupCommands.Any())
+        {
+            // Assuming GameLauncherService.LaunchGame is updated to take a list of commands
+            GameLauncherService.LaunchGame(selectedGame, _appConfigService.DosboxExePath, selectedGame.SetupCommands, this);
         }
     }
 

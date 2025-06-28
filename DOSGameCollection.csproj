@@ -16,6 +16,8 @@
     <EmbeddedResource Include="Resources\icons\edit.png" />
     <EmbeddedResource Include="Resources\icons\cancel.png" />
     <EmbeddedResource Include="Resources\icons\ok.png" />
-    <EmbeddedResource Include="Resources\icons\config.png" />
+    <EmbeddedResource Include="Resources\icons\dosbox-stg.png" />
+    <EmbeddedResource Include="Resources\icons\gears.png" />
+
   </ItemGroup>
 </Project>

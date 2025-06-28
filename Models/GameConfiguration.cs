@@ -8,6 +8,7 @@ public class GameConfiguration
     public string? Publisher { get; set; }
     public List<DiscImageInfo> IsoImages { get; set; } = [];
     public List<string> DosboxCommands { get; set; } = [];
+    public List<string> SetupCommands { get; set; } = [];
     public List<DiscImageInfo> DiscImages { get; set; } = [];
     public List<MediaFileInfo> CaptureFiles { get; set; } = [];
     public List<MediaFileInfo> VideoFiles { get; set; } = [];
