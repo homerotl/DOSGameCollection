@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Reflection;
 
 namespace DOSGameCollection.UI;
 
@@ -62,34 +63,29 @@ public class TextEditorTabPanel : UserControl
         };
 
         editButton = new Button
-        {
-            AutoSize = true,
-            Margin = new Padding(0, 0, 5, 5),
-            Enabled = false,
-            Text = symbolFont != null ? "\u270E" : "Edit"
-        };
-        if (symbolFont != null) { editButton.Font = symbolFont; }
+        { Anchor = AnchorStyles.Left, Size = new Size(35, 35), Margin = new Padding(5), Enabled = false };
         editButton.Click += EditButton_Click;
 
         saveButton = new Button
-        {
-            AutoSize = true,
-            Margin = new Padding(0, 0, 5, 5),
-            Visible = false,
-            Text = symbolFont != null ? "\uD83D\uDCBE" : "Save"
-        };
-        if (symbolFont != null) { saveButton.Font = symbolFont; }
+        { Anchor = AnchorStyles.Left, Size = new Size(35, 35), Margin = new Padding(5), Visible = false };
         saveButton.Click += SaveButton_Click;
 
         cancelButton = new Button
-        {
-            AutoSize = true,
-            Margin = new Padding(0, 0, 5, 5),
-            Visible = false,
-            Text = symbolFont != null ? "\U0001F5D9" : "Cancel"
-        };
-        if (symbolFont != null) { cancelButton.Font = symbolFont; }
+        { Anchor = AnchorStyles.Left, Size = new Size(35, 35), Margin = new Padding(5), Visible = false };
         cancelButton.Click += CancelButton_Click;
+
+        // Load embedded resources
+        Assembly assembly = Assembly.GetExecutingAssembly();
+    
+        // Button icons
+        using (Stream? imageStream = assembly.GetManifestResourceStream("DOSGameCollection.Resources.icons.edit.png"))
+        { if (imageStream != null) { editButton.Image = Image.FromStream(imageStream); } }
+
+        using (Stream? imageStream = assembly.GetManifestResourceStream("DOSGameCollection.Resources.icons.ok.png"))
+        { if (imageStream != null) { saveButton.Image = Image.FromStream(imageStream); } }
+
+        using (Stream? imageStream = assembly.GetManifestResourceStream("DOSGameCollection.Resources.icons.cancel.png"))
+        { if (imageStream != null) { cancelButton.Image = Image.FromStream(imageStream); } }
 
         ToolTip toolTip = new();
         toolTip.SetToolTip(editButton, "Edit");

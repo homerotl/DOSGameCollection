@@ -1,6 +1,5 @@
 using System.Diagnostics;
 using System.Reflection;
-using System.IO;
 using DOSGameCollection.Models;
 using DOSGameCollection.UI;
 using DOSGameCollection.Services;
@@ -113,54 +112,27 @@ public class TopForm : Form
         // Button initialization
 
         refreshButton = new Button
-        {
-            Anchor = AnchorStyles.Left,
-            Size = new Size(35, 35),
-            Margin = new Padding(5),
-        };
+        { Anchor = AnchorStyles.Left, Size = new Size(35, 35), Margin = new Padding(5), };
         refreshButton.Click += RefreshButton_Click;
 
         playGameButton = new Button
-        {
-            Anchor = AnchorStyles.Left,
-            Size = new Size(35, 35),
-            Margin = new Padding(5),
-            Enabled = false,
-        };
+        { Anchor = AnchorStyles.Left, Size = new Size(35, 35), Margin = new Padding(5), Enabled = false };
         playGameButton.Click += RunButton_Click; 
 
         manualButton = new Button
-        {
-            Anchor = AnchorStyles.Left,
-            Size = new Size(35, 35),
-            Margin = new Padding(5),
-            Enabled = false,
-        };
+        { Anchor = AnchorStyles.Left, Size = new Size(35, 35), Margin = new Padding(5), Enabled = false };
         manualButton.Click += ManualButton_Click;
 
         editGameDataButton = new Button
-        {
-            Anchor = AnchorStyles.Left,
-            Size = new Size(35, 35),
-            Margin = new Padding(5),
-            Enabled = false,
-        };
+        { Anchor = AnchorStyles.Left, Size = new Size(35, 35), Margin = new Padding(5), Enabled = false };
         editGameDataButton.Click += EditGameDataButton_Click;
 
         cancelGameDataButton = new Button
-        {
-            Anchor = AnchorStyles.Left,
-            Size = new Size(35, 35),
-            Margin = new Padding(5),
-        };
+        { Anchor = AnchorStyles.Left, Size = new Size(35, 35), Margin = new Padding(5), Visible = false };
         cancelGameDataButton.Click += CancelGameDataButton_Click;
 
         saveGameDataButton = new Button
-        {
-            Anchor = AnchorStyles.Left,
-            Size = new Size(35, 35),
-            Margin = new Padding(5),
-        };
+        { Anchor = AnchorStyles.Left, Size = new Size(35, 35), Margin = new Padding(5), Visible = false };
         saveGameDataButton.Click += SaveGameDataButton_Click;
 
         // Load embedded resources
@@ -196,7 +168,7 @@ public class TopForm : Form
             Dock = DockStyle.Fill,
             ColumnCount = 1,
             RowCount = 3,
-            Margin = new Padding(0, 5, 5, 5)
+            Margin = new Padding(0)
         };
         rightColumnPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
 
