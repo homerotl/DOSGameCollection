@@ -9,8 +9,8 @@ DOSGameCollection is being vibe-developed with Google Gemini Code assist as a C#
 This program expects games to be arranged in a specific folder structure like so:
 
 ```
-/Library
-    --/[Game Name]
+/[Library Directory]
+    --/[Game Directory]
         --/game.cfg
         --/dosbox-staging.conf (DOSBox Staging configuration file)
         --/mapper.cfg (DOSBOX Mapper configuration file)
