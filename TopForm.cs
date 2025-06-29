@@ -34,6 +34,7 @@ public class TopForm : Form
     private PictureBox? soundtrackCoverPictureBox;
     private TextBox? runCommandsTextBox; 
     private TextEditorTabPanel? synopsisTabPanel;
+    private TextBox? setupCommandsTextBox;
     private TextEditorTabPanel? notesTabPanel;
     private TextEditorTabPanel? cheatsTabPanel;
     private TextEditorTabPanel? walkthroughTabPanel;
@@ -402,11 +403,45 @@ public class TopForm : Form
             ReadOnly = true,
             ScrollBars = ScrollBars.Vertical,
             Font = new Font("Consolas", 9.75F, FontStyle.Regular),
-            Height = 75 // Set a fixed height for roughly 4 lines
+            Height = 90 // Set a fixed height for roughly 4 lines
         };
 
         runCommandsPanel.Controls.Add(runCommandsLabel, 0, 0);
         runCommandsPanel.Controls.Add(runCommandsTextBox, 0, 1);
+
+        // --- Setup Commands Layout Table ---
+        TableLayoutPanel setupCommandsPanel = new()
+        {
+            Dock = DockStyle.Top,
+            AutoSize = true,
+            ColumnCount = 1,
+            RowCount = 2,
+            Margin = new Padding(3, 3, 0, 0) // Left and Top margin
+        };
+        setupCommandsPanel.RowStyles.Add(new RowStyle(SizeType.AutoSize)); // For Label
+        setupCommandsPanel.RowStyles.Add(new RowStyle(SizeType.AutoSize)); // For TextBox
+
+        Label setupCommandsLabel = new()
+        {
+            Text = "Setup Commands",
+            Anchor = AnchorStyles.Left,
+            TextAlign = ContentAlignment.MiddleLeft,
+            AutoSize = true,
+            Margin = new Padding(0, 0, 0, 3) // Bottom margin
+        };
+
+        setupCommandsTextBox = new TextBox
+        {
+            Dock = DockStyle.Fill,
+            Multiline = true,
+            ReadOnly = true,
+            ScrollBars = ScrollBars.Vertical,
+            Font = new Font("Consolas", 9.75F, FontStyle.Regular),
+            Height = 90 // Set a fixed height for roughly 4 lines
+        };
+
+        setupCommandsPanel.Controls.Add(setupCommandsLabel, 0, 0);
+        setupCommandsPanel.Controls.Add(setupCommandsTextBox, 0, 1);
 
         TableLayoutPanel gameConfigPanel = new() // Information saved on game.cfg
         {
@@ -419,8 +454,21 @@ public class TopForm : Form
         gameConfigPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
         gameConfigPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
 
+        // --- Container for both command panels ---
+        TableLayoutPanel allCommandsPanel = new()
+        {
+            Dock = DockStyle.Fill,
+            ColumnCount = 1,
+            RowCount = 2
+        };
+        allCommandsPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 50F));
+        allCommandsPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 50F));
+
+        allCommandsPanel.Controls.Add(runCommandsPanel, 0, 0);
+        allCommandsPanel.Controls.Add(setupCommandsPanel, 0, 1);
+
         gameConfigPanel.Controls.Add(gamePropsTablePanel, 0, 0);
-        gameConfigPanel.Controls.Add(runCommandsPanel, 1, 0);
+        gameConfigPanel.Controls.Add(allCommandsPanel, 1, 0);
 
         rightColumnPanel.Controls.Add(actionButtonsPanel, 0, 0);
         rightColumnPanel.Controls.Add(gameConfigPanel, 0, 1); // Add the new composite panel
@@ -654,6 +702,11 @@ public class TopForm : Form
             runCommandsTextBox.Clear();
             runCommandsTextBox.ReadOnly = true;
         }
+        if (setupCommandsTextBox != null)
+        {
+            setupCommandsTextBox.Clear();
+            setupCommandsTextBox.ReadOnly = true;
+        }
         if (soundtrackDataGridView != null)
         {
             soundtrackDataGridView.Rows.Clear();
@@ -758,6 +811,11 @@ public class TopForm : Form
         {
             runCommandsTextBox.Clear();
             runCommandsTextBox.ReadOnly = true;
+        }
+        if (setupCommandsTextBox != null)
+        {
+            setupCommandsTextBox.Clear();
+            setupCommandsTextBox.ReadOnly = true;
         }
         synopsisTabPanel?.Clear();
         notesTabPanel?.Clear();
@@ -868,6 +926,10 @@ public class TopForm : Form
                 if (runCommandsTextBox != null)
                 {
                     runCommandsTextBox.Text = string.Join(Environment.NewLine, selectedGame.DosboxCommands);
+                }
+                if (setupCommandsTextBox != null)
+                {
+                    setupCommandsTextBox.Text = string.Join(Environment.NewLine, selectedGame.SetupCommands);
                 }
             }
             else // No game selected
@@ -1158,12 +1220,13 @@ public class TopForm : Form
         
         if (gameNameTextBox == null || releaseYearTextBox == null || parentalRatingComboBox == null ||
             developerTextBox == null || publisherTextBox == null || runCommandsTextBox == null || cancelGameDataButton == null ||
-            editGameDataButton == null || saveGameDataButton == null) return;
+            editGameDataButton == null || saveGameDataButton == null || setupCommandsTextBox == null) return;
 
 
         gameNameTextBox.ReadOnly = false;
         runCommandsTextBox.ReadOnly = false;
         releaseYearTextBox.ReadOnly = false;
+        setupCommandsTextBox.ReadOnly = false;
         parentalRatingComboBox.Enabled = true;
         developerTextBox.ReadOnly = false;
         publisherTextBox.ReadOnly = false;
@@ -1193,6 +1256,7 @@ public class TopForm : Form
             developerTextBox == null ||
             publisherTextBox == null ||
             runCommandsTextBox == null ||
+            setupCommandsTextBox == null ||
             editGameDataButton == null || cancelGameDataButton == null ||
             saveGameDataButton == null)
         {
@@ -1201,6 +1265,7 @@ public class TopForm : Form
 
         string newName = gameNameTextBox.Text.Trim();
         var newCommands = runCommandsTextBox.Lines.ToList();
+        var newSetupCommands = setupCommandsTextBox.Lines.ToList();
         string yearText = releaseYearTextBox.Text.Trim();
         string? newRating = parentalRatingComboBox.SelectedItem?.ToString();
         string newDeveloper = developerTextBox.Text.Trim();
@@ -1247,6 +1312,7 @@ public class TopForm : Form
 
         string originalName = selectedGame.GameName;
         var originalCommands = selectedGame.DosboxCommands;
+        var originalSetupCommands = selectedGame.SetupCommands;
         var originalRating = selectedGame.ParentalRating;
         var originalDeveloper = selectedGame.Developer;
         var originalPublisher = selectedGame.Publisher;
@@ -1255,6 +1321,7 @@ public class TopForm : Form
         gameNameTextBox.ReadOnly = true;
         runCommandsTextBox.ReadOnly = true;
         releaseYearTextBox.ReadOnly = true;
+        setupCommandsTextBox.ReadOnly = true;
         parentalRatingComboBox.Enabled = false;
         developerTextBox.ReadOnly = true;
         publisherTextBox.ReadOnly = true;
@@ -1265,16 +1332,18 @@ public class TopForm : Form
         // Check if anything actually changed
         bool nameChanged = !string.IsNullOrWhiteSpace(newName) && !newName.Equals(originalName, StringComparison.Ordinal);
         bool commandsChanged = !newCommands.SequenceEqual(originalCommands);
+        bool setupCommandsChanged = !newSetupCommands.SequenceEqual(originalSetupCommands);
         bool yearChanged = selectedGame.ReleaseYear != newYear;
         bool ratingChanged = originalRating != newRating;
         bool developerChanged = originalDeveloper != newDeveloper;
         bool publisherChanged = originalPublisher != newPublisher;
 
-        if (!nameChanged && !commandsChanged && !yearChanged && !ratingChanged && !developerChanged && !publisherChanged)
+        if (!nameChanged && !commandsChanged && !yearChanged && !ratingChanged && !developerChanged && !publisherChanged && !setupCommandsChanged)
         {
             // No changes, just revert UI and return
             gameNameTextBox.Text = originalName;
             runCommandsTextBox.Text = string.Join(Environment.NewLine, originalCommands);
+            setupCommandsTextBox.Text = string.Join(Environment.NewLine, originalSetupCommands);
             releaseYearTextBox.Text = selectedGame.ReleaseYear?.ToString() ?? string.Empty;
             parentalRatingComboBox.SelectedItem = originalRating ?? "";
             developerTextBox.Text = originalDeveloper ?? "";
@@ -1284,7 +1353,7 @@ public class TopForm : Form
 
         try
         {
-            await GameDataWriterService.UpdateGameDataAsync(selectedGame.ConfigFilePath, newName, newYear, newRating, newDeveloper, newPublisher, newCommands);
+            await GameDataWriterService.UpdateGameDataAsync(selectedGame.ConfigFilePath, newName, newYear, newRating, newDeveloper, newPublisher, newCommands, newSetupCommands);
 
             // Update in-memory model only if save was successful
             if (nameChanged)
@@ -1299,6 +1368,10 @@ public class TopForm : Form
             if (commandsChanged)
             {
                 selectedGame.DosboxCommands = newCommands.Where(c => !string.IsNullOrWhiteSpace(c)).ToList();
+            }
+            if (setupCommandsChanged)
+            {
+                selectedGame.SetupCommands = newSetupCommands.Where(c => !string.IsNullOrWhiteSpace(c)).ToList();
             }
             if (yearChanged)
             {
@@ -1324,6 +1397,7 @@ public class TopForm : Form
             gameNameTextBox.Text = originalName; // Revert on error
             releaseYearTextBox.Text = selectedGame.ReleaseYear?.ToString() ?? string.Empty;
             runCommandsTextBox.Text = string.Join(Environment.NewLine, originalCommands);
+            setupCommandsTextBox.Text = string.Join(Environment.NewLine, originalSetupCommands);
             parentalRatingComboBox.SelectedItem = originalRating ?? "";
             developerTextBox.Text = originalDeveloper ?? "";
             publisherTextBox.Text = originalPublisher ?? "";
@@ -1367,7 +1441,7 @@ public class TopForm : Form
         if (gameListBox?.SelectedItem is not GameConfiguration selectedGame ||
             gameNameTextBox == null || releaseYearTextBox == null || parentalRatingComboBox == null ||
             cancelGameDataButton == null ||
-            developerTextBox == null || publisherTextBox == null || runCommandsTextBox == null ||
+            developerTextBox == null || publisherTextBox == null || runCommandsTextBox == null || setupCommandsTextBox == null ||
             editGameDataButton == null || saveGameDataButton == null)
         {
             return;
@@ -1377,6 +1451,7 @@ public class TopForm : Form
         gameNameTextBox.ReadOnly = true;
         runCommandsTextBox.ReadOnly = true;
         releaseYearTextBox.ReadOnly = true;
+        setupCommandsTextBox.ReadOnly = true;
         parentalRatingComboBox.Enabled = false;
         developerTextBox.ReadOnly = true;
         publisherTextBox.ReadOnly = true;
@@ -1391,5 +1466,6 @@ public class TopForm : Form
         developerTextBox.Text = selectedGame.Developer ?? string.Empty;
         publisherTextBox.Text = selectedGame.Publisher ?? string.Empty;
         runCommandsTextBox.Text = string.Join(Environment.NewLine, selectedGame.DosboxCommands);
+        setupCommandsTextBox.Text = string.Join(Environment.NewLine, selectedGame.SetupCommands);
     }
 }
