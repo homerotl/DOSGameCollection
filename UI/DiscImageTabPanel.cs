@@ -1,9 +1,4 @@
 using DOSGameCollection.Models;
-using System;
-using System.Collections.Generic;
-using System.Drawing;
-using System.IO;
-using System.Windows.Forms;
 
 namespace DOSGameCollection.UI;
 
@@ -11,6 +6,7 @@ public class DiscImageTabPanel : TableLayoutPanel
 {
     private readonly DataGridView _dataGridView;
     private readonly PictureBox _pictureBox;
+    private readonly Label _imageNotAvailableLabel;
 
     public DiscImageTabPanel()
     {
@@ -50,18 +46,36 @@ public class DiscImageTabPanel : TableLayoutPanel
         });
         _dataGridView.SelectionChanged += DataGridView_SelectionChanged;
 
+        // --- Panel for PictureBox and Label ---
+        Panel imageDisplayPanel = new()
+        {
+            Dock = DockStyle.Fill,
+            Margin = new Padding(3)
+        };
+
         // Initialize PictureBox
         _pictureBox = new PictureBox
         {
             Dock = DockStyle.Fill,
-            Margin = new Padding(3),
             SizeMode = PictureBoxSizeMode.Zoom,
             BorderStyle = BorderStyle.FixedSingle,
             BackColor = Color.Black
         };
 
+        _imageNotAvailableLabel = new Label
+        {
+            Text = "Image not available",
+            Dock = DockStyle.Fill,
+            TextAlign = ContentAlignment.MiddleCenter,
+            Visible = false,
+            ForeColor = SystemColors.GrayText,
+            BackColor = Color.Black
+        };
+
         Controls.Add(_dataGridView, 0, 0);
-        Controls.Add(_pictureBox, 1, 0);
+        Controls.Add(imageDisplayPanel, 1, 0);
+        imageDisplayPanel.Controls.Add(_imageNotAvailableLabel);
+        imageDisplayPanel.Controls.Add(_pictureBox);
     }
 
     public void Populate(IEnumerable<DiscImageInfo> discImages)
@@ -89,17 +103,41 @@ public class DiscImageTabPanel : TableLayoutPanel
         _dataGridView.Rows.Clear();
         _pictureBox.Image?.Dispose();
         _pictureBox.Image = null;
+        _pictureBox.Visible = false;
+        _imageNotAvailableLabel.Visible = false;
     }
 
     private void UpdateImageForSelection()
     {
+        // Reset state
         _pictureBox.Image?.Dispose();
         _pictureBox.Image = null;
+        _pictureBox.Visible = false;
+        _imageNotAvailableLabel.Visible = false;
 
-        if (_dataGridView.SelectedRows.Count > 0 && _dataGridView.SelectedRows[0].Tag is DiscImageInfo selectedDisc && !string.IsNullOrEmpty(selectedDisc.PngFilePath) && File.Exists(selectedDisc.PngFilePath))
+        if (_dataGridView.SelectedRows.Count > 0 && _dataGridView.SelectedRows[0].Tag is DiscImageInfo selectedDisc)
         {
-            try { _pictureBox.Image = Image.FromFile(selectedDisc.PngFilePath); }
-            catch (Exception ex) { AppLogger.Log($"Error loading disc image picture '{selectedDisc.PngFilePath}': {ex.Message}"); }
+            if (!string.IsNullOrEmpty(selectedDisc.PngFilePath) && File.Exists(selectedDisc.PngFilePath))
+            {
+                try
+                {
+                    _pictureBox.Image = Image.FromFile(selectedDisc.PngFilePath);
+                }
+                catch (Exception ex)
+                {
+                    AppLogger.Log($"Error loading disc image picture '{selectedDisc.PngFilePath}': {ex.Message}");
+                    _pictureBox.Image = null; // Ensure image is null on error
+                }
+            }
+
+            if (_pictureBox.Image != null)
+            {
+                _pictureBox.Visible = true;
+            }
+            else
+            {
+                _imageNotAvailableLabel.Visible = true;
+            }
         }
     }
 

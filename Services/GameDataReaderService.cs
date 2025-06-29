@@ -38,7 +38,7 @@ public static class GameDataReaderService
         foreach (var file in files)
         {
             var fileName = Path.GetFileName(file);
-            var displayName = fileInfoMap.GetValueOrDefault(fileName, Path.GetFileNameWithoutExtension(fileName));
+            var displayName = fileInfoMap.GetValueOrDefault(fileName, fileName);
             mediaFiles.Add(new MediaFileInfo(file, displayName));
         }
 
@@ -69,10 +69,31 @@ public static class GameDataReaderService
         {
             var fileInfo = new FileInfo(file);
             var fileName = fileInfo.Name;
-            var displayName = fileInfoMap.GetValueOrDefault(fileName, Path.GetFileNameWithoutExtension(fileName));
+            // If a display name is not in file-info.txt, default to the full filename.
+            if (!fileInfoMap.TryGetValue(fileName, out string? displayName))
+            {
+                displayName = fileName;
+            }
             var pngPath = Path.ChangeExtension(file, ".png");
+            long fileSize = fileInfo.Length;
 
-            discImages.Add(new DiscImageInfo { ImgFileName = file, DisplayName = displayName, PngFilePath = File.Exists(pngPath) ? pngPath : null, FileSizeInBytes = fileInfo.Length });
+            // If the disc image is a CUE sheet, the actual data is in the corresponding BIN file. We should
+            // report the size of the BIN file and, if using the default name, show the BIN filename.
+            if (Path.GetExtension(file).Equals(".cue", StringComparison.OrdinalIgnoreCase))
+            {
+                string binPath = Path.ChangeExtension(file, ".bin");
+                if (File.Exists(binPath))
+                {
+                    fileSize = new FileInfo(binPath).Length;
+                    // If we are using the default display name (the .cue filename), change it to the .bin filename.
+                    if (displayName == fileName)
+                    {
+                        displayName = Path.GetFileName(binPath);
+                    }
+                }
+            }
+
+            discImages.Add(new DiscImageInfo { ImgFileName = file, DisplayName = displayName, PngFilePath = File.Exists(pngPath) ? pngPath : null, FileSizeInBytes = fileSize });
         }
 
         return discImages;
@@ -239,9 +260,7 @@ public static class GameDataReaderService
 
         // Scan for soundtrack files
         string ostDirectory = Path.Combine(gameDirectoryPath, "media", "ost");
-        config.SoundtrackFiles = (await GetMediaFilesAsync(ostDirectory, [".mp3", ".ogg", ".flac"]))
-                                 .Concat(await GetMediaFilesAsync(Path.Combine(ostDirectory, "midi"), [".mid"]))
-                                 .ToList();
+        config.SoundtrackFiles = await GetMediaFilesAsync(ostDirectory, [".mp3", ".ogg", ".flac", ".mid"]);
         string soundtrackCoverPath = Path.Combine(ostDirectory, "cover.png");
         if (File.Exists(soundtrackCoverPath))
         {

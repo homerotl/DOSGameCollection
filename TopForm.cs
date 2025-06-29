@@ -18,7 +18,6 @@ public class TopForm : Form
     private Button? saveGameDataButton;
     private Button? cancelGameDataButton;
     private TableLayoutPanel? rightColumnPanel;
-    private Label? gameNameLabel;
     private TextBox? gameNameTextBox;
     private TextBox? releaseYearTextBox;
     private ComboBox? parentalRatingComboBox;
@@ -28,22 +27,21 @@ public class TopForm : Form
     private TabControl? extraInformationTabControl;
     private MediaTabPanel? mediaTabPanel;
     private MediaTabPanel? insertsTabPanel;
+    private MediaTabPanel? soundtrackTabPanel;
     private DiscImageTabPanel? isoImagesTabPanel;
     private DiscImageTabPanel? floppyDisksTabPanel;
-    private DataGridView? soundtrackDataGridView;
-    private PictureBox? soundtrackCoverPictureBox;
     private TextBox? runCommandsTextBox; 
-    private TextEditorTabPanel? synopsisTabPanel;
     private TextBox? setupCommandsTextBox;
+    private TextEditorTabPanel? synopsisTabPanel;
     private TextEditorTabPanel? notesTabPanel;
     private TextEditorTabPanel? cheatsTabPanel;
     private TextEditorTabPanel? walkthroughTabPanel;
-    private List<GameConfiguration> _loadedGameConfigs = [];
-    private readonly AppConfigService _appConfigService;
+    private List<GameConfiguration> loadedGameConfigs = [];
+    private readonly AppConfigService appConfigService;
     public TopForm()
     {
         InitializeComponent();
-        _appConfigService = new AppConfigService();
+        appConfigService = new AppConfigService();
         Load += TopForm_Load;
         KeyPreview = true; // Allows the form to preview key events before the focused control.
         KeyDown += TopForm_KeyDown;
@@ -101,7 +99,7 @@ public class TopForm : Form
         Controls.Add(menuStrip);
         MainMenuStrip = menuStrip;
 
-        TableLayoutPanel mainLayoutPanel = new TableLayoutPanel
+        TableLayoutPanel mainLayoutPanel = new()
         {
             Dock = DockStyle.Fill,
             ColumnCount = 2
@@ -133,7 +131,6 @@ public class TopForm : Form
         gameConfigButton = new Button
         { Anchor = AnchorStyles.Left, Size = new Size(35, 35), Margin = new Padding(5), Enabled = false };
         gameConfigButton.Click += GameConfigButton_Click;
-
 
         editGameDataButton = new Button
         { Anchor = AnchorStyles.Left, Size = new Size(35, 35), Margin = new Padding(5), Enabled = false };
@@ -265,7 +262,7 @@ public class TopForm : Form
         gamePropsTablePanel.RowStyles.Add(new RowStyle(SizeType.AutoSize));      // Row for Publisher
         gamePropsTablePanel.RowStyles.Add(new RowStyle(SizeType.Percent, 100F)); // Spacer row
 
-        gameNameLabel = new Label
+        Label gameNameLabel = new Label
         {
             Text = "Game Name",
             Anchor = AnchorStyles.Left,
@@ -402,8 +399,8 @@ public class TopForm : Form
             Multiline = true,
             ReadOnly = true,
             ScrollBars = ScrollBars.Vertical,
-            Font = new Font("Consolas", 9.75F, FontStyle.Regular),
-            Height = 90 // Set a fixed height for roughly 4 lines
+            Font = new Font("Consolas", 8F, FontStyle.Regular),
+            Height = 60 // Set a fixed height for roughly 4 lines
         };
 
         runCommandsPanel.Controls.Add(runCommandsLabel, 0, 0);
@@ -436,8 +433,8 @@ public class TopForm : Form
             Multiline = true,
             ReadOnly = true,
             ScrollBars = ScrollBars.Vertical,
-            Font = new Font("Consolas", 9.75F, FontStyle.Regular),
-            Height = 90 // Set a fixed height for roughly 4 lines
+            Font = new Font("Consolas", 8F, FontStyle.Regular),
+            Height = 60 // Set a fixed height for roughly 4 lines
         };
 
         setupCommandsPanel.Controls.Add(setupCommandsLabel, 0, 0);
@@ -457,7 +454,8 @@ public class TopForm : Form
         // --- Container for both command panels ---
         TableLayoutPanel allCommandsPanel = new()
         {
-            Dock = DockStyle.Fill,
+            Dock = DockStyle.Top,
+            AutoSize = true,
             ColumnCount = 1,
             RowCount = 2
         };
@@ -495,60 +493,8 @@ public class TopForm : Form
 
         TabPage soundtrackTab = new("Soundtrack");
 
-        // --- Layout Panel for Soundtrack Tab ---
-        TableLayoutPanel soundtrackPanel = new()
-        {
-            Dock = DockStyle.Fill,
-            ColumnCount = 2,
-            RowCount = 1
-        };
-        soundtrackPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
-        soundtrackPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
-        soundtrackPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
-
-        // --- DataGridView for Soundtrack List ---
-        soundtrackDataGridView = new DataGridView
-        {
-            Dock = DockStyle.Fill,
-            Margin = new Padding(3),
-            AllowUserToAddRows = false,
-            AllowUserToDeleteRows = false,
-            AllowUserToResizeRows = false,
-            AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill,
-            BackgroundColor = SystemColors.Window,
-            BorderStyle = BorderStyle.None,
-            CellBorderStyle = DataGridViewCellBorderStyle.SingleHorizontal,
-            ColumnHeadersVisible = false,
-            RowHeadersVisible = false,
-            SelectionMode = DataGridViewSelectionMode.FullRowSelect,
-            ReadOnly = true,
-            MultiSelect = false
-        };
-
-        var musicTypeColumn = new DataGridViewTextBoxColumn { HeaderText = "Type", Name = "Type", AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells };
-        if (symbolFont != null) { musicTypeColumn.DefaultCellStyle.Font = FormatTools.GetSymbolFont(10F); }
-        soundtrackDataGridView.Columns.Add(musicTypeColumn);
-        soundtrackDataGridView.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Name", Name = "Name", FillWeight = 100 });
-        var soundtrackLinkColumn = new DataGridViewTextBoxColumn { HeaderText = "Link", Name = "Link", AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells };
-        if (symbolFont != null) { soundtrackLinkColumn.DefaultCellStyle.Font = FormatTools.GetSymbolFont(10F); }
-        soundtrackDataGridView.Columns.Add(soundtrackLinkColumn);
-        soundtrackDataGridView.CellClick += SoundtrackDataGridView_CellClick;
-        soundtrackDataGridView.CellMouseEnter += SoundtrackDataGridView_CellMouseEnter;
-        soundtrackDataGridView.CellMouseLeave += SoundtrackDataGridView_CellMouseLeave;
-
-        // --- PictureBox for Soundtrack Cover ---
-        soundtrackCoverPictureBox = new PictureBox
-        {
-            Dock = DockStyle.Fill,
-            Margin = new Padding(3),
-            SizeMode = PictureBoxSizeMode.Zoom,
-            BorderStyle = BorderStyle.FixedSingle,
-            BackColor = Color.Black
-        };
-
-        soundtrackPanel.Controls.Add(soundtrackDataGridView, 0, 0);
-        soundtrackPanel.Controls.Add(soundtrackCoverPictureBox, 1, 0);
-        soundtrackTab.Controls.Add(soundtrackPanel);
+        soundtrackTabPanel = new MediaTabPanel { Dock = DockStyle.Fill };
+        soundtrackTab.Controls.Add(soundtrackTabPanel);
 
         TabPage floppyDisksTab = new("Floppy disks");
         floppyDisksTabPanel = new DiscImageTabPanel { Dock = DockStyle.Fill };
@@ -626,9 +572,9 @@ public class TopForm : Form
 
     private async void TopForm_Load(object? sender, EventArgs e)
     {
-        await _appConfigService.LoadOrCreateConfigurationAsync(this);
+        await appConfigService.LoadOrCreateConfigurationAsync(this);
 
-        if (string.IsNullOrEmpty(_appConfigService.LibraryPath) || !Directory.Exists(_appConfigService.LibraryPath))
+        if (string.IsNullOrEmpty(appConfigService.LibraryPath) || !Directory.Exists(appConfigService.LibraryPath))
         {
             MessageBox.Show(this, "Game library path is not configured or is invalid. Please set it via 'Settings > Set game library location...'. Game loading will be skipped.", "Library Path Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             if (refreshButton != null) refreshButton.Enabled = false; // Disable refresh if library path is bad
@@ -674,6 +620,7 @@ public class TopForm : Form
         walkthroughTabPanel?.Clear();
         isoImagesTabPanel?.Clear();
         floppyDisksTabPanel?.Clear();
+        soundtrackTabPanel?.Clear();
         if (playGameButton != null)
         {
             playGameButton.Enabled = false;
@@ -707,22 +654,13 @@ public class TopForm : Form
             setupCommandsTextBox.Clear();
             setupCommandsTextBox.ReadOnly = true;
         }
-        if (soundtrackDataGridView != null)
-        {
-            soundtrackDataGridView.Rows.Clear();
-        }
-        if (soundtrackCoverPictureBox != null && soundtrackCoverPictureBox.Image != null)
-        {
-            soundtrackCoverPictureBox.Image.Dispose();
-            soundtrackCoverPictureBox.Image = null;
-        }
         if (extraInformationTabControl != null)
         {
             extraInformationTabControl.Enabled = false;
         }
-        _loadedGameConfigs.Clear();
+        loadedGameConfigs.Clear();
 
-        if (string.IsNullOrEmpty(_appConfigService.LibraryPath) || !Directory.Exists(_appConfigService.LibraryPath))
+        if (string.IsNullOrEmpty(appConfigService.LibraryPath) || !Directory.Exists(appConfigService.LibraryPath))
         {
             MessageBox.Show(this, "Game library path is not configured or is invalid. Refresh aborted.", "Library Path Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             return;
@@ -745,7 +683,7 @@ public class TopForm : Form
         {
             if (refreshButton != null) refreshButton.Enabled = false;
 
-            Task<List<GameConfiguration>> loadingTask = loadGamesDataService.LoadDataAsync(_appConfigService.LibraryPath, progress);
+            Task<List<GameConfiguration>> loadingTask = loadGamesDataService.LoadDataAsync(appConfigService.LibraryPath, progress);
             progressDialog.ShowDialog(this); // Show modally, blocks here until dialog is closed
             gameConfigs = await loadingTask;
         }
@@ -762,8 +700,8 @@ public class TopForm : Form
             if (refreshButton != null) refreshButton.Enabled = true;
         }
 
-        _loadedGameConfigs = gameConfigs;
-        PopulateListBox(_loadedGameConfigs);
+        loadedGameConfigs = gameConfigs;
+        PopulateListBox(loadedGameConfigs);
     }
 
     private void PopulateListBox(List<GameConfiguration> gameConfigs)
@@ -786,10 +724,8 @@ public class TopForm : Form
 
     private async void GameListBox_SelectedIndexChanged(object? sender, EventArgs e)
     {
-        if (playGameButton != null)
-        {
-            playGameButton.Enabled = (gameListBox?.SelectedItem != null);
-        }
+        if (playGameButton != null) playGameButton.Enabled = false;
+        if (gameConfigButton != null) gameConfigButton.Enabled = false;
         if (manualButton != null)
         {
             manualButton.Enabled = false;
@@ -821,15 +757,7 @@ public class TopForm : Form
         notesTabPanel?.Clear();
         cheatsTabPanel?.Clear();
         walkthroughTabPanel?.Clear();
-        if (soundtrackDataGridView != null)
-        {
-            soundtrackDataGridView.Rows.Clear();
-        }
-        if (soundtrackCoverPictureBox != null)
-        {
-            soundtrackCoverPictureBox.Image?.Dispose();
-            soundtrackCoverPictureBox.Image = null;
-        }
+        soundtrackTabPanel?.Clear();
         if (extraInformationTabControl != null)
         {
             extraInformationTabControl.Enabled = false; // Disable tabs if no game is selected or selection is cleared
@@ -882,7 +810,9 @@ public class TopForm : Form
                 ));
                 insertsTabPanel?.Populate(insertItems);
 
-                PopulateSoundtrackTab(selectedGame);
+                // Populate Soundtrack Tab
+                var soundtrackItems = selectedGame.SoundtrackFiles.Select(f => new MediaTabPanel.MediaItem(f.FilePath, f.DisplayName, MediaTabPanel.MediaType.Audio));
+                soundtrackTabPanel?.Populate(soundtrackItems, selectedGame.SoundtrackCoverPath);
 
                 isoImagesTabPanel?.Populate(selectedGame.IsoImages);
                 floppyDisksTabPanel?.Populate(selectedGame.DiscImages);
@@ -917,6 +847,10 @@ public class TopForm : Form
                 {
                     string configPath = Path.Combine(selectedGame.GameDirectoryPath, "dosbox-staging.conf");
                     dosboxConfigButton.Enabled = File.Exists(configPath);
+                }
+                if (playGameButton != null)
+                {
+                    playGameButton.Enabled = selectedGame.DosboxCommands.Any();
                 }
                 if (gameConfigButton != null)
                 {
@@ -959,6 +893,7 @@ public class TopForm : Form
                 walkthroughTabPanel?.Clear();
                 isoImagesTabPanel?.Clear();
                 floppyDisksTabPanel?.Clear();
+                soundtrackTabPanel?.Clear();
                 if (extraInformationTabControl != null)
                 {
                     extraInformationTabControl.Enabled = false; // Ensure tabs are disabled if selection is cleared
@@ -971,7 +906,7 @@ public class TopForm : Form
     {
         if (gameListBox?.SelectedItem is GameConfiguration selectedGame)
         {
-            GameLauncherService.LaunchGame(selectedGame, _appConfigService.DosboxExePath, selectedGame.DosboxCommands, this);
+            GameLauncherService.LaunchGame(selectedGame, appConfigService.DosboxExePath, selectedGame.DosboxCommands, this);
         }
     }
 
@@ -1038,7 +973,7 @@ public class TopForm : Form
         if (gameListBox?.SelectedItem is GameConfiguration selectedGame && selectedGame.SetupCommands.Any())
         {
             // Assuming GameLauncherService.LaunchGame is updated to take a list of commands
-            GameLauncherService.LaunchGame(selectedGame, _appConfigService.DosboxExePath, selectedGame.SetupCommands, this);
+            GameLauncherService.LaunchGame(selectedGame, appConfigService.DosboxExePath, selectedGame.SetupCommands, this);
         }
     }
 
@@ -1049,20 +984,20 @@ public class TopForm : Form
 
     private async void SetDosboxLocationMenuItem_Click(object? sender, EventArgs e)
     {
-        bool pathUpdated = await _appConfigService.ManuallySetDosboxPathAsync(this);
+        bool pathUpdated = await appConfigService.ManuallySetDosboxPathAsync(this);
         if (pathUpdated)
         {
-            await _appConfigService.SaveConfigurationAsync(this);
+            await appConfigService.SaveConfigurationAsync(this);
             MessageBox.Show(this, "DOSBox location has been updated.", "DOSBox Location Saved", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
     }
 
     private async void SetGameLibraryLocationMenuItem_Click(object? sender, EventArgs e)
     {
-        bool pathUpdated = await _appConfigService.ManuallySetLibraryPathAsync(this);
+        bool pathUpdated = await appConfigService.ManuallySetLibraryPathAsync(this);
         if (pathUpdated)
         {
-            await _appConfigService.SaveConfigurationAsync(this);
+            await appConfigService.SaveConfigurationAsync(this);
             MessageBox.Show(this, "Game library location has been updated. Refreshing game list...", "Library Location Saved", MessageBoxButtons.OK, MessageBoxIcon.Information);
             await RefreshGameListAsync();
         }
@@ -1073,91 +1008,6 @@ public class TopForm : Form
         Application.Exit();
     }
 
-    private void PopulateSoundtrackTab(GameConfiguration game)
-    {
-        if (soundtrackDataGridView == null || soundtrackCoverPictureBox == null) return;
-
-        // Clear previous state
-        soundtrackDataGridView.Rows.Clear();
-        soundtrackCoverPictureBox.Image?.Dispose();
-        soundtrackCoverPictureBox.Image = null;
-
-        // Load cover art if it exists
-        if (!string.IsNullOrEmpty(game.SoundtrackCoverPath) && File.Exists(game.SoundtrackCoverPath))
-        {
-            try
-            {
-                soundtrackCoverPictureBox.Image = Image.FromFile(game.SoundtrackCoverPath);
-            }
-            catch (Exception ex)
-            {
-                AppLogger.Log($"Error loading soundtrack cover image '{game.SoundtrackCoverPath}': {ex.Message}");
-            }
-        }
-
-        // Populate the grid with soundtrack files
-        foreach (var track in game.SoundtrackFiles)
-        {
-            // 🎵 for music
-            string typeDisplay = FormatTools.SegoeUiSymbolExists ? "\U0001F3B5" : "Music";
-            string linkSymbol = FormatTools.SegoeUiSymbolExists ? "\U0001F517" : "Open";
-
-            var rowIndex = soundtrackDataGridView.Rows.Add(typeDisplay, track.DisplayName, linkSymbol);
-            var row = soundtrackDataGridView.Rows[rowIndex];
-            row.Tag = track; // Store the MediaFileInfo object
-            row.Cells[2].ToolTipText = "Open";
-        }
-    }
-
-    private void SoundtrackDataGridView_CellClick(object? sender, DataGridViewCellEventArgs e)
-    {
-        // We only care about clicks on the "Link" column (index 2). Ignore headers too.
-        if (e.RowIndex < 0 || e.ColumnIndex != 2) return;
-
-        if (soundtrackDataGridView?.Rows[e.RowIndex].Tag is MediaFileInfo trackInfo)
-        {
-            if (!string.IsNullOrEmpty(trackInfo.FilePath) && File.Exists(trackInfo.FilePath))
-            {
-                try
-                {
-                    ProcessStartInfo psi = new()
-                    {
-                        FileName = trackInfo.FilePath,
-                        UseShellExecute = true // Use the default OS application
-                    };
-                    Process.Start(psi);
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show(this, $"Could not open media file '{trackInfo.FilePath}'.\nError: {ex.Message}", "Error Opening File", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                }
-            }
-        }
-    }
-
-    private void SoundtrackDataGridView_CellMouseEnter(object? sender, DataGridViewCellEventArgs e)
-    {
-        if (soundtrackDataGridView == null) return;
-
-        // Change cursor to hand only when over the "Link" column (index 2) in a valid row.
-        if (e.RowIndex >= 0 && e.ColumnIndex == 2)
-        {
-            soundtrackDataGridView.Cursor = Cursors.Hand;
-        }
-        else
-        {
-            soundtrackDataGridView.Cursor = Cursors.Default;
-        }
-    }
-
-    private void SoundtrackDataGridView_CellMouseLeave(object? sender, DataGridViewCellEventArgs e)
-    {
-        if (soundtrackDataGridView != null)
-        {
-            soundtrackDataGridView.Cursor = Cursors.Default;
-        }
-    }
-    
     private void GameNameTextBox_KeyPress(object? sender, KeyPressEventArgs e)
     {
         // Allow control characters like backspace
@@ -1221,7 +1071,6 @@ public class TopForm : Form
         if (gameNameTextBox == null || releaseYearTextBox == null || parentalRatingComboBox == null ||
             developerTextBox == null || publisherTextBox == null || runCommandsTextBox == null || cancelGameDataButton == null ||
             editGameDataButton == null || saveGameDataButton == null || setupCommandsTextBox == null) return;
-
 
         gameNameTextBox.ReadOnly = false;
         runCommandsTextBox.ReadOnly = false;
@@ -1389,6 +1238,15 @@ public class TopForm : Form
             {
                 selectedGame.Publisher = newPublisher;
             }
+            // After all updates, re-evaluate button states
+            if (playGameButton != null)
+            {
+                playGameButton.Enabled = selectedGame.DosboxCommands.Any();
+            }
+            if (gameConfigButton != null)
+            {
+                gameConfigButton.Enabled = selectedGame.SetupCommands.Any();
+            }
         }
         catch (Exception ex)
         {
@@ -1467,5 +1325,15 @@ public class TopForm : Form
         publisherTextBox.Text = selectedGame.Publisher ?? string.Empty;
         runCommandsTextBox.Text = string.Join(Environment.NewLine, selectedGame.DosboxCommands);
         setupCommandsTextBox.Text = string.Join(Environment.NewLine, selectedGame.SetupCommands);
+
+        // Re-evaluate button states based on the original (reverted) data
+        if (playGameButton != null)
+        {
+            playGameButton.Enabled = selectedGame.DosboxCommands.Any();
+        }
+        if (gameConfigButton != null)
+        {
+            gameConfigButton.Enabled = selectedGame.SetupCommands.Any();
+        }
     }
 }

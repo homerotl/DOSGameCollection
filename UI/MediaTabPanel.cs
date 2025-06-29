@@ -5,10 +5,12 @@ namespace DOSGameCollection.UI;
 public class MediaTabPanel : UserControl
 {
     public record MediaItem(string FilePath, string DisplayName, MediaType Type);
-    public enum MediaType { Image, Video, Pdf, Other }
+    public enum MediaType { Image, Video, Pdf, Audio, Other }
 
     private DataGridView _mediaDataGridView;
     private PictureBox _mediaDisplayPictureBox;
+    private Label _previewNotAvailableLabel;
+    private string? _permanentCoverPath;
 
     public MediaTabPanel()
     {
@@ -80,6 +82,19 @@ public class MediaTabPanel : UserControl
             BorderStyle = BorderStyle.FixedSingle,
             BackColor = Color.Black
         };
+
+        _previewNotAvailableLabel = new Label
+        {
+            Text = "Preview not available",
+            Dock = DockStyle.Fill,
+            TextAlign = ContentAlignment.MiddleCenter,
+            Visible = false,
+            ForeColor = SystemColors.GrayText,
+            BackColor = Color.Black
+        };
+
+        // Add the label first so it's behind the PictureBox
+        mediaDisplayPanel.Controls.Add(_previewNotAvailableLabel);
         mediaDisplayPanel.Controls.Add(_mediaDisplayPictureBox);
 
         mediaTabPanel.Controls.Add(_mediaDataGridView, 0, 0);
@@ -87,10 +102,26 @@ public class MediaTabPanel : UserControl
         Controls.Add(mediaTabPanel);
     }
 
-    public void Populate(IEnumerable<MediaItem> mediaItems)
+    public void Populate(IEnumerable<MediaItem> mediaItems, string? coverImagePath = null)
     {
         _mediaDataGridView.Rows.Clear();
         ClearDisplay();
+
+_permanentCoverPath = coverImagePath;
+
+        // Display permanent cover if provided
+        if (!string.IsNullOrEmpty(_permanentCoverPath) && File.Exists(_permanentCoverPath))
+        {
+            _mediaDisplayPictureBox.Visible = true;
+            try
+            {
+                _mediaDisplayPictureBox.Image = Image.FromFile(_permanentCoverPath);
+            }
+            catch (Exception ex)
+            {
+                AppLogger.Log($"Error loading cover image '{_permanentCoverPath}': {ex.Message}");
+            }
+        }
 
         foreach (var item in mediaItems)
         {
@@ -98,7 +129,8 @@ public class MediaTabPanel : UserControl
             {
                 MediaType.Image => "\U0001F5BC", // 🖼️
                 MediaType.Video => "\U0001F39E", // 🎞️
-                MediaType.Pdf => "\U0001F4C4",   // 📄
+                 MediaType.Pdf   => "\U0001F4C4", // 📄
+                MediaType.Audio => "\U0001F3B5", // 🎵
                 _ => "❓"
             } : item.Type.ToString();
 
@@ -121,6 +153,7 @@ public class MediaTabPanel : UserControl
     {
         _mediaDataGridView.Rows.Clear();
         ClearDisplay();
+        _permanentCoverPath = null;
     }
 
     private void ClearDisplay()
@@ -128,10 +161,17 @@ public class MediaTabPanel : UserControl
         _mediaDisplayPictureBox.Visible = false;
         _mediaDisplayPictureBox.Image?.Dispose();
         _mediaDisplayPictureBox.Image = null;
+        _previewNotAvailableLabel.Visible = false;
     }
 
     private void MediaDataGridView_SelectionChanged(object? sender, EventArgs e)
     {
+         // If a permanent cover is being displayed, don't change the image based on selection.
+        if (!string.IsNullOrEmpty(_permanentCoverPath))
+        {
+            return;
+        }
+        
         ClearDisplay();
 
         if (_mediaDataGridView.SelectedRows.Count == 0 || _mediaDataGridView.SelectedRows[0].Tag is not MediaItem mediaItem) return;
@@ -147,6 +187,10 @@ public class MediaTabPanel : UserControl
             {
                 AppLogger.Log($"Error loading media image '{mediaItem.FilePath}': {ex.Message}");
             }
+        }
+        else if (mediaItem.Type == MediaType.Pdf || mediaItem.Type == MediaType.Video)
+        {
+            _previewNotAvailableLabel.Visible = true;
         }
     }
 

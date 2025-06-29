@@ -1,5 +1,3 @@
-using System.Drawing;
-using System.Windows.Forms;
 using System.Reflection;
 
 namespace DOSGameCollection.UI;
@@ -13,19 +11,45 @@ public class AboutDialog : Form
 
     private void InitializeComponent()
     {
-        this.Text = "About DOSGameCollection";
-        this.FormBorderStyle = FormBorderStyle.FixedDialog;
-        this.StartPosition = FormStartPosition.CenterParent;
-        this.ClientSize = new Size(320, 160);
-        this.MaximizeBox = false;
-        this.MinimizeBox = false;
-        this.ShowInTaskbar = false;
+        Text = "About DOSGameCollection";
+        FormBorderStyle = FormBorderStyle.FixedDialog;
+        StartPosition = FormStartPosition.CenterParent;
+        ClientSize = new Size(320, 280);
+        MaximizeBox = false;
+        MinimizeBox = false;
+        ShowInTaskbar = false;
+
+        var mainPanel = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            ColumnCount = 1,
+            RowCount = 3
+        };
+        mainPanel.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        mainPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
+        mainPanel.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+
+        var logoPictureBox = new PictureBox
+        {
+            Anchor = AnchorStyles.None,
+            Margin = new Padding(10)
+        };
+
+        Assembly assembly = Assembly.GetExecutingAssembly();
+        using (Stream? imageStream = assembly.GetManifestResourceStream("DOSGameCollection.Resources.DGC-logo-200.png"))
+        {
+            if (imageStream != null)
+            {
+                logoPictureBox.Image = Image.FromStream(imageStream);
+                logoPictureBox.Size = logoPictureBox.Image.Size;
+            }
+        }
 
         string version = GetAppVersion();
 
         var aboutLabel = new Label
         {
-            Text = $"DOSGameCollection\n\nVersion: {version}\n\nAn application to manage and launch your DOS games.",
+            Text = $"DOSGameCollection\n\nVersion: {version}\n\nAn application to manage and launch your DOS games. By Homero Trevino",
             TextAlign = ContentAlignment.MiddleCenter,
             Dock = DockStyle.Fill
         };
@@ -34,14 +58,17 @@ public class AboutDialog : Form
         {
             Text = "OK",
             DialogResult = DialogResult.OK,
-            Size = new Size(75, 25)
+            Size = new Size(75, 25),
+            Anchor = AnchorStyles.None,
+            Margin = new Padding(10)
         };
-        okButton.Location = new Point((this.ClientSize.Width - okButton.Width) / 2, this.ClientSize.Height - okButton.Height - 12);
         okButton.Click += (sender, e) => this.Close();
 
-        this.Controls.Add(aboutLabel);
-        this.Controls.Add(okButton);
-        this.AcceptButton = okButton;
+        mainPanel.Controls.Add(logoPictureBox, 0, 0);
+        mainPanel.Controls.Add(aboutLabel, 0, 1);
+        mainPanel.Controls.Add(okButton, 0, 2);
+
+        Controls.Add(mainPanel);
     }
 
     private string GetAppVersion()

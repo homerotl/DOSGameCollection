@@ -18,6 +18,6 @@
     <EmbeddedResource Include="Resources\icons\ok.png" />
     <EmbeddedResource Include="Resources\icons\dosbox-stg.png" />
     <EmbeddedResource Include="Resources\icons\gears.png" />
-
+    <EmbeddedResource Include="Resources\DGC-logo-200.png" />
   </ItemGroup>
 </Project>
