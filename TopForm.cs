@@ -13,7 +13,7 @@ public class TopForm : Form
     private Button? manualButton;
     private Button? dosboxConfigButton;
     private Button? gameConfigButton;
-    private Button? refreshButton; 
+    private Button? refreshButton;
     private Button? editGameDataButton;
     private Button? saveGameDataButton;
     private Button? cancelGameDataButton;
@@ -23,14 +23,14 @@ public class TopForm : Form
     private ComboBox? parentalRatingComboBox;
     private TextBox? developerTextBox;
     private TextBox? publisherTextBox;
-    private MenuStrip? menuStrip; 
+    private MenuStrip? menuStrip;
     private TabControl? extraInformationTabControl;
     private MediaTabPanel? mediaTabPanel;
     private MediaTabPanel? insertsTabPanel;
     private MediaTabPanel? soundtrackTabPanel;
     private DiscImageTabPanel? isoImagesTabPanel;
     private DiscImageTabPanel? floppyDisksTabPanel;
-    private TextBox? runCommandsTextBox; 
+    private TextBox? runCommandsTextBox;
     private TextBox? setupCommandsTextBox;
     private TextEditorTabPanel? synopsisTabPanel;
     private TextEditorTabPanel? notesTabPanel;
@@ -51,8 +51,8 @@ public class TopForm : Form
     {
         Text = "DOSGameCollection";
         Name = "TopForm";
-        ClientSize = new System.Drawing.Size(1200, 675); 
-        MinimumSize = new System.Drawing.Size(800, 600); 
+        ClientSize = new System.Drawing.Size(1200, 675);
+        MinimumSize = new System.Drawing.Size(800, 600);
 
         // --- MenuStrip Setup ---
         menuStrip = new MenuStrip
@@ -118,7 +118,7 @@ public class TopForm : Form
 
         playGameButton = new Button
         { Anchor = AnchorStyles.Left, Size = new Size(35, 35), Margin = new Padding(5), Enabled = false };
-        playGameButton.Click += RunButton_Click; 
+        playGameButton.Click += RunButton_Click;
 
         manualButton = new Button
         { Anchor = AnchorStyles.Left, Size = new Size(35, 35), Margin = new Padding(5), Enabled = false };
@@ -146,11 +146,11 @@ public class TopForm : Form
 
         // Load embedded resources
         Assembly assembly = Assembly.GetExecutingAssembly();
-    
+
         // Button icons
         using (Stream? imageStream = assembly.GetManifestResourceStream("DOSGameCollection.Resources.icons.refresh.png"))
         { if (imageStream != null) { refreshButton.Image = Image.FromStream(imageStream); } }
-        
+
         using (Stream? imageStream = assembly.GetManifestResourceStream("DOSGameCollection.Resources.icons.play.png"))
         { if (imageStream != null) { playGameButton.Image = Image.FromStream(imageStream); } }
 
@@ -169,7 +169,7 @@ public class TopForm : Form
         using (Stream? imageStream = assembly.GetManifestResourceStream("DOSGameCollection.Resources.icons.cancel.png"))
         { if (imageStream != null) { cancelGameDataButton.Image = Image.FromStream(imageStream); } }
 
-       using (Stream? imageStream = assembly.GetManifestResourceStream("DOSGameCollection.Resources.icons.ok.png"))
+        using (Stream? imageStream = assembly.GetManifestResourceStream("DOSGameCollection.Resources.icons.ok.png"))
         { if (imageStream != null) { saveGameDataButton.Image = Image.FromStream(imageStream); } }
 
         // App icon
@@ -223,7 +223,7 @@ public class TopForm : Form
         rightActionButtons.Controls.Add(cancelGameDataButton);
         rightActionButtons.Controls.Add(saveGameDataButton);
         rightActionButtons.Controls.Add(editGameDataButton);
-        
+
         actionButtonsPanel.Controls.Add(leftActionButtons, 0, 0);
         actionButtonsPanel.Controls.Add(rightActionButtons, 1, 0);
 
@@ -481,23 +481,28 @@ public class TopForm : Form
 
         TabPage mediaTab = new("Media");
         mediaTabPanel = new MediaTabPanel { Dock = DockStyle.Fill };
+        mediaTabPanel.DisplayNameUpdated += MediaDisplayNameUpdated;
         mediaTab.Controls.Add(mediaTabPanel);
 
         TabPage insertsTab = new("Inserts");
         insertsTabPanel = new MediaTabPanel { Dock = DockStyle.Fill };
+        insertsTabPanel.DisplayNameUpdated += MediaDisplayNameUpdated;
         insertsTab.Controls.Add(insertsTabPanel);
 
         TabPage isoImagesTab = new("CD-ROM");
         isoImagesTabPanel = new DiscImageTabPanel { Dock = DockStyle.Fill };
+        isoImagesTabPanel.DisplayNameUpdated += MediaDisplayNameUpdated;
         isoImagesTab.Controls.Add(isoImagesTabPanel);
 
         TabPage soundtrackTab = new("Soundtrack");
 
         soundtrackTabPanel = new MediaTabPanel { Dock = DockStyle.Fill };
+        soundtrackTabPanel.DisplayNameUpdated += MediaDisplayNameUpdated;
         soundtrackTab.Controls.Add(soundtrackTabPanel);
 
         TabPage floppyDisksTab = new("Floppy disks");
         floppyDisksTabPanel = new DiscImageTabPanel { Dock = DockStyle.Fill };
+        floppyDisksTabPanel.DisplayNameUpdated += MediaDisplayNameUpdated;
         floppyDisksTab.Controls.Add(floppyDisksTabPanel);
 
         TabPage walkthroughTab = new TabPage("Walkthrough");
@@ -794,12 +799,21 @@ public class TopForm : Form
                     publisherTextBox.Text = selectedGame.Publisher ?? string.Empty;
                 }
 
+                // Read display names from file-info.txt in the game's root for box art
+                var gameDirDisplayNames = await GameDataReaderService.ParseDisplayNamesAsync(selectedGame.GameDirectoryPath);
+
                 // Populate Media Tab
                 var mediaItems = new List<MediaTabPanel.MediaItem>();
                 if (selectedGame.HasFrontBoxArt)
-                    mediaItems.Add(new(selectedGame.FrontBoxArtPath, "Front Box Art", MediaTabPanel.MediaType.Image));
+                {
+                    var displayName = gameDirDisplayNames.GetValueOrDefault("front.png", "Front Box Art");
+                    mediaItems.Add(new(selectedGame.FrontBoxArtPath, displayName, MediaTabPanel.MediaType.Image));
+                }
                 if (selectedGame.HasBackBoxArt)
-                    mediaItems.Add(new(selectedGame.BackBoxArtPath, "Back Box Art", MediaTabPanel.MediaType.Image));
+                {
+                    var displayName = gameDirDisplayNames.GetValueOrDefault("back.png", "Back Box Art");
+                    mediaItems.Add(new(selectedGame.BackBoxArtPath, displayName, MediaTabPanel.MediaType.Image));
+                }
                 mediaItems.AddRange(selectedGame.CaptureFiles.Select(f => new MediaTabPanel.MediaItem(f.FilePath, f.DisplayName, MediaTabPanel.MediaType.Image)));
                 mediaItems.AddRange(selectedGame.VideoFiles.Select(f => new MediaTabPanel.MediaItem(f.FilePath, f.DisplayName, MediaTabPanel.MediaType.Video)));
                 mediaTabPanel?.Populate(mediaItems);
@@ -1067,7 +1081,7 @@ public class TopForm : Form
         {
             walkthroughTabPanel.CancelEditMode();
         }
-        
+
         if (gameNameTextBox == null || releaseYearTextBox == null || parentalRatingComboBox == null ||
             developerTextBox == null || publisherTextBox == null || runCommandsTextBox == null || cancelGameDataButton == null ||
             editGameDataButton == null || saveGameDataButton == null || setupCommandsTextBox == null) return;
@@ -1335,5 +1349,51 @@ public class TopForm : Form
         {
             gameConfigButton.Enabled = selectedGame.SetupCommands.Any();
         }
+    }
+    
+    /// <summary>
+    /// Handles the event raised when a media file's display name is updated in a MediaTabPanel.
+    /// This method updates the in-memory GameConfiguration model to reflect the change.
+    /// </summary>
+    /// <param name="filePath">The full path of the file that was updated.</param>
+    /// <param name="newDisplayName">The new display name for the file.</param>
+    private void MediaDisplayNameUpdated(string filePath, string newDisplayName)
+    {
+        if (gameListBox?.SelectedItem is not GameConfiguration selectedGame)
+        {
+            return;
+        }
+
+        // Helper function to find and update the item in a list.
+        // Since records are immutable, we replace the old record with a new one.
+        bool UpdateInList(List<MediaFileInfo> list)
+        {
+            var index = list.FindIndex(f => f.FilePath.Equals(filePath, StringComparison.OrdinalIgnoreCase));
+            if (index != -1)
+            {
+                list[index] = list[index] with { DisplayName = newDisplayName };
+                return true;
+            }
+            return false;
+        }
+
+        bool UpdateDiscInList(List<DiscImageInfo> list)
+        {
+            var index = list.FindIndex(d => d.FilePath.Equals(filePath, StringComparison.OrdinalIgnoreCase));
+            if (index != -1)
+            {
+                list[index] = list[index] with { DisplayName = newDisplayName };
+                return true;
+            }
+            return false;
+        }
+
+        // Attempt to find and update the media item in all relevant lists.
+        if (UpdateInList(selectedGame.CaptureFiles) || 
+            UpdateInList(selectedGame.VideoFiles) || 
+            UpdateInList(selectedGame.InsertFiles) || 
+            UpdateInList(selectedGame.SoundtrackFiles) ||
+            UpdateDiscInList(selectedGame.IsoImages) ||
+            UpdateDiscInList(selectedGame.DiscImages)) { }
     }
 }

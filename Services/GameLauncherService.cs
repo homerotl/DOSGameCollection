@@ -40,15 +40,13 @@ public static class GameLauncherService
                 break;
             }
 
-            string fullIsoPathOnHost = Path.Combine(gameConfig.IsoBasePath, isoInfo.ImgFileName);
-
-            if (File.Exists(fullIsoPathOnHost))
+            if (File.Exists(isoInfo.FilePath))
             {
-                dosboxArgs.Add($"-c \"IMGMOUNT D '{fullIsoPathOnHost}' -t iso\"");
+                dosboxArgs.Add($"-c \"IMGMOUNT D '{isoInfo.FilePath}' -t iso\"");
             }
             else
             {
-                MessageBox.Show(owner, $"ISO/CUE file '{isoInfo.ImgFileName}' not found in '{gameConfig.IsoBasePath}' for game '{gameConfig.GameName}'.", "Launch Warning", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                MessageBox.Show(owner, $"ISO/CUE file '{Path.GetFileName(isoInfo.FilePath)}' not found at the expected path '{isoInfo.FilePath}'.", "Launch Warning", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             }
         }
 

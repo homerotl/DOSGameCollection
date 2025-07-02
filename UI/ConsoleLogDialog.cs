@@ -1,6 +1,3 @@
-using System.Drawing;
-using System.Windows.Forms;
-
 namespace DOSGameCollection.UI;
 
 public class ConsoleLogDialog : Form
@@ -19,12 +16,12 @@ public class ConsoleLogDialog : Form
 
     private void InitializeComponent()
     {
-        this.Text = "Console Log";
-        this.FormBorderStyle = FormBorderStyle.Sizable;
-        this.StartPosition = FormStartPosition.CenterParent;
-        this.ClientSize = new Size(600, 400);
-        this.MinimumSize = new Size(400, 300);
-        this.ShowInTaskbar = false;
+        Text = "Console Log";
+        FormBorderStyle = FormBorderStyle.Sizable;
+        StartPosition = FormStartPosition.CenterParent;
+        ClientSize = new Size(600, 400);
+        MinimumSize = new Size(400, 300);
+        ShowInTaskbar = false;
 
         var mainPanel = new TableLayoutPanel
         {
@@ -64,8 +61,8 @@ public class ConsoleLogDialog : Form
         mainPanel.Controls.Add(logTextBox, 0, 0);
         mainPanel.Controls.Add(buttonPanel, 0, 1);
 
-        this.Controls.Add(mainPanel);
-        this.AcceptButton = okButton;
+        Controls.Add(mainPanel);
+        AcceptButton = okButton;
     }
 
     private void ClearButton_Click(object? sender, EventArgs e)

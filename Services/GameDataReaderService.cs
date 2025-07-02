@@ -93,7 +93,7 @@ public static class GameDataReaderService
                 }
             }
 
-            discImages.Add(new DiscImageInfo { ImgFileName = file, DisplayName = displayName, PngFilePath = File.Exists(pngPath) ? pngPath : null, FileSizeInBytes = fileSize });
+            discImages.Add(new DiscImageInfo(file, displayName, fileSize, File.Exists(pngPath) ? pngPath : null));
         }
 
         return discImages;
@@ -279,7 +279,7 @@ public static class GameDataReaderService
     /// </summary>
     /// <param name="directoryPath">The directory containing the file-info.txt file.</param>
     /// <returns>A dictionary mapping file names to their display names.</returns>
-    private static async Task<Dictionary<string, string>> ParseDisplayNamesAsync(string directoryPath)
+    public static async Task<Dictionary<string, string>> ParseDisplayNamesAsync(string directoryPath)
     {
         var displayNames = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         string infoFilePath = Path.Combine(directoryPath, "file-info.txt");

@@ -1,22 +1,25 @@
+using System.Diagnostics;
 using DOSGameCollection.Models;
+using DOSGameCollection.Services;
 
 namespace DOSGameCollection.UI;
 
-public class DiscImageTabPanel : TableLayoutPanel
+public class DiscImageTabPanel : UserControl
 {
     private readonly DataGridView _dataGridView;
     private readonly PictureBox _pictureBox;
     private readonly Label _imageNotAvailableLabel;
+    public event Action<string, string>? DisplayNameUpdated;
 
     public DiscImageTabPanel()
     {
-        // Initialize the TableLayoutPanel
-        Dock = DockStyle.Fill;
-        ColumnCount = 2;
-        RowCount = 1;
-        ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
-        ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
-        RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
+        // Main layout panel
+        TableLayoutPanel mainPanel = new()
+        {
+            Dock = DockStyle.Fill,
+            ColumnCount = 2,
+            RowCount = 1
+        };
 
         // Initialize DataGridView
         _dataGridView = new DataGridView
@@ -33,18 +36,40 @@ public class DiscImageTabPanel : TableLayoutPanel
             ColumnHeadersVisible = false,
             RowHeadersVisible = false,
             SelectionMode = DataGridViewSelectionMode.FullRowSelect,
-            ReadOnly = true,
+            ReadOnly = false,
             MultiSelect = false
         };
-        _dataGridView.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Name", Name = "DisplayName", FillWeight = 70 });
-        _dataGridView.Columns.Add(new DataGridViewTextBoxColumn
+
+        var symbolFont = FormatTools.GetSymbolFont(10F);
+
+        // Column 1: Type (Icon)
+        var typeColumn = new DataGridViewTextBoxColumn { HeaderText = "Type", Name = "Type", AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells, ReadOnly = true };
+        if (symbolFont != null)
         {
-            HeaderText = "Size",
-            Name = "FileSize",
-            AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells,
-            DefaultCellStyle = new DataGridViewCellStyle { Alignment = DataGridViewContentAlignment.MiddleRight }
-        });
+            typeColumn.DefaultCellStyle.Font = symbolFont;
+        }
+        _dataGridView.Columns.Add(typeColumn);
+
+        // Column 2: Name (Editable)
+        _dataGridView.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Name", Name = "Name", FillWeight = 100, ReadOnly = false });
+
+        // Column 3: Size (Read-only)
+        _dataGridView.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Size", Name = "FileSize", AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells, ReadOnly = true, DefaultCellStyle = new DataGridViewCellStyle { Alignment = DataGridViewContentAlignment.MiddleRight } });
+
+        // Column 4: Link (Clickable, Read-only)
+        var linkColumn = new DataGridViewTextBoxColumn { HeaderText = "Link", Name = "Link", AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells, ReadOnly = true };
+        if (symbolFont != null)
+        {
+            linkColumn.DefaultCellStyle.Font = symbolFont;
+        }
+        _dataGridView.Columns.Add(linkColumn);
+
         _dataGridView.SelectionChanged += DataGridView_SelectionChanged;
+
+        _dataGridView.CellValueChanged += DataGridView_CellValueChanged;
+        _dataGridView.CellClick += DataGridView_CellClick;
+        _dataGridView.CellMouseEnter += DataGridView_CellMouseEnter;
+        _dataGridView.CellMouseLeave += DataGridView_CellMouseLeave;
 
         // --- Panel for PictureBox and Label ---
         Panel imageDisplayPanel = new()
@@ -72,20 +97,33 @@ public class DiscImageTabPanel : TableLayoutPanel
             BackColor = Color.Black
         };
 
-        Controls.Add(_dataGridView, 0, 0);
-        Controls.Add(imageDisplayPanel, 1, 0);
+        mainPanel.Controls.Add(_dataGridView, 0, 0);
+        mainPanel.Controls.Add(imageDisplayPanel, 1, 0);
         imageDisplayPanel.Controls.Add(_imageNotAvailableLabel);
         imageDisplayPanel.Controls.Add(_pictureBox);
+
+        Controls.Add(mainPanel);
+
     }
 
     public void Populate(IEnumerable<DiscImageInfo> discImages)
     {
         _dataGridView.Rows.Clear();
 
+        string typeSymbol = FormatTools.SegoeUiSymbolExists ? "\U0001F4BF" : "CD"; // 💿
+        string linkSymbol = FormatTools.SegoeUiSymbolExists ? "\U0001F517" : "Open"; // 🔗
+
         foreach (var discInfo in discImages)
         {
-            var rowIndex = _dataGridView.Rows.Add(discInfo.ToString(), FormatTools.FormatFileSize(discInfo.FileSizeInBytes));
-            _dataGridView.Rows[rowIndex].Tag = discInfo;
+            var rowIndex = _dataGridView.Rows.Add(
+                typeSymbol,
+                discInfo.DisplayName,
+                FormatTools.FormatFileSize(discInfo.FileSizeInBytes),
+                linkSymbol
+            );
+            var row = _dataGridView.Rows[rowIndex];
+            row.Tag = discInfo;
+            row.Cells[3].ToolTipText = "Open File Location";
         }
 
         if (_dataGridView.Rows.Count > 0)
@@ -144,5 +182,61 @@ public class DiscImageTabPanel : TableLayoutPanel
     private void DataGridView_SelectionChanged(object? sender, EventArgs e)
     {
         UpdateImageForSelection();
+    }
+
+    private void DataGridView_CellClick(object? sender, DataGridViewCellEventArgs e)
+    {
+        // We only care about clicks on the "Link" column (index 3)
+        if (e.RowIndex < 0 || e.ColumnIndex != 3 || _dataGridView.Rows[e.RowIndex].Tag is not DiscImageInfo discInfo) return;
+
+        if (!string.IsNullOrEmpty(discInfo.FilePath) && File.Exists(discInfo.FilePath))
+        {
+            try
+            {
+                Process.Start(new ProcessStartInfo(discInfo.FilePath) { UseShellExecute = true });
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(this, $"Could not open disc image file '{discInfo.FilePath}'.\nError: {ex.Message}", "Error Opening File", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+    }
+
+    private void DataGridView_CellMouseEnter(object? sender, DataGridViewCellEventArgs e) => _dataGridView.Cursor = e.RowIndex >= 0 && e.ColumnIndex == 3 ? Cursors.Hand : Cursors.Default;
+
+    private void DataGridView_CellMouseLeave(object? sender, DataGridViewCellEventArgs e) => _dataGridView.Cursor = Cursors.Default;
+
+    private async void DataGridView_CellValueChanged(object? sender, DataGridViewCellEventArgs e)
+    {
+        // We only care about changes in the "Name" column (index 1)
+        if (e.RowIndex < 0 || e.ColumnIndex != 1)
+        {
+            return;
+        }
+
+        var row = _dataGridView.Rows[e.RowIndex];
+        if (row.Tag is not DiscImageInfo discInfo)
+        {
+            return;
+        }
+
+        string? newDisplayName = row.Cells[e.ColumnIndex].Value as string;
+        string mediaFileName = Path.GetFileName(discInfo.FilePath);
+
+        if (string.IsNullOrWhiteSpace(newDisplayName))
+        {
+            newDisplayName = mediaFileName;
+        }
+
+        if (newDisplayName.Equals(discInfo.DisplayName, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        await FileInfoWriterService.UpdateDisplayNameAsync(discInfo.FilePath, newDisplayName);
+
+        row.Cells[e.ColumnIndex].Value = newDisplayName;
+        row.Tag = discInfo with { DisplayName = newDisplayName };
+        DisplayNameUpdated?.Invoke(discInfo.FilePath, newDisplayName);
     }
 }
