@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using DOSGameCollection.Services;
+using PdfiumViewer;
 
 namespace DOSGameCollection.UI;
 
@@ -191,7 +192,25 @@ public class MediaTabPanel : UserControl
                 AppLogger.Log($"Error loading media image '{mediaItem.FilePath}': {ex.Message}");
             }
         }
-        else if (mediaItem.Type == MediaType.Pdf || mediaItem.Type == MediaType.Video)
+        else if (mediaItem.Type == MediaType.Pdf)
+        {
+            _mediaDisplayPictureBox.Visible = true;
+            try
+            {
+                using var pdfDocument = PdfDocument.Load(mediaItem.FilePath);
+                // Render the first page to a bitmap at the PictureBox's resolution for clarity
+                var image = pdfDocument.Render(0, _mediaDisplayPictureBox.Width, _mediaDisplayPictureBox.Height, true);
+                _mediaDisplayPictureBox.Image = image;
+            }
+            catch (Exception ex)
+            {
+                AppLogger.Log($"Error rendering PDF preview for '{mediaItem.FilePath}': {ex.Message}");
+                _mediaDisplayPictureBox.Image = null; // Clear any previous image
+                _mediaDisplayPictureBox.Visible = false; // Hide picturebox on error
+                _previewNotAvailableLabel.Visible = true;
+            }
+        }
+        else if (mediaItem.Type == MediaType.Video)
         {
             _previewNotAvailableLabel.Visible = true;
         }
