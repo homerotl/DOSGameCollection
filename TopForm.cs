@@ -14,6 +14,7 @@ public class TopForm : Form
     private Button? dosboxConfigButton;
     private Button? gameConfigButton;
     private Button? refreshButton;
+    private Button? openGameFolderButton;
     private Button? editGameDataButton;
     private Button? saveGameDataButton;
     private Button? cancelGameDataButton;
@@ -128,6 +129,10 @@ public class TopForm : Form
         { Anchor = AnchorStyles.Left, Size = new Size(35, 35), Margin = new Padding(5), Enabled = false };
         dosboxConfigButton.Click += DosboxConfigButton_Click;
 
+        openGameFolderButton = new Button
+        { Anchor = AnchorStyles.Left, Size = new Size(35, 35), Margin = new Padding(5), Enabled = false };
+        openGameFolderButton.Click += OpenGameFolderButton_Click;
+
         gameConfigButton = new Button
         { Anchor = AnchorStyles.Left, Size = new Size(35, 35), Margin = new Padding(5), Enabled = false };
         gameConfigButton.Click += GameConfigButton_Click;
@@ -159,6 +164,9 @@ public class TopForm : Form
 
         using (Stream? imageStream = assembly.GetManifestResourceStream("DOSGameCollection.Resources.icons.dosbox-stg.png"))
         { if (imageStream != null) { dosboxConfigButton.Image = Image.FromStream(imageStream); } }
+
+        using (Stream? imageStream = assembly.GetManifestResourceStream("DOSGameCollection.Resources.icons.folder.png"))
+        { if (imageStream != null) { openGameFolderButton.Image = Image.FromStream(imageStream); } }
 
         using (Stream? imageStream = assembly.GetManifestResourceStream("DOSGameCollection.Resources.icons.gears.png"))
         { if (imageStream != null) { gameConfigButton.Image = Image.FromStream(imageStream); } }
@@ -212,6 +220,7 @@ public class TopForm : Form
         leftActionButtons.Controls.Add(gameConfigButton);
         leftActionButtons.Controls.Add(manualButton);
         leftActionButtons.Controls.Add(dosboxConfigButton);
+        leftActionButtons.Controls.Add(openGameFolderButton);
 
         FlowLayoutPanel rightActionButtons = new()
         {
@@ -235,6 +244,7 @@ public class TopForm : Form
         actionButtonToolTip.SetToolTip(manualButton, "Game Manual");
         actionButtonToolTip.SetToolTip(refreshButton, "Refresh Game List");
         actionButtonToolTip.SetToolTip(dosboxConfigButton, "Open DOSBox Config");
+        actionButtonToolTip.SetToolTip(openGameFolderButton, "Open game folder");
         actionButtonToolTip.SetToolTip(gameConfigButton, "Run Game Setup");
         actionButtonToolTip.SetToolTip(editGameDataButton, "Edit Game Data");
 
@@ -638,6 +648,10 @@ public class TopForm : Form
         {
             dosboxConfigButton.Enabled = false;
         }
+        if (openGameFolderButton != null)
+        {
+            openGameFolderButton.Enabled = false;
+        }
         if (gameConfigButton != null)
         {
             gameConfigButton.Enabled = false;
@@ -738,6 +752,10 @@ public class TopForm : Form
         if (dosboxConfigButton != null)
         {
             dosboxConfigButton.Enabled = false;
+        }
+        if (openGameFolderButton != null)
+        {
+            openGameFolderButton.Enabled = false;
         }
         if (editGameDataButton != null)
         {
@@ -862,6 +880,10 @@ public class TopForm : Form
                     string configPath = Path.Combine(selectedGame.GameDirectoryPath, "dosbox-staging.conf");
                     dosboxConfigButton.Enabled = File.Exists(configPath);
                 }
+                if (openGameFolderButton != null)
+                {
+                    openGameFolderButton.Enabled = Directory.Exists(selectedGame.GameDirectoryPath);
+                }
                 if (playGameButton != null)
                 {
                     playGameButton.Enabled = selectedGame.DosboxCommands.Any();
@@ -978,6 +1000,33 @@ public class TopForm : Form
             else
             {
                 MessageBox.Show(this, "The DOSBox configuration file (dosbox-staging.conf) was not found for this game.", "File Not Found", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
+        }
+    }
+
+    private void OpenGameFolderButton_Click(object? sender, EventArgs e)
+    {
+        if (gameListBox?.SelectedItem is GameConfiguration selectedGame)
+        {
+            string gamePath = selectedGame.GameDirectoryPath;
+            if (Directory.Exists(gamePath))
+            {
+                try
+                {
+                    Process.Start(new ProcessStartInfo
+                    {
+                        FileName = gamePath,
+                        UseShellExecute = true
+                    });
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(this, $"Could not open the game folder.\nError: {ex.Message}", "Error Opening Folder", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
+            else
+            {
+                MessageBox.Show(this, "The game directory was not found.", "Directory Not Found", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             }
         }
     }

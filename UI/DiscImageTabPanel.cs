@@ -21,6 +21,10 @@ public class DiscImageTabPanel : UserControl
             RowCount = 1
         };
 
+        mainPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
+        mainPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
+        mainPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
+
         // Initialize DataGridView
         _dataGridView = new DataGridView
         {
