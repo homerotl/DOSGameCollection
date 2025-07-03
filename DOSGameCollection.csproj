@@ -19,7 +19,18 @@
     <EmbeddedResource Include="Resources\icons\dosbox-stg.png" />
     <EmbeddedResource Include="Resources\icons\gears.png" />
     <EmbeddedResource Include="Resources\icons\folder.png" />
+    <!--Small icons for media-->
+    <EmbeddedResource Include="Resources\icons\movie_20.png" />
+    <EmbeddedResource Include="Resources\icons\pdf_20.png" />
+    <EmbeddedResource Include="Resources\icons\image_20.png" />
+    <EmbeddedResource Include="Resources\icons\cd_20.png" />
+    <EmbeddedResource Include="Resources\icons\floppy_20.png" />
+    <EmbeddedResource Include="Resources\icons\default_20.png" />
+    <EmbeddedResource Include="Resources\icons\pop_20.png" />
+    <EmbeddedResource Include="Resources\icons\music_20.png" />
+    <!--Image for the abou dialog -->
     <EmbeddedResource Include="Resources\DGC-logo-200.png" />
+
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="PdfiumViewer" Version="2.13.0" />

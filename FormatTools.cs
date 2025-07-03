@@ -1,29 +1,11 @@
 namespace DOSGameCollection;
 
-using System.Drawing;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 
 public static class FormatTools
 {
-    private static string SYMBOL_FONT = "Segoe UI Symbol";
-
-    private static readonly Lazy<bool> _segoeUiSymbolExists = new(() =>
-    {
-        // Check if symbol font is installed on the system.
-        return FontFamily.Families.Any(f => f.Name.Equals(SYMBOL_FONT, StringComparison.OrdinalIgnoreCase));
-    });
-
-    public static bool SegoeUiSymbolExists => _segoeUiSymbolExists.Value;
-
-    public static Font? GetSymbolFont(float size = 9F, FontStyle style = FontStyle.Regular)
-    {
-        if (SegoeUiSymbolExists)
-        {
-            return new Font(SYMBOL_FONT, size, style);
-        }
-        return null; // Return null if the font is not available
-    }
 
     private static readonly Dictionary<string, string> RatingDisplayToFileMap = new()
     {
@@ -63,5 +45,33 @@ public static class FormatTools
             return $"{(double)bytes / (1024 * 1024):F2} MB";
         }
         return bytes >= 1024 ? $"{bytes / 1024} KB" : $"{bytes} B"; // Kilobytes or Bytes
+    }
+
+    public static Image? LoadImageFromResource(string resourceName)
+    {
+        Assembly assembly = Assembly.GetExecutingAssembly();
+        using (Stream? imageStream = assembly.GetManifestResourceStream(resourceName))
+        {
+            if (imageStream != null)
+            {
+                return Image.FromStream(imageStream);
+            }
+        }
+        AppLogger.Log($"Warning: Could not load embedded resource '{resourceName}'.");
+        return null;
+    }
+
+    public static Icon? LoadIconFromResource(string resourceName)
+    {
+        Assembly assembly = Assembly.GetExecutingAssembly();
+        using (Stream? iconStream = assembly.GetManifestResourceStream(resourceName))
+        {
+            if (iconStream != null)
+            {
+                return new Icon(iconStream);
+            }
+        }
+        AppLogger.Log($"Warning: Could not load embedded resource '{resourceName}'.");
+        return null;
     }
 }

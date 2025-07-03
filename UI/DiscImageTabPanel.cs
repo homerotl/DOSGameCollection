@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using DOSGameCollection.Models;
 using DOSGameCollection.Services;
 
@@ -9,10 +8,14 @@ public class DiscImageTabPanel : UserControl
     private readonly DataGridView _dataGridView;
     private readonly PictureBox _pictureBox;
     private readonly Label _imageNotAvailableLabel;
+    private Image? _cdIcon;
+    private Image? _floppyIcon;
     public event Action<string, string>? DisplayNameUpdated;
 
     public DiscImageTabPanel()
     {
+        LoadIcons();
+
         // Main layout panel
         TableLayoutPanel mainPanel = new()
         {
@@ -44,36 +47,18 @@ public class DiscImageTabPanel : UserControl
             MultiSelect = false
         };
 
-        var symbolFont = FormatTools.GetSymbolFont(10F);
-
-        // Column 1: Type (Icon)
-        var typeColumn = new DataGridViewTextBoxColumn { HeaderText = "Type", Name = "Type", AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells, ReadOnly = true };
-        if (symbolFont != null)
-        {
-            typeColumn.DefaultCellStyle.Font = symbolFont;
-        }
+        var typeColumn = new DataGridViewImageColumn { HeaderText = "Type", Name = "Type", AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells, ReadOnly = true, ImageLayout = DataGridViewImageCellLayout.Normal };
         _dataGridView.Columns.Add(typeColumn);
 
         // Column 2: Name (Editable)
         _dataGridView.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Name", Name = "Name", FillWeight = 100, ReadOnly = false });
 
-        // Column 3: Size (Read-only)
+        // Column 3: Size (Read-only) 
         _dataGridView.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Size", Name = "FileSize", AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells, ReadOnly = true, DefaultCellStyle = new DataGridViewCellStyle { Alignment = DataGridViewContentAlignment.MiddleRight } });
 
-        // Column 4: Link (Clickable, Read-only)
-        var linkColumn = new DataGridViewTextBoxColumn { HeaderText = "Link", Name = "Link", AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells, ReadOnly = true };
-        if (symbolFont != null)
-        {
-            linkColumn.DefaultCellStyle.Font = symbolFont;
-        }
-        _dataGridView.Columns.Add(linkColumn);
 
         _dataGridView.SelectionChanged += DataGridView_SelectionChanged;
-
         _dataGridView.CellValueChanged += DataGridView_CellValueChanged;
-        _dataGridView.CellClick += DataGridView_CellClick;
-        _dataGridView.CellMouseEnter += DataGridView_CellMouseEnter;
-        _dataGridView.CellMouseLeave += DataGridView_CellMouseLeave;
 
         // --- Panel for PictureBox and Label ---
         Panel imageDisplayPanel = new()
@@ -114,20 +99,17 @@ public class DiscImageTabPanel : UserControl
     {
         _dataGridView.Rows.Clear();
 
-        string typeSymbol = FormatTools.SegoeUiSymbolExists ? "\U0001F4BF" : "CD"; // 💿
-        string linkSymbol = FormatTools.SegoeUiSymbolExists ? "\U0001F517" : "Open"; // 🔗
-
         foreach (var discInfo in discImages)
         {
+            Image? typeIcon = GetIconForFile(discInfo.FilePath);
+
             var rowIndex = _dataGridView.Rows.Add(
-                typeSymbol,
+                typeIcon,
                 discInfo.DisplayName,
-                FormatTools.FormatFileSize(discInfo.FileSizeInBytes),
-                linkSymbol
+                FormatTools.FormatFileSize(discInfo.FileSizeInBytes)
             );
             var row = _dataGridView.Rows[rowIndex];
             row.Tag = discInfo;
-            row.Cells[3].ToolTipText = "Open File Location";
         }
 
         if (_dataGridView.Rows.Count > 0)
@@ -188,28 +170,6 @@ public class DiscImageTabPanel : UserControl
         UpdateImageForSelection();
     }
 
-    private void DataGridView_CellClick(object? sender, DataGridViewCellEventArgs e)
-    {
-        // We only care about clicks on the "Link" column (index 3)
-        if (e.RowIndex < 0 || e.ColumnIndex != 3 || _dataGridView.Rows[e.RowIndex].Tag is not DiscImageInfo discInfo) return;
-
-        if (!string.IsNullOrEmpty(discInfo.FilePath) && File.Exists(discInfo.FilePath))
-        {
-            try
-            {
-                Process.Start(new ProcessStartInfo(discInfo.FilePath) { UseShellExecute = true });
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show(this, $"Could not open disc image file '{discInfo.FilePath}'.\nError: {ex.Message}", "Error Opening File", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
-        }
-    }
-
-    private void DataGridView_CellMouseEnter(object? sender, DataGridViewCellEventArgs e) => _dataGridView.Cursor = e.RowIndex >= 0 && e.ColumnIndex == 3 ? Cursors.Hand : Cursors.Default;
-
-    private void DataGridView_CellMouseLeave(object? sender, DataGridViewCellEventArgs e) => _dataGridView.Cursor = Cursors.Default;
-
     private async void DataGridView_CellValueChanged(object? sender, DataGridViewCellEventArgs e)
     {
         // We only care about changes in the "Name" column (index 1)
@@ -242,5 +202,22 @@ public class DiscImageTabPanel : UserControl
         row.Cells[e.ColumnIndex].Value = newDisplayName;
         row.Tag = discInfo with { DisplayName = newDisplayName };
         DisplayNameUpdated?.Invoke(discInfo.FilePath, newDisplayName);
+    }
+
+    private void LoadIcons()
+    {
+        _cdIcon = FormatTools.LoadImageFromResource("DOSGameCollection.Resources.icons.cd_20.png");
+        _floppyIcon = FormatTools.LoadImageFromResource("DOSGameCollection.Resources.icons.floppy_20.png");
+    }
+    
+     private Image? GetIconForFile(string filePath)
+    {
+        string extension = Path.GetExtension(filePath).ToLowerInvariant();
+        return extension switch
+        {
+            ".iso" or ".cue" => _cdIcon,
+            ".img" => _floppyIcon,
+            _ => null // Or a default icon if you have one
+        };
     }
 }

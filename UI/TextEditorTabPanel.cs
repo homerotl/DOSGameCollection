@@ -43,8 +43,6 @@ public class TextEditorTabPanel : UserControl
 
     private void InitializeComponent()
     {
-        var symbolFont = FormatTools.GetSymbolFont();
-
         TableLayoutPanel mainPanel = new()
         {
             Dock = DockStyle.Fill,

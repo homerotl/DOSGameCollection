@@ -109,8 +109,6 @@ public class TopForm : Form
         mainLayoutPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 250F));
         mainLayoutPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
 
-        var symbolFont = FormatTools.GetSymbolFont();
-
         // Button initialization
 
         refreshButton = new Button
@@ -153,36 +151,18 @@ public class TopForm : Form
         Assembly assembly = Assembly.GetExecutingAssembly();
 
         // Button icons
-        using (Stream? imageStream = assembly.GetManifestResourceStream("DOSGameCollection.Resources.icons.refresh.png"))
-        { if (imageStream != null) { refreshButton.Image = Image.FromStream(imageStream); } }
-
-        using (Stream? imageStream = assembly.GetManifestResourceStream("DOSGameCollection.Resources.icons.play.png"))
-        { if (imageStream != null) { playGameButton.Image = Image.FromStream(imageStream); } }
-
-        using (Stream? imageStream = assembly.GetManifestResourceStream("DOSGameCollection.Resources.icons.manual.png"))
-        { if (imageStream != null) { manualButton.Image = Image.FromStream(imageStream); } }
-
-        using (Stream? imageStream = assembly.GetManifestResourceStream("DOSGameCollection.Resources.icons.dosbox-stg.png"))
-        { if (imageStream != null) { dosboxConfigButton.Image = Image.FromStream(imageStream); } }
-
-        using (Stream? imageStream = assembly.GetManifestResourceStream("DOSGameCollection.Resources.icons.folder.png"))
-        { if (imageStream != null) { openGameFolderButton.Image = Image.FromStream(imageStream); } }
-
-        using (Stream? imageStream = assembly.GetManifestResourceStream("DOSGameCollection.Resources.icons.gears.png"))
-        { if (imageStream != null) { gameConfigButton.Image = Image.FromStream(imageStream); } }
-
-        using (Stream? imageStream = assembly.GetManifestResourceStream("DOSGameCollection.Resources.icons.edit.png"))
-        { if (imageStream != null) { editGameDataButton.Image = Image.FromStream(imageStream); } }
-
-        using (Stream? imageStream = assembly.GetManifestResourceStream("DOSGameCollection.Resources.icons.cancel.png"))
-        { if (imageStream != null) { cancelGameDataButton.Image = Image.FromStream(imageStream); } }
-
-        using (Stream? imageStream = assembly.GetManifestResourceStream("DOSGameCollection.Resources.icons.ok.png"))
-        { if (imageStream != null) { saveGameDataButton.Image = Image.FromStream(imageStream); } }
+        refreshButton.Image = FormatTools.LoadImageFromResource("DOSGameCollection.Resources.icons.refresh.png");
+        playGameButton.Image = FormatTools.LoadImageFromResource("DOSGameCollection.Resources.icons.play.png");
+        manualButton.Image = FormatTools.LoadImageFromResource("DOSGameCollection.Resources.icons.manual.png");
+        dosboxConfigButton.Image = FormatTools.LoadImageFromResource("DOSGameCollection.Resources.icons.dosbox-stg.png");
+        openGameFolderButton.Image = FormatTools.LoadImageFromResource("DOSGameCollection.Resources.icons.folder.png");
+        gameConfigButton.Image = FormatTools.LoadImageFromResource("DOSGameCollection.Resources.icons.gears.png");
+        editGameDataButton.Image = FormatTools.LoadImageFromResource("DOSGameCollection.Resources.icons.edit.png");
+        cancelGameDataButton.Image = FormatTools.LoadImageFromResource("DOSGameCollection.Resources.icons.cancel.png");
+        saveGameDataButton.Image = FormatTools.LoadImageFromResource("DOSGameCollection.Resources.icons.ok.png");
 
         // App icon
-        using (Stream? iconStream = assembly.GetManifestResourceStream("DOSGameCollection.appicon.ico"))
-        { if (iconStream != null) { Icon = new System.Drawing.Icon(iconStream); } }
+        Icon = FormatTools.LoadIconFromResource("DOSGameCollection.appicon.ico");
 
         gameListBox = new ListBox();
 

@@ -13,11 +13,20 @@ public class MediaTabPanel : UserControl
     private PictureBox _mediaDisplayPictureBox;
     private Label _previewNotAvailableLabel;
     private string? _permanentCoverPath;
+
+    private Image? _pdfIcon;
+    private Image? _imageIcon;
+    private Image? _movieIcon;
+    private Image? _musicIcon;
+    private Image? _defaultIcon;
+    private Image? _popIcon;
+
     public event Action<string, string>? DisplayNameUpdated;
 
     public MediaTabPanel()
     {
         InitializeComponent();
+        LoadIcons();
     }
 
     private void InitializeComponent()
@@ -52,23 +61,24 @@ public class MediaTabPanel : UserControl
             MultiSelect = false
         };
 
-        var symbolFont = FormatTools.GetSymbolFont(10F);
-
         // Column 1: Type (Image/Video Icon)
-        var mediaTypeColumn = new DataGridViewTextBoxColumn { HeaderText = "Type", Name = "Type", AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells, ReadOnly = true };
-        if (symbolFont != null)
+         var mediaTypeColumn = new DataGridViewImageColumn
         {
-            mediaTypeColumn.DefaultCellStyle.Font = symbolFont;
-        }
+            HeaderText = "Type",
+            Name = "Type",
+            AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells,
+            ReadOnly = true,
+            ImageLayout = DataGridViewImageCellLayout.Normal
+        };
         _mediaDataGridView.Columns.Add(mediaTypeColumn);
         // Column 2: Name
         _mediaDataGridView.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Name", Name = "Name", FillWeight = 100, ReadOnly = false });
         // Column 3: Link (Clickable)
-        var linkColumn = new DataGridViewTextBoxColumn { HeaderText = "Link", Name = "Link", AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells, ReadOnly = true };
-        if (symbolFont != null)
+         // Column 3: Link (Clickable Icon)
+        var linkColumn = new DataGridViewImageColumn
         {
-            linkColumn.DefaultCellStyle.Font = symbolFont;
-        }
+            HeaderText = "Link", Name = "Link", AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells, ReadOnly = true, ImageLayout = DataGridViewImageCellLayout.Normal
+        };
         _mediaDataGridView.Columns.Add(linkColumn);
 
         _mediaDataGridView.SelectionChanged += MediaDataGridView_SelectionChanged;
@@ -106,6 +116,29 @@ public class MediaTabPanel : UserControl
         Controls.Add(mediaTabPanel);
     }
 
+    private void LoadIcons()
+    {
+        _pdfIcon = FormatTools.LoadImageFromResource("DOSGameCollection.Resources.icons.pdf_20.png");
+        _imageIcon = FormatTools.LoadImageFromResource("DOSGameCollection.Resources.icons.image_20.png");
+        _movieIcon = FormatTools.LoadImageFromResource("DOSGameCollection.Resources.icons.movie_20.png");
+        _musicIcon = FormatTools.LoadImageFromResource("DOSGameCollection.Resources.icons.music_20.png");
+        _defaultIcon = FormatTools.LoadImageFromResource("DOSGameCollection.Resources.icons.default_20.png");
+        _popIcon = FormatTools.LoadImageFromResource("DOSGameCollection.Resources.icons.pop_20.png");
+    }
+
+    private Image? GetIconForFile(string filePath)
+    {
+        string extension = Path.GetExtension(filePath).ToLowerInvariant();
+        return extension switch
+        {
+            ".avi" or ".mp4" => _movieIcon,
+            ".pdf" => _pdfIcon,
+            ".png" or ".jpg" => _imageIcon,
+            ".mp3" => _musicIcon,
+            _ => _defaultIcon
+        };
+    }
+
     public void Populate(IEnumerable<MediaItem> mediaItems, string? coverImagePath = null)
     {
         _mediaDataGridView.Rows.Clear();
@@ -113,7 +146,6 @@ public class MediaTabPanel : UserControl
 
         _permanentCoverPath = coverImagePath;
 
-        // Display permanent cover if provided
         if (!string.IsNullOrEmpty(_permanentCoverPath) && File.Exists(_permanentCoverPath))
         {
             _mediaDisplayPictureBox.Visible = true;
@@ -129,21 +161,17 @@ public class MediaTabPanel : UserControl
 
         foreach (var item in mediaItems)
         {
-            string typeDisplay = FormatTools.SegoeUiSymbolExists ? item.Type switch
-            {
-                MediaType.Image => "\U0001F5BC", // 🖼️
-                MediaType.Video => "\U0001F39E", // 🎞️
-                MediaType.Pdf => "\U0001F4C4", // 📄
-                MediaType.Audio => "\U0001F3B5", // 🎵
-                _ => "❓"
-            } : item.Type.ToString();
+            Image? typeIcon = GetIconForFile(item.FilePath);
 
-            string linkSymbol = FormatTools.SegoeUiSymbolExists ? "\U0001F517" : "Open";
+            var rowIndex = _mediaDataGridView.Rows.Add(
+                typeIcon,
+                item.DisplayName,
+                _popIcon
+            );
 
-            var rowIndex = _mediaDataGridView.Rows.Add(typeDisplay, item.DisplayName, linkSymbol);
             var row = _mediaDataGridView.Rows[rowIndex];
             row.Tag = item;
-            row.Cells[2].ToolTipText = "Open"; // Set tooltip for the link column
+            row.Cells[2].ToolTipText = "Open with default application"; // Set tooltip for the link column
         }
 
         if (_mediaDataGridView.Rows.Count > 0)
