@@ -17,6 +17,9 @@ public class TopForm : Form
     private Button? openGameFolderButton;
     private Button? editGameDataButton;
     private Button? saveGameDataButton;
+    private Button? newGameButton;
+    private Button? deleteGameButton;
+
     private Button? cancelGameDataButton;
     private TableLayoutPanel? rightColumnPanel;
     private TextBox? gameNameTextBox;
@@ -114,6 +117,23 @@ public class TopForm : Form
         refreshButton = new Button
         { Anchor = AnchorStyles.Left, Size = new Size(35, 35), Margin = new Padding(5), };
         refreshButton.Click += RefreshButton_Click;
+
+        newGameButton = new Button
+        {
+            Text = "New",
+            Anchor = AnchorStyles.Left, AutoSize = true, Margin = new Padding(5)
+        };
+        newGameButton.Click += NewGameButton_Click;
+
+        deleteGameButton = new Button
+        {
+            Text = "Delete",
+            Anchor = AnchorStyles.Left,
+            AutoSize = true,
+            Margin = new Padding(5),
+            Enabled = false
+        };
+        deleteGameButton.Click += DeleteGameButton_Click;
 
         playGameButton = new Button
         { Anchor = AnchorStyles.Left, Size = new Size(35, 35), Margin = new Padding(5), Enabled = false };
@@ -227,6 +247,7 @@ public class TopForm : Form
         actionButtonToolTip.SetToolTip(openGameFolderButton, "Open game folder");
         actionButtonToolTip.SetToolTip(gameConfigButton, "Run Game Setup");
         actionButtonToolTip.SetToolTip(editGameDataButton, "Edit Game Data");
+        actionButtonToolTip.SetToolTip(deleteGameButton, "Delete Selected Game");
 
         // Define Row Styles for gameDetailsTableLayoutPanel
         rightColumnPanel.RowStyles.Add(new RowStyle(SizeType.AutoSize)); // Row 0: Action buttons
@@ -547,7 +568,20 @@ public class TopForm : Form
         leftColumnPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 100F)); // Row for GameListBox
 
         // Add Refresh Button to the leftColumnPanel
-        leftColumnPanel.Controls.Add(refreshButton, 0, 0);
+        // --- Top-left buttons panel (Refresh, New) ---
+        FlowLayoutPanel topLeftButtonsPanel = new()
+        {
+            AutoSize = true,
+            Dock = DockStyle.Fill,
+            FlowDirection = FlowDirection.LeftToRight,
+            Margin = new Padding(0),
+            Padding = new Padding(0)
+        };
+        topLeftButtonsPanel.Controls.Add(refreshButton);
+        topLeftButtonsPanel.Controls.Add(newGameButton);
+        topLeftButtonsPanel.Controls.Add(deleteGameButton);
+
+        leftColumnPanel.Controls.Add(topLeftButtonsPanel, 0, 0);
 
         // Configure Game ListBox (moved here to be added to leftColumnPanel)
         gameListBox.Dock = DockStyle.Fill;
@@ -563,6 +597,115 @@ public class TopForm : Form
         Controls.Add(mainLayoutPanel);
 
         Controls.Add(menuStrip);
+    }
+
+     private void NewGameButton_Click(object? sender, EventArgs e)
+    {
+        var existingNames = loadedGameConfigs.Select(c => c.GameName);
+        var libraryPath = appConfigService.LibraryPath ?? "";
+
+        using NewGameWizardDialog newGameDialog = new(existingNames, libraryPath);
+        if (newGameDialog.ShowDialog(this) == DialogResult.OK) {
+            if (newGameDialog.NewGameConfiguration != null && gameListBox != null)
+            {
+                var newGame = newGameDialog.NewGameConfiguration;
+                // Add the new game to our in-memory list and the UI listbox.
+                loadedGameConfigs.Add(newGame);
+                gameListBox.Items.Add(newGame);
+                gameListBox.SelectedItem = newGame; // Select the new game to show its details.
+
+                // If the wizard was for a diskette install, launch the installer now.
+                if (newGameDialog.CopiedDisketteImagePaths.Any())
+                {
+                    MessageBox.Show(this, "Game entry created. Now launching DOSBox for installation. When finished, type 'exit' in DOSBox.", "Installation Step 2", MessageBoxButtons.OK, MessageBoxIcon.Information);
+
+                    var dosboxExePath = appConfigService.DosboxExePath;
+                    var dosboxConfPath = Path.Combine(newGame.GameDirectoryPath, "dosbox-staging.conf");
+                    var mountCPath = Path.Combine(newGame.GameDirectoryPath, "game-files");
+
+                    GameLauncherService.LaunchDosboxForDisketteInstallation(
+                        dosboxExePath,
+                        dosboxConfPath,
+                        mountCPath,
+                        newGameDialog.CopiedDisketteImagePaths,
+                        this
+                    );
+                }
+                else if (newGameDialog.CopiedCdRomImagePaths.Any())
+                {
+                    MessageBox.Show(this, "Game entry created. Now launching DOSBox for installation. When finished, type 'exit' in DOSBox.", "Installation Step 2", MessageBoxButtons.OK, MessageBoxIcon.Information);
+
+                    var dosboxExePath = appConfigService.DosboxExePath;
+                    var dosboxConfPath = Path.Combine(newGame.GameDirectoryPath, "dosbox-staging.conf");
+                    var mountCPath = Path.Combine(newGame.GameDirectoryPath, "game-files");
+
+                    GameLauncherService.LaunchDosboxForCdRomInstallation(
+                        dosboxExePath,
+                        dosboxConfPath,
+                        mountCPath,
+                        newGameDialog.CopiedCdRomImagePaths,
+                        this
+                    );
+                }
+            }
+        }
+    }
+
+private async void DeleteGameButton_Click(object? sender, EventArgs e)
+    {
+        if (gameListBox?.SelectedItem is not GameConfiguration selectedGame)
+        {
+            return;
+        }
+
+        var confirmResult = MessageBox.Show(this,
+            "You are about to delete the folder for this game and all the files within it. Are you sure?",
+            "Confirm Deletion",
+            MessageBoxButtons.OKCancel,
+            MessageBoxIcon.Warning);
+
+        if (confirmResult != DialogResult.OK)
+        {
+            return;
+        }
+
+        using LoadGameListProgressDialog progressDialog = new();
+        progressDialog.Text = "Deleting Game"; // Customize dialog title
+        var progress = new Progress<ProgressReport>(report =>
+        {
+            progressDialog.HandleProgressReport(report);
+            if (report.IsComplete && progressDialog.Visible)
+            {
+                progressDialog.Close();
+            }
+        });
+
+        var deleteService = new GameDeleteService();
+        bool deleteSucceeded = false;
+        try
+        {
+            if (deleteGameButton != null) deleteGameButton.Enabled = false;
+            if (refreshButton != null) refreshButton.Enabled = false;
+
+            Task deleteTask = deleteService.DeleteGameAsync(selectedGame.GameDirectoryPath, progress);
+            progressDialog.ShowDialog(this);
+            await deleteTask;
+            deleteSucceeded = true;
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(this, $"Error deleting game: {ex.Message}", "Deletion Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
+        finally
+        {
+            if (refreshButton != null) refreshButton.Enabled = true;
+        }
+
+        if (deleteSucceeded)
+        {
+            loadedGameConfigs.Remove(selectedGame);
+            gameListBox.Items.Remove(selectedGame);
+        }
     }
 
     private async void TopForm_Load(object? sender, EventArgs e)
@@ -640,6 +783,10 @@ public class TopForm : Form
         {
             editGameDataButton.Enabled = false;
             editGameDataButton.Visible = true;
+        }
+        if (deleteGameButton != null)
+        {
+            deleteGameButton.Enabled = false;
         }
         if (saveGameDataButton != null) saveGameDataButton.Visible = false;
         if (cancelGameDataButton != null) cancelGameDataButton.Visible = false;
@@ -741,6 +888,10 @@ public class TopForm : Form
         {
             editGameDataButton.Enabled = (gameListBox?.SelectedItem != null);
             editGameDataButton.Visible = true;
+        }
+        if (deleteGameButton != null)
+        {
+            deleteGameButton.Enabled = (gameListBox?.SelectedItem != null);
         }
         if (saveGameDataButton != null) saveGameDataButton.Visible = false;
         if (cancelGameDataButton != null) cancelGameDataButton.Visible = false;

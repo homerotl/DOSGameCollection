@@ -78,4 +78,60 @@ public static class GameLauncherService
             MessageBox.Show(owner, $"Failed to launch DOSBox: {ex.Message}\n\nCommand: {arguments}", "Launch Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
     }
+
+    private static Process? LaunchDosboxForMediaInstallation(string? dosboxExePath, string dosboxConfPath, string mountCPath, IEnumerable<string> imagePaths, char driveLetter, string imageType, IWin32Window owner)
+    {
+        if (string.IsNullOrEmpty(dosboxExePath) || !File.Exists(dosboxExePath))
+        {
+            MessageBox.Show(owner, "DOSBox executable path is not configured or the configured path is invalid. Please check the settings.", "Launch Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            return null;
+        }
+
+        var dosboxArgs = new List<string>
+        {
+            "-noconsole",
+            $"-conf \"{dosboxConfPath}\"",
+            $"-c \"MOUNT C '{mountCPath}'\""
+        };
+
+        if (imagePaths.Any())
+        {
+            // Build the IMGMOUNT command with all disk images quoted
+            var quotedImagePaths = imagePaths.Select(p => $"'{p}'");
+            string imgMountCommand = $"IMGMOUNT {driveLetter} {string.Join(" ", quotedImagePaths)} -t {imageType}";
+            dosboxArgs.Add($"-c \"{imgMountCommand}\"");
+        }
+
+        dosboxArgs.Add("-c \"C:\"");
+
+        string arguments = string.Join(" ", dosboxArgs);
+
+        try
+        {
+            ProcessStartInfo startInfo = new ProcessStartInfo
+            {
+                FileName = dosboxExePath,
+                Arguments = arguments,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
+
+            return Process.Start(startInfo);
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(owner, $"Failed to launch DOSBox for installation: {ex.Message}\n\nCommand: {arguments}", "Launch Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            return null;
+        }
+    }
+
+    public static Process? LaunchDosboxForDisketteInstallation(string? dosboxExePath, string dosboxConfPath, string mountCPath, IEnumerable<string> disketteImagePaths, IWin32Window owner)
+    {
+        return LaunchDosboxForMediaInstallation(dosboxExePath, dosboxConfPath, mountCPath, disketteImagePaths, 'A', "floppy", owner);
+    }
+
+    public static Process? LaunchDosboxForCdRomInstallation(string? dosboxExePath, string dosboxConfPath, string mountCPath, IEnumerable<string> cdRomImagePaths, IWin32Window owner)
+    {
+        return LaunchDosboxForMediaInstallation(dosboxExePath, dosboxConfPath, mountCPath, cdRomImagePaths, 'D', "iso", owner);
+    }
 }
