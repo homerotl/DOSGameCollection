@@ -28,7 +28,6 @@ public class NewGameWizardDialog : Form
     private Panel _step2CdRomsPanel;
     private Panel _step3CdRomsPanel;
 
-
     // Common controls
     private Button _cancelButton;
     private Button _nextButton;
@@ -42,25 +41,17 @@ public class NewGameWizardDialog : Form
     private RadioButton _installFromFilesRadioButton;
     private RadioButton _installFromDiskettesRadioButton;
     private RadioButton _installFromCdRomRadioButton;
-    private Label _instructionsLabel;
+    private TextBox _instructionsLabel;
 
     // Step 2 controls
     private TextBox _sourceDirectoryTextBox;
     private Button _browseSourceDirectoryButton;
 
     // Step 2 Diskettes controls
-    private ListBox _disketteImagesListBox;
-    private Button _addDisketteImagesButton;
-    private Button _moveDisketteUpButton;
-    private Button _moveDisketteDownButton;
-    private Button _deleteDisketteButton;
+    private DiskSelectionPanel _disketteSelectionPanel;
 
     // Step 2 CD-ROMs controls
-    private ListBox _cdRomImagesListBox;
-    private Button _addCdRomImagesButton;
-    private Button _moveCdRomUpButton;
-    private Button _moveCdRomDownButton;
-    private Button _deleteCdRomButton;
+    private DiskSelectionPanel _cdRomSelectionPanel;
 
     // Step 3 controls
     private TextBox _reviewGameNameTextBox;
@@ -101,7 +92,7 @@ public class NewGameWizardDialog : Form
 
     private void InitializeComponent()
     {
-        Text = "New Game Wizard";
+        Text = "New Game";
         ClientSize = new Size(500, 400);
         FormBorderStyle = FormBorderStyle.FixedDialog;
         StartPosition = FormStartPosition.CenterParent;
@@ -109,19 +100,19 @@ public class NewGameWizardDialog : Form
         MaximizeBox = false;
         MinimizeBox = false;
 
-
         // --- Main Layout ---
         var wizardLayout = new TableLayoutPanel
         {
+            AutoSize = true,
             Dock = DockStyle.Fill,
             Padding = new Padding(10),
             ColumnCount = 1,
+            //BackColor = Color.Red, // For debugging layout
             RowCount = 3
         };
         wizardLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 100F)); // For the step panel
         wizardLayout.RowStyles.Add(new RowStyle(SizeType.AutoSize));      // For the error label
         wizardLayout.RowStyles.Add(new RowStyle(SizeType.AutoSize));      // For the buttons
-
 
         // --- Create and add step panels ---
         _step1Panel = CreateStep1Panel();
@@ -162,7 +153,7 @@ public class NewGameWizardDialog : Form
         wizardLayout.Controls.Add(_errorLabel, 0, 1);
 
         // --- Bottom Buttons ---
-        var buttonsPanel = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 4, RowCount = 1 };
+        var buttonsPanel = new TableLayoutPanel { AutoSize = true, Dock = DockStyle.Bottom, ColumnCount = 4, RowCount = 1 };
         buttonsPanel.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize)); // Back
         buttonsPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F)); // Spacer
         buttonsPanel.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize)); // Next
@@ -259,7 +250,7 @@ public class NewGameWizardDialog : Form
         else if (_currentPanel == _step2DiskettesPanel)
         {
             // Step 2 Diskettes Validation
-            if (_disketteImagesListBox.Items.Count == 0)
+            if (!_disketteSelectionPanel.SelectedFilePaths.Any())
             {
                 _errorLabel.Text = "At least one diskette image must be added.";
                 _errorLabel.Visible = true;
@@ -270,7 +261,7 @@ public class NewGameWizardDialog : Form
         else if (_currentPanel == _step2CdRomsPanel)
         {
             // Step 2 CD-ROMs Validation
-            if (_cdRomImagesListBox.Items.Count == 0)
+            if (!_cdRomSelectionPanel.SelectedFilePaths.Any())
             {
                 _errorLabel.Text = "At least one CD-ROM image must be added.";
                 _errorLabel.Visible = true;
@@ -323,7 +314,8 @@ public class NewGameWizardDialog : Form
             }
             else
             {
-                MessageBox.Show(this, "This installation method is not yet implemented beyond this point.", "Not Implemented", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                MessageBox.Show(this, "This installation method is not yet implemented beyond this point.",
+                    "Not Implemented", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
         }
         else
@@ -356,7 +348,7 @@ public class NewGameWizardDialog : Form
 
             GameName = _gameNameTextBox.Text.Trim();
             GameDirectory = _gameDirectoryTextBox.Text;
-            CdRomImagePaths = _cdRomImagesListBox.Items.Cast<string>().ToList();
+            CdRomImagePaths = _cdRomSelectionPanel.SelectedFilePaths.ToList();
 
             CopiedCdRomImagePaths = await Task.Run(() =>
                 setupService.SetupNewGameFromCdRoms(GameName, GameDirectory, CdRomImagePaths, progress)
@@ -398,7 +390,7 @@ public class NewGameWizardDialog : Form
 
             GameName = _gameNameTextBox.Text.Trim();
             GameDirectory = _gameDirectoryTextBox.Text;
-            DisketteImagePaths = _disketteImagesListBox.Items.Cast<string>().ToList();
+            DisketteImagePaths = _disketteSelectionPanel.SelectedFilePaths.ToList();
 
             CopiedDisketteImagePaths = await Task.Run(() =>
                 setupService.SetupNewGameFromDiskettes(GameName, GameDirectory, DisketteImagePaths, progress)
@@ -508,155 +500,9 @@ public class NewGameWizardDialog : Form
         return null;
     }
 
-private Panel CreateStep2CdRomsPanel()
-    {
-        var step2Panel = new TableLayoutPanel
-        {
-            Dock = DockStyle.Fill,
-            ColumnCount = 1,
-            RowCount = 4
-        };
-        step2Panel.RowStyles.Add(new RowStyle(SizeType.AutoSize)); // Top Label
-        step2Panel.RowStyles.Add(new RowStyle(SizeType.Percent, 100F)); // ListBox and buttons
-        step2Panel.RowStyles.Add(new RowStyle(SizeType.AutoSize)); // Add button
-        step2Panel.RowStyles.Add(new RowStyle(SizeType.AutoSize)); // Bottom instructions
-
-        // --- Top Instructions ---
-        var topLabel = new Label
-        {
-            Text = "Select the installation CD-ROM images (.iso or .cue).",
-            Dock = DockStyle.Fill,
-            AutoSize = true,
-            Margin = new Padding(0, 0, 0, 10)
-        };
-
-        // --- Main Content (ListBox and order buttons) ---
-        var contentPanel = new TableLayoutPanel
-        {
-            Dock = DockStyle.Fill,
-            ColumnCount = 2,
-            RowCount = 1
-        };
-        contentPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
-        contentPanel.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
-
-        _cdRomImagesListBox = new ListBox { Dock = DockStyle.Fill, SelectionMode = SelectionMode.One };
-        _cdRomImagesListBox.SelectedIndexChanged += CdRomImagesListBox_SelectedIndexChanged;
-
-        var orderButtonsPanel = new FlowLayoutPanel
-        {
-            Dock = DockStyle.Fill,
-            FlowDirection = FlowDirection.TopDown,
-            AutoSize = true,
-            Margin = new Padding(5, 0, 0, 0)
-        };
-
-        _moveCdRomUpButton = new Button { Text = "▲", Enabled = false, Size = new Size(30, 30), Font = new Font("Segoe UI", 9F) };
-        _moveCdRomDownButton = new Button { Text = "▼", Enabled = false, Size = new Size(30, 30), Font = new Font("Segoe UI", 9F) };
-        _deleteCdRomButton = new Button { Text = "X", Enabled = false, Size = new Size(30, 30), ForeColor = Color.Red, Font = new Font("Segoe UI", 9F, FontStyle.Bold) };
-
-        _moveCdRomUpButton.Click += MoveCdRomUpButton_Click;
-        _moveCdRomDownButton.Click += MoveCdRomDownButton_Click;
-        _deleteCdRomButton.Click += DeleteCdRomButton_Click;
-
-        orderButtonsPanel.Controls.AddRange(new Control[] { _moveCdRomUpButton, _moveCdRomDownButton, _deleteCdRomButton });
-
-        contentPanel.Controls.Add(_cdRomImagesListBox, 0, 0);
-        contentPanel.Controls.Add(orderButtonsPanel, 1, 0);
-
-        // --- Add Button ---
-        _addCdRomImagesButton = new Button { Text = "Add CD-ROM images...", AutoSize = true, Anchor = AnchorStyles.Left, Margin = new Padding(0, 5, 0, 5) };
-        _addCdRomImagesButton.Click += AddCdRomImagesButton_Click;
-
-        // --- Bottom Instructions ---
-        var bottomInstructions = new TextBox
-        {
-            Text = "Add CD-ROM image files to the list and ensure they are in the correct order. These images will be mounted on drive d: and during installation you will be able to swap disk images with CTRL-F4.",
-            Dock = DockStyle.Fill,
-            Multiline = true,
-            ReadOnly = true,
-            BorderStyle = BorderStyle.None,
-            BackColor = SystemColors.Control,
-            Margin = new Padding(0, 10, 0, 0)
-        };
-
-        // --- Add Controls to Panel ---
-        step2Panel.Controls.Add(topLabel, 0, 0);
-        step2Panel.Controls.Add(contentPanel, 0, 1);
-        step2Panel.Controls.Add(_addCdRomImagesButton, 0, 2);
-        step2Panel.Controls.Add(bottomInstructions, 0, 3);
-
-        return step2Panel;
-    }
-
-    private void CdRomImagesListBox_SelectedIndexChanged(object? sender, EventArgs e)
-    {
-        int selectedIndex = _cdRomImagesListBox.SelectedIndex;
-        bool isItemSelected = selectedIndex != -1;
-
-        _deleteCdRomButton.Enabled = isItemSelected;
-        _moveCdRomUpButton.Enabled = isItemSelected && selectedIndex > 0;
-        _moveCdRomDownButton.Enabled = isItemSelected && selectedIndex < _cdRomImagesListBox.Items.Count - 1;
-    }
-
-    private void AddCdRomImagesButton_Click(object? sender, EventArgs e)
-    {
-        using var openFileDialog = new OpenFileDialog
-        {
-            Title = "Select CD-ROM Images",
-            Filter = "CD Images (*.iso;*.cue)|*.iso;*.cue|All files (*.*)|*.*",
-            Multiselect = true
-        };
-
-        if (openFileDialog.ShowDialog(this) == DialogResult.OK)
-        {
-            var currentItems = _cdRomImagesListBox.Items.Cast<string>().ToHashSet(StringComparer.OrdinalIgnoreCase);
-            var newItems = openFileDialog.FileNames.Where(f => !currentItems.Contains(f));
-            _cdRomImagesListBox.Items.AddRange(newItems.ToArray());
-            ValidateForm();
-        }
-    }
-
-    private void MoveCdRomUpButton_Click(object? sender, EventArgs e)
-    {
-        int selectedIndex = _cdRomImagesListBox.SelectedIndex;
-        if (selectedIndex > 0)
-        {
-            object item = _cdRomImagesListBox.SelectedItem;
-            _cdRomImagesListBox.Items.RemoveAt(selectedIndex);
-            _cdRomImagesListBox.Items.Insert(selectedIndex - 1, item);
-            _cdRomImagesListBox.SelectedIndex = selectedIndex - 1;
-        }
-    }
-
-    private void MoveCdRomDownButton_Click(object? sender, EventArgs e)
-    {
-        int selectedIndex = _cdRomImagesListBox.SelectedIndex;
-        if (selectedIndex != -1 && selectedIndex < _cdRomImagesListBox.Items.Count - 1)
-        {
-            object item = _cdRomImagesListBox.SelectedItem;
-            _cdRomImagesListBox.Items.RemoveAt(selectedIndex);
-            _cdRomImagesListBox.Items.Insert(selectedIndex + 1, item);
-            _cdRomImagesListBox.SelectedIndex = selectedIndex + 1;
-        }
-    }
-
-    private void DeleteCdRomButton_Click(object? sender, EventArgs e)
-    {
-        int selectedIndex = _cdRomImagesListBox.SelectedIndex;
-        if (selectedIndex != -1)
-        {
-            _cdRomImagesListBox.Items.RemoveAt(selectedIndex);
-            ValidateForm();
-        }
-    }
-
     private bool IsFinalStep(Panel? panel)
     {
-        // Define which panels are considered "final" steps where "Next" becomes "Confirm" or "Finish"
         return panel == _step3FilesPanel || panel == _step3DiskettesPanel || panel == _step3CdRomsPanel;
-        // When other paths are implemented, they will be added here, e.g.:
-        // || panel == _step3DiskettesPanel
     }
 
     private void BrowseSourceDirectoryButton_Click(object? sender, EventArgs e)
@@ -704,7 +550,7 @@ private Panel CreateStep2CdRomsPanel()
 
     }
 
-private void PopulateCdRomReviewScreen()
+    private void PopulateCdRomReviewScreen()
     {
         string gameName = _gameNameTextBox.Text.Trim();
         string targetDir = _gameDirectoryTextBox.Text;
@@ -714,18 +560,16 @@ private void PopulateCdRomReviewScreen()
         _reviewCdRomGameDirectoryTextBox.Text = relativeTargetDir;
 
         _reviewCdRomImagesListBox.Items.Clear();
-        foreach (var item in _cdRomImagesListBox.Items)
+        foreach (var path in _cdRomSelectionPanel.SelectedFilePaths)
         {
-            _reviewCdRomImagesListBox.Items.Add(Path.GetFileName(item.ToString()));
+            _reviewCdRomImagesListBox.Items.Add(Path.GetFileName(path));
         }
 
-        _reviewCdRomInstructionsTextBox.Text = "When you press Confirm, we will: " +
-                                               "1) Create the necesary folders in the selected game directory, " +
-                                               "2) Create a basic game.cfg file, " +
-                                               "3) Copy a dosbox-staging.conf template file to the target directory and " +
-                                               "4) We will launch DOSBox while mounting the directory game-files as the C: drive and your CD-ROM image(s) on drive D:. " +
-                                               "Once you are at the DOSBox DOS prompt proceed to install from drive D: " +
-                                               "When you are done you can type EXIT and within the application you should change the commands needed to run the game.";
+        _reviewCdRomInstructionsTextBox.Text = "When you press Confirm, we will: \r\n" +
+                                               "  1) Create the necesary folders and copy temmplate files in the selected game directory. \r\n" +
+                                               "  2) We will launch DOSBox with the selected CD-ROM images mounted a drive D: \r\n" +
+                                               "Once you are at the DOSBox prompt proceed to install from drive D:. You will be able to swap CD's with CTRL-F4. \r\n" +
+                                               "When you are done, type 'exit' to close DOSBox and complete the configuration with the commands needed to launch the game.";
     }
 
     private Panel CreateStep3CdRomsPanel()
@@ -769,7 +613,15 @@ private void PopulateCdRomReviewScreen()
         step3Panel.Controls.Add(_reviewCdRomImagesListBox, 1, 3);
 
         // --- Instructions ---
-        _reviewCdRomInstructionsTextBox = new TextBox { Multiline = true, ReadOnly = true, Dock = DockStyle.Fill, Margin = new Padding(0, 15, 0, 0), BorderStyle = BorderStyle.None, BackColor = SystemColors.Control };
+        _reviewCdRomInstructionsTextBox = new TextBox
+        {
+            Dock = DockStyle.Fill,
+            Multiline = true,
+            ReadOnly = true,
+            Padding = new Padding(10),
+            BorderStyle = BorderStyle.Fixed3D,
+            BackColor = SystemColors.ControlLight
+        };
         step3Panel.Controls.Add(_reviewCdRomInstructionsTextBox, 0, 4);
         step3Panel.SetColumnSpan(_reviewCdRomInstructionsTextBox, 2);
 
@@ -791,6 +643,58 @@ private void PopulateCdRomReviewScreen()
         return step3Panel;
     }
 
+    private Panel CreateStep2CdRomsPanel()
+    {
+        var step2Panel = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            AutoSize = true,
+            ColumnCount = 1,
+            //BackColor = Color.Green, // For debugging layout
+            RowCount = 3
+        };
+        step2Panel.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        step2Panel.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
+        step2Panel.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+
+        var topLabel = new Label
+        {
+            Text = "Select the installation CD-ROM images (.iso or .cue).",
+            Dock = DockStyle.Top,
+            AutoSize = true,
+            Margin = new Padding(0, 0, 0, 10)
+        };
+
+        _cdRomSelectionPanel = new DiskSelectionPanel
+        {
+            Dock = DockStyle.Fill,
+            AddDialogTitle = "Select CD-ROM Images",
+            AddButtonText = "Add CD-ROM images...",
+            FileFilter = "CD Images (*.iso;*.cue)|*.iso;*.cue|All files (*.*)|*.*"
+        };
+        _cdRomSelectionPanel.ListChanged += (s, e) => ValidateForm();
+
+        var bottomInstructions = new TextBox
+        {
+            Text = "Add CD-ROM image files to the list and ensure they are in the correct order. " +
+                "These images will be mounted on drive d: and during installation you will be able " +
+                "to swap disk images with CTRL-F4.",
+            Multiline = true,
+            ReadOnly = true,
+            Dock = DockStyle.Top,
+            Padding = new Padding(10),
+            BorderStyle = BorderStyle.Fixed3D,
+            BackColor = SystemColors.ControlLight,
+            Height = 60
+        };
+
+        step2Panel.Controls.Add(topLabel, 0, 0);
+        step2Panel.Controls.Add(_cdRomSelectionPanel, 0, 1);
+        step2Panel.Controls.Add(bottomInstructions, 0, 2);
+
+        return step2Panel;
+    }
+
     private void PopulateDisketteReviewScreen()
     {
         string gameName = _gameNameTextBox.Text.Trim();
@@ -801,19 +705,16 @@ private void PopulateCdRomReviewScreen()
         _reviewDisketteGameDirectoryTextBox.Text = relativeTargetDir;
 
         _reviewDisketteImagesListBox.Items.Clear();
-        foreach (var item in _disketteImagesListBox.Items)
+        foreach (var path in _disketteSelectionPanel.SelectedFilePaths)
         {
-            // Add just the filename for a cleaner look in the review
-            _reviewDisketteImagesListBox.Items.Add(Path.GetFileName(item.ToString()));
+            _reviewDisketteImagesListBox.Items.Add(Path.GetFileName(path));
         }
 
-        _reviewDisketteInstructionsTextBox.Text = "After pressing the Confirm button we will: " +
-                                                  "1) Create the necesary game directory structue, " +
-                                                  "2) Copy a default version of the DOSBox Staging configuration file. " +
-                                                  "3) Create a basic game.cfg file. " +
-                                                  "4) Copy your disk images to the <game-directory>\\disk-images directory and " +
-                                                  "5) Launch DOSBox with the disk images mounted on the drive a: and it will be up to you to install the game from the diskettes. " +
-                                                  "When you are done, type 'exit' to close DOSBox and complete the configuration with the commands needed to launch the game.";
+        _reviewDisketteInstructionsTextBox.Text = "When you press Confirm, we will: \r\n" +
+                                               "  1) Create the necesary folders and copy temmplate files in the selected game directory. \r\n" +
+                                               "  2) We will launch DOSBox with the selected floppy disk images mounted a drive A: \r\n" +
+                                               "Once you are at the DOSBox prompt proceed to install from drive A:. You will be able to swap diskettes with CTRL-F4.\r\n" +
+                                               "When you are done, type 'exit' to close DOSBox and complete the configuration with the commands needed to launch the game.";
     }
 
     private Panel CreateStep3DiskettesPanel()
@@ -846,19 +747,19 @@ private void PopulateCdRomReviewScreen()
         step3Panel.SetColumnSpan(reviewLabel, 2);
 
         // --- Game Name ---
-        var nameLabel = new Label { Text = "Game Name:", Anchor = AnchorStyles.Left, AutoSize = true, Margin = new Padding(0, 6, 5, 0) };
+        var nameLabel = new Label { Text = "Game Name", Anchor = AnchorStyles.Left, AutoSize = true, Margin = new Padding(0, 6, 5, 0) };
         _reviewDisketteGameNameTextBox = new TextBox { Dock = DockStyle.Fill, ReadOnly = true, Margin = new Padding(0, 3, 0, 3) };
         step3Panel.Controls.Add(nameLabel, 0, 1);
         step3Panel.Controls.Add(_reviewDisketteGameNameTextBox, 1, 1);
 
         // --- Game Target Directory ---
-        var targetDirLabel = new Label { Text = "Target Directory:", Anchor = AnchorStyles.Left, AutoSize = true, Margin = new Padding(0, 6, 5, 0) };
+        var targetDirLabel = new Label { Text = "Target Directory", Anchor = AnchorStyles.Left, AutoSize = true, Margin = new Padding(0, 6, 5, 0) };
         _reviewDisketteGameDirectoryTextBox = new TextBox { Dock = DockStyle.Fill, ReadOnly = true, Margin = new Padding(0, 3, 0, 3) };
         step3Panel.Controls.Add(targetDirLabel, 0, 2);
         step3Panel.Controls.Add(_reviewDisketteGameDirectoryTextBox, 1, 2);
 
         // --- Diskette Images ---
-        var diskettesLabel = new Label { Text = "Diskette Images:", Anchor = AnchorStyles.Top | AnchorStyles.Left, AutoSize = true, Margin = new Padding(0, 6, 5, 0) };
+        var diskettesLabel = new Label { Text = "Diskette Images", Anchor = AnchorStyles.Top | AnchorStyles.Left, AutoSize = true, Margin = new Padding(0, 6, 5, 0) };
         _reviewDisketteImagesListBox = new ListBox { Dock = DockStyle.Fill, Margin = new Padding(0, 3, 0, 3), SelectionMode = SelectionMode.None, BackColor = SystemColors.Control };
         step3Panel.Controls.Add(diskettesLabel, 0, 3);
         step3Panel.Controls.Add(_reviewDisketteImagesListBox, 1, 3);
@@ -870,8 +771,9 @@ private void PopulateCdRomReviewScreen()
             ReadOnly = true,
             Dock = DockStyle.Fill,
             Margin = new Padding(0, 15, 0, 0),
-            BorderStyle = BorderStyle.None,
-            BackColor = SystemColors.Control
+            Padding = new Padding(10),
+            BorderStyle = BorderStyle.Fixed3D,
+            BackColor = SystemColors.ControlLight
         };
         step3Panel.Controls.Add(_reviewDisketteInstructionsTextBox, 0, 4);
         step3Panel.SetColumnSpan(_reviewDisketteInstructionsTextBox, 2);
@@ -916,13 +818,22 @@ private void PopulateCdRomReviewScreen()
         step1Panel.RowStyles.Add(new RowStyle(SizeType.Percent, 100F)); // Setup Type
 
         // --- Game Name ---
-        var gameNameLabel = new Label { Text = "Game Name:", Anchor = AnchorStyles.Left, AutoSize = true, Margin = new Padding(0, 6, 5, 0) };
+        var gameNameLabel = new Label { Text = "Game Name", Anchor = AnchorStyles.Left, AutoSize = true, Margin = new Padding(0, 6, 5, 0) };
         _gameNameTextBox = new TextBox { Dock = DockStyle.Fill, MaxLength = 100 };
         _gameNameTextBox.Validated += (s, e) => ValidateForm();
 
         // --- Game Directory ---
-        var gameDirectoryLabel = new Label { Text = "Game Directory:", Anchor = AnchorStyles.Left, AutoSize = true, Margin = new Padding(0, 6, 5, 0) };
-        var directoryPanel = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, RowCount = 1, AutoSize = true };
+        var gameDirectoryLabel = new Label { Text = "Game Directory", Anchor = AnchorStyles.Left, AutoSize = true, Margin = new Padding(0, 6, 5, 0) };
+        var directoryPanel = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            ColumnCount = 2,
+            RowCount = 1,
+            AutoSize = true,
+            //BackColor = Color.Red, // For debugging layout
+            Padding = new Padding(0),
+            Margin = new Padding(0)
+        };
         directoryPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
         directoryPanel.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
         _gameDirectoryTextBox = new TextBox { Dock = DockStyle.Fill, ReadOnly = true };
@@ -945,18 +856,20 @@ private void PopulateCdRomReviewScreen()
         setupContentPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
 
         var radioButtonsPanel = new FlowLayoutPanel { Dock = DockStyle.Fill, FlowDirection = FlowDirection.TopDown, Padding = new Padding(10), AutoSize = true };
-        _installFromFilesRadioButton = new RadioButton { Text = "Install from files", Checked = true, AutoSize = true, Margin = new Padding(3, 3, 3, 10) };
-        _installFromDiskettesRadioButton = new RadioButton { Text = "Install from diskettes", AutoSize = true, Margin = new Padding(3, 3, 3, 10) };
-        _installFromCdRomRadioButton = new RadioButton { Text = "Install from CD-ROMs", AutoSize = true };
+        _installFromFilesRadioButton = new RadioButton { Text = "Install from raw files", Checked = true, AutoSize = true, Margin = new Padding(3, 3, 3, 10) };
+        _installFromDiskettesRadioButton = new RadioButton { Text = "Install from Floppy disk images", AutoSize = true, Margin = new Padding(3, 3, 3, 10) };
+        _installFromCdRomRadioButton = new RadioButton { Text = "Install from CD-ROM images", AutoSize = true };
 
         _installFromFilesRadioButton.CheckedChanged += OnSetupTypeChanged;
         _installFromDiskettesRadioButton.CheckedChanged += OnSetupTypeChanged;
         _installFromCdRomRadioButton.CheckedChanged += OnSetupTypeChanged;
 
-        radioButtonsPanel.Controls.AddRange(new Control[] { _installFromFilesRadioButton, _installFromDiskettesRadioButton, _installFromCdRomRadioButton });
+        radioButtonsPanel.Controls.AddRange([_installFromFilesRadioButton, _installFromDiskettesRadioButton, _installFromCdRomRadioButton]);
 
-        _instructionsLabel = new Label
+        _instructionsLabel = new TextBox
         {
+            Multiline = true,
+            ReadOnly = true,
             Dock = DockStyle.Fill,
             Padding = new Padding(10),
             BorderStyle = BorderStyle.Fixed3D,
@@ -989,21 +902,24 @@ private void PopulateCdRomReviewScreen()
         };
         step2Panel.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
         step2Panel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
-        step2Panel.RowStyles.Add(new RowStyle(SizeType.AutoSize)); // Instructions
         step2Panel.RowStyles.Add(new RowStyle(SizeType.AutoSize)); // Directory
+        step2Panel.RowStyles.Add(new RowStyle(SizeType.AutoSize)); // Instructions
         step2Panel.RowStyles.Add(new RowStyle(SizeType.Percent, 100F)); // Spacer
 
         // --- Instructions ---
-        var instructionsLabel = new Label
+        var instructionsLabel = new TextBox
         {
-            Text = "Select the directory containing the game's installation files.",
+            Text = "Select the directory containing the game files.",
+            Multiline = true,
+            ReadOnly = true,
             Dock = DockStyle.Fill,
-            AutoSize = true,
-            Margin = new Padding(0, 0, 0, 15)
+            Padding = new Padding(10),
+            BorderStyle = BorderStyle.Fixed3D,
+            BackColor = SystemColors.ControlLight
         };
 
         // --- Source Directory ---
-        var sourceDirectoryLabel = new Label { Text = "Source Directory:", Anchor = AnchorStyles.Left, AutoSize = true, Margin = new Padding(0, 6, 5, 0) };
+        var sourceDirectoryLabel = new Label { Text = "Source Directory", Anchor = AnchorStyles.Left, AutoSize = true, Margin = new Padding(0, 6, 5, 0) };
         var directoryPanel = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, RowCount = 1, AutoSize = true };
         directoryPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
         directoryPanel.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
@@ -1015,10 +931,10 @@ private void PopulateCdRomReviewScreen()
         directoryPanel.Controls.Add(_browseSourceDirectoryButton, 1, 0);
 
         // --- Add Controls to Panel ---
-        step2Panel.Controls.Add(instructionsLabel, 0, 0);
+        step2Panel.Controls.Add(sourceDirectoryLabel, 0, 0);
+        step2Panel.Controls.Add(directoryPanel, 1, 0);
+        step2Panel.Controls.Add(instructionsLabel, 0, 1);
         step2Panel.SetColumnSpan(instructionsLabel, 2);
-        step2Panel.Controls.Add(sourceDirectoryLabel, 0, 1);
-        step2Panel.Controls.Add(directoryPanel, 1, 1);
 
         return step2Panel;
     }
@@ -1054,19 +970,19 @@ private void PopulateCdRomReviewScreen()
         step3Panel.SetColumnSpan(reviewLabel, 2);
 
         // --- Game Name ---
-        var nameLabel = new Label { Text = "Game Name:", Anchor = AnchorStyles.Left, AutoSize = true, Margin = new Padding(0, 6, 5, 0) };
+        var nameLabel = new Label { Text = "Game Name", Anchor = AnchorStyles.Left, AutoSize = true, Margin = new Padding(0, 6, 5, 0) };
         _reviewGameNameTextBox = new TextBox { Dock = DockStyle.Fill, ReadOnly = true, Margin = new Padding(0, 3, 0, 3) };
         step3Panel.Controls.Add(nameLabel, 0, 1);
         step3Panel.Controls.Add(_reviewGameNameTextBox, 1, 1);
 
         // --- Game Target Directory ---
-        var targetDirLabel = new Label { Text = "Target Directory:", Anchor = AnchorStyles.Left, AutoSize = true, Margin = new Padding(0, 6, 5, 0) };
+        var targetDirLabel = new Label { Text = "Target Directory", Anchor = AnchorStyles.Left, AutoSize = true, Margin = new Padding(0, 6, 5, 0) };
         _reviewGameDirectoryTextBox = new TextBox { Dock = DockStyle.Fill, ReadOnly = true, Margin = new Padding(0, 3, 0, 3) };
         step3Panel.Controls.Add(targetDirLabel, 0, 2);
         step3Panel.Controls.Add(_reviewGameDirectoryTextBox, 1, 2);
 
         // --- Game Source Directory ---
-        var sourceDirLabel = new Label { Text = "Source Directory:", Anchor = AnchorStyles.Left, AutoSize = true, Margin = new Padding(0, 6, 5, 0) };
+        var sourceDirLabel = new Label { Text = "Source Directory", Anchor = AnchorStyles.Left, AutoSize = true, Margin = new Padding(0, 6, 5, 0) };
         _reviewSourceDirectoryTextBox = new TextBox { Dock = DockStyle.Fill, ReadOnly = true, Margin = new Padding(0, 3, 0, 3) };
         step3Panel.Controls.Add(sourceDirLabel, 0, 3);
         step3Panel.Controls.Add(_reviewSourceDirectoryTextBox, 1, 3);
@@ -1077,9 +993,9 @@ private void PopulateCdRomReviewScreen()
             Multiline = true,
             ReadOnly = true,
             Dock = DockStyle.Fill,
-            Margin = new Padding(0, 15, 0, 0),
-            BorderStyle = BorderStyle.None,
-            BackColor = SystemColors.Control
+            Padding = new Padding(10),
+            BorderStyle = BorderStyle.Fixed3D,
+            BackColor = SystemColors.ControlLight
         };
         step3Panel.Controls.Add(_reviewInstructionsTextBox, 0, 4);
         step3Panel.SetColumnSpan(_reviewInstructionsTextBox, 2);
@@ -1121,15 +1037,20 @@ private void PopulateCdRomReviewScreen()
     {
         if (_installFromFilesRadioButton.Checked)
         {
-            _instructionsLabel.Text = "Use this option if your game files are ready to be copied into a directory like C:\\games\\mygame. All files and directories will be copied into the library game structure.";
+            _instructionsLabel.Text = "Use this option if your game does not require installation or if it is a single file. " +
+                "All files on the selected directory will be copied to the game's folder structure.";
         }
         else if (_installFromDiskettesRadioButton.Checked)
         {
-            _instructionsLabel.Text = "With this option you will be able to mount one or more diskette images and we will open a DOSBox session where you can go to drive a: and start the installation. You will be able to swap diskettes with CTRL-F4.";
+            _instructionsLabel.Text = "Use this option if you want to install the game from one or more diskette image files. " +
+                "We will copy the diskette image files into the game's folder structure and after that we will open a DOSBox" +
+                "session where you will be able to go to drive A: and start the installation. You will be able to swap diskettes with CTRL-F4.";
         }
         else if (_installFromCdRomRadioButton.Checked)
         {
-            _instructionsLabel.Text = "Use this option to install your game from one or more CD-ROM disk images. You will be asked to select the location of your disk images. Those will be copied to the library game structure and after that we will open a DOSBox session where you can go to drive d: and start the installation. You will be able to swap disk images with CTRL-F4.";
+            _instructionsLabel.Text =  "With this option you will be able to install your game from one or more CD-ROM image files. " +
+                "We will copy the CD-ROM image files into the game's folder structure and after that we will open a DOSBox " +
+                "session where you will be able to go to drive D: and start the installation. You will be able to swap CDs with CTRL-F4.";
         }
     }
     private void PopulateReviewScreen()
@@ -1143,155 +1064,64 @@ private void PopulateCdRomReviewScreen()
         _reviewSourceDirectoryTextBox.Text = sourceDir;
         _reviewGameDirectoryTextBox.Text = relativeTargetDir;
 
-        _reviewInstructionsTextBox.Text = "After you press Confirm, we will: " +
-                                          "1) Create the basic folder structure for your game. " +
-                                          "2)  Add a basic dosbox-staging.conf file, which you can tune later. " +
-                                          "3) Copy all the files inside the source directory, including any subdirectories into <game-directory>\\game-files\\game. " +
-                                          "After this, you need to edit your new game details and add the necesary commands to start the game. " +
-                                          "After this, you should be able to launch your game.";
+        _reviewInstructionsTextBox.Text = "After you press Confirm, we will: \r\n" +
+                                          " 1) Create the basic folder structure and template files for your game. \r\n" +
+                                          " 2) Copy all the files inside the source directory, including any subdirectories. \r\n\r\n" +
+                                          "Then you'll need to edit your new game details and add the necesary commands to start the game.";
     }
-    
+
     private Panel CreateStep2DiskettesPanel()
     {
         var step2Panel = new TableLayoutPanel
         {
             Dock = DockStyle.Fill,
+            AutoSize = true,
             ColumnCount = 1,
-            RowCount = 4
+            //BackColor = Color.Green, // For debugging layout
+            RowCount = 3
         };
-        step2Panel.RowStyles.Add(new RowStyle(SizeType.AutoSize)); // Top Label
-        step2Panel.RowStyles.Add(new RowStyle(SizeType.Percent, 100F)); // ListBox and buttons
-        step2Panel.RowStyles.Add(new RowStyle(SizeType.AutoSize)); // Add button
-        step2Panel.RowStyles.Add(new RowStyle(SizeType.AutoSize)); // Bottom instructions
+        step2Panel.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        step2Panel.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
+        step2Panel.RowStyles.Add(new RowStyle(SizeType.AutoSize));
 
-        // --- Top Instructions ---
         var topLabel = new Label
         {
             Text = "Select the installation disk images.",
-            Dock = DockStyle.Fill,
+            Dock = DockStyle.Top,
             AutoSize = true,
             Margin = new Padding(0, 0, 0, 10)
         };
-
-        // --- Main Content (ListBox and order buttons) ---
-        var contentPanel = new TableLayoutPanel
+        
+        _disketteSelectionPanel = new DiskSelectionPanel
         {
             Dock = DockStyle.Fill,
-            ColumnCount = 2,
-            RowCount = 1
+            AddDialogTitle = "Select Diskette Images",
+            AddButtonText = "Add disk images...",
+            FileFilter = "Diskette Images (*.img)|*.img|All files (*.*)|*.*"
         };
-        contentPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
-        contentPanel.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+        _disketteSelectionPanel.ListChanged += (s, e) => ValidateForm();
 
-        _disketteImagesListBox = new ListBox { Dock = DockStyle.Fill, SelectionMode = SelectionMode.One };
-        _disketteImagesListBox.SelectedIndexChanged += DisketteImagesListBox_SelectedIndexChanged;
-
-        var orderButtonsPanel = new FlowLayoutPanel
-        {
-            Dock = DockStyle.Fill,
-            FlowDirection = FlowDirection.TopDown,
-            AutoSize = true,
-            Margin = new Padding(5, 0, 0, 0)
-        };
-
-        _moveDisketteUpButton = new Button { Text = "▲", Enabled = false, Size = new Size(30, 30), Font = new Font("Segoe UI", 9F) };
-        _moveDisketteDownButton = new Button { Text = "▼", Enabled = false, Size = new Size(30, 30), Font = new Font("Segoe UI", 9F) };
-        _deleteDisketteButton = new Button { Text = "X", Enabled = false, Size = new Size(30, 30), ForeColor = Color.Red, Font = new Font("Segoe UI", 9F, FontStyle.Bold) };
-
-        _moveDisketteUpButton.Click += MoveDisketteUpButton_Click;
-        _moveDisketteDownButton.Click += MoveDisketteDownButton_Click;
-        _deleteDisketteButton.Click += DeleteDisketteButton_Click;
-
-        orderButtonsPanel.Controls.AddRange(new Control[] { _moveDisketteUpButton, _moveDisketteDownButton, _deleteDisketteButton });
-
-        contentPanel.Controls.Add(_disketteImagesListBox, 0, 0);
-        contentPanel.Controls.Add(orderButtonsPanel, 1, 0);
-
-        // --- Add Button ---
-        _addDisketteImagesButton = new Button { Text = "Add disk images...", AutoSize = true, Anchor = AnchorStyles.Left, Margin = new Padding(0, 5, 0, 5) };
-        _addDisketteImagesButton.Click += AddDisketteImagesButton_Click;
-
-        // --- Bottom Instructions ---
         var bottomInstructions = new TextBox
         {
             Text = "Add diskette image files to the list and ensure they are in the correct order. These images will be mounted on drive a: and during installation you will be able to swap disk images with CTRL-F4.",
-            Dock = DockStyle.Fill,
             Multiline = true,
             ReadOnly = true,
-            BorderStyle = BorderStyle.None,
-            BackColor = SystemColors.Control,
-            Margin = new Padding(0, 10, 0, 0)
+            Dock = DockStyle.Top,
+            Padding = new Padding(10),
+            BorderStyle = BorderStyle.Fixed3D,
+            BackColor = SystemColors.ControlLight,
+            Height = 60
         };
 
-        // --- Add Controls to Panel ---
         step2Panel.Controls.Add(topLabel, 0, 0);
-        step2Panel.Controls.Add(contentPanel, 0, 1);
-        step2Panel.Controls.Add(_addDisketteImagesButton, 0, 2);
-        step2Panel.Controls.Add(bottomInstructions, 0, 3);
+        step2Panel.Controls.Add(_disketteSelectionPanel, 0, 1);
+        step2Panel.Controls.Add(bottomInstructions, 0, 2);
 
         return step2Panel;
     }
 
-    private void DisketteImagesListBox_SelectedIndexChanged(object? sender, EventArgs e)
+    private record FileListItem(string FilePath)
     {
-        int selectedIndex = _disketteImagesListBox.SelectedIndex;
-        bool isItemSelected = selectedIndex != -1;
-
-        _deleteDisketteButton.Enabled = isItemSelected;
-        _moveDisketteUpButton.Enabled = isItemSelected && selectedIndex > 0;
-        _moveDisketteDownButton.Enabled = isItemSelected && selectedIndex < _disketteImagesListBox.Items.Count - 1;
-    }
-
-    private void AddDisketteImagesButton_Click(object? sender, EventArgs e)
-    {
-        using var openFileDialog = new OpenFileDialog
-        {
-            Title = "Select Diskette Images",
-            Filter = "Diskette Images (*.img)|*.img|All files (*.*)|*.*",
-            Multiselect = true
-        };
-
-        if (openFileDialog.ShowDialog(this) == DialogResult.OK)
-        {
-            // Get existing items to prevent duplicates
-            var currentItems = _disketteImagesListBox.Items.Cast<string>().ToHashSet(StringComparer.OrdinalIgnoreCase);
-            var newItems = openFileDialog.FileNames.Where(f => !currentItems.Contains(f));
-            _disketteImagesListBox.Items.AddRange(newItems.ToArray());
-            ValidateForm(); // Re-validate to enable the Next button if needed
-        }
-    }
-
-    private void MoveDisketteUpButton_Click(object? sender, EventArgs e)
-    {
-        int selectedIndex = _disketteImagesListBox.SelectedIndex;
-        if (selectedIndex > 0)
-        {
-            object item = _disketteImagesListBox.SelectedItem;
-            _disketteImagesListBox.Items.RemoveAt(selectedIndex);
-            _disketteImagesListBox.Items.Insert(selectedIndex - 1, item);
-            _disketteImagesListBox.SelectedIndex = selectedIndex - 1;
-        }
-    }
-
-    private void MoveDisketteDownButton_Click(object? sender, EventArgs e)
-    {
-        int selectedIndex = _disketteImagesListBox.SelectedIndex;
-        if (selectedIndex != -1 && selectedIndex < _disketteImagesListBox.Items.Count - 1)
-        {
-            object item = _disketteImagesListBox.SelectedItem;
-            _disketteImagesListBox.Items.RemoveAt(selectedIndex);
-            _disketteImagesListBox.Items.Insert(selectedIndex + 1, item);
-            _disketteImagesListBox.SelectedIndex = selectedIndex + 1;
-        }
-    }
-
-    private void DeleteDisketteButton_Click(object? sender, EventArgs e)
-    {
-        int selectedIndex = _disketteImagesListBox.SelectedIndex;
-        if (selectedIndex != -1)
-        {
-            _disketteImagesListBox.Items.RemoveAt(selectedIndex);
-            ValidateForm(); // Re-validate in case the list is now empty
-        }
+        public string FileName => Path.GetFileName(FilePath);
     }
 }

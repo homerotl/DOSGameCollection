@@ -32,21 +32,27 @@ public static class GameLauncherService
             $"-c \"MOUNT C '{gameConfig.MountCPath}'\""
         };
 
-        foreach (DiscImageInfo isoInfo in gameConfig.IsoImages)
+        if (gameConfig.IsoImages.Any())
         {
             if (!Directory.Exists(gameConfig.IsoBasePath))
             {
                 MessageBox.Show(owner, $"ISO directory '{gameConfig.IsoBasePath}' not found for game '{gameConfig.GameName}'.", "Launch Warning", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                break;
-            }
-
-            if (File.Exists(isoInfo.FilePath))
-            {
-                dosboxArgs.Add($"-c \"IMGMOUNT D '{isoInfo.FilePath}' -t iso\"");
             }
             else
             {
-                MessageBox.Show(owner, $"ISO/CUE file '{Path.GetFileName(isoInfo.FilePath)}' not found at the expected path '{isoInfo.FilePath}'.", "Launch Warning", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                var validIsoPaths = gameConfig.IsoImages
+                    .Where(isoInfo =>
+                    {
+                        bool exists = File.Exists(isoInfo.FilePath);
+                        if (!exists)
+                        {
+                            MessageBox.Show(owner, $"ISO/CUE file '{Path.GetFileName(isoInfo.FilePath)}' not found at the expected path '{isoInfo.FilePath}'.", "Launch Warning", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                        }
+                        return exists;
+                    })
+                    .Select(isoInfo => $"'{isoInfo.FilePath}'");
+
+                if (validIsoPaths.Any()) dosboxArgs.Add($"-c \"IMGMOUNT D {string.Join(" ", validIsoPaths)} -t iso\"");
             }
         }
 
@@ -60,6 +66,8 @@ public static class GameLauncherService
         dosboxArgs.Add("-c \"EXIT\"");
 
         string arguments = string.Join(" ", dosboxArgs);
+
+        AppLogger.Log($"Launching DOSBox with command: {dosboxExePath} {arguments}");
 
         try
         {
@@ -105,6 +113,8 @@ public static class GameLauncherService
         dosboxArgs.Add("-c \"C:\"");
 
         string arguments = string.Join(" ", dosboxArgs);
+
+        AppLogger.Log($"Launching DOSBox for media installation with command: {dosboxExePath} {arguments}");
 
         try
         {

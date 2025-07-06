@@ -20,8 +20,8 @@ public class GameSetupService
 
         // 1. Create the required directory structure.
         // Directory.CreateDirectory is safe to call even if the directories already exist.
-        string gameFilesPath = Path.Combine(targetDirectory, "game-files", "game");
-        Directory.CreateDirectory(gameFilesPath);
+        string gameFilesRootPath = Path.Combine(targetDirectory, "game-files", "GAME");
+        Directory.CreateDirectory(gameFilesRootPath);
 
         string mediaCapturesPath = Path.Combine(targetDirectory, "media", "captures");
         Directory.CreateDirectory(mediaCapturesPath);
@@ -43,7 +43,7 @@ public class GameSetupService
         long totalBytesCopied = 0;
 
         // 4. Recursively copy all files and subdirectories from the source to the target game path.
-        CopyDirectory(sourceDirectory, gameFilesPath, totalSize, ref totalBytesCopied, progress);
+        CopyDirectory(sourceDirectory, gameFilesRootPath, totalSize, ref totalBytesCopied, progress, true);
 
         progress.Report(new GameSetupProgressReport { Message = "Setup complete.", Percentage = 100 });
     }
@@ -112,7 +112,7 @@ public class GameSetupService
         return size;
     }
 
-    private void CopyDirectory(string sourceDir, string destinationDir, long totalSize, ref long totalBytesCopied, IProgress<GameSetupProgressReport> progress)
+    private void CopyDirectory(string sourceDir, string destinationDir, long totalSize, ref long totalBytesCopied, IProgress<GameSetupProgressReport> progress, bool convertToUppercase = false)
     {
         var dir = new DirectoryInfo(sourceDir);
         if (!dir.Exists) throw new DirectoryNotFoundException($"Source directory not found: {dir.FullName}");
@@ -121,7 +121,8 @@ public class GameSetupService
 
         foreach (FileInfo file in dir.GetFiles())
         {
-            string targetFilePath = Path.Combine(destinationDir, file.Name);
+            string targetFileName = convertToUppercase ? file.Name.ToUpperInvariant() : file.Name;
+            string targetFilePath = Path.Combine(destinationDir, targetFileName);
             file.CopyTo(targetFilePath, true);
 
             totalBytesCopied += file.Length;
@@ -136,7 +137,8 @@ public class GameSetupService
 
         foreach (DirectoryInfo subDir in dir.GetDirectories())
         {
-            CopyDirectory(subDir.FullName, Path.Combine(destinationDir, subDir.Name), totalSize, ref totalBytesCopied, progress);
+            string targetSubDirName = convertToUppercase ? subDir.Name.ToUpperInvariant() : subDir.Name;
+            CopyDirectory(subDir.FullName, Path.Combine(destinationDir, targetSubDirName), totalSize, ref totalBytesCopied, progress, convertToUppercase);
         }
     }
     
@@ -210,4 +212,3 @@ public class GameSetupService
         return destinationCdRomPaths;
     }
 }
-
