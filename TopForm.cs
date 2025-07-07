@@ -112,29 +112,18 @@ public class TopForm : Form
         mainLayoutPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 250F));
         mainLayoutPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
 
-        // Button initialization
-
+        // Collection buttom initialization
         refreshButton = new Button
         { Anchor = AnchorStyles.Left, Size = new Size(35, 35), Margin = new Padding(5), };
         refreshButton.Click += RefreshButton_Click;
 
-        newGameButton = new Button
-        {
-            Text = "New",
-            Anchor = AnchorStyles.Left, AutoSize = true, Margin = new Padding(5)
-        };
+        newGameButton = new Button { Anchor = AnchorStyles.Left, Size = new Size(35, 35), Margin = new Padding(5) };
         newGameButton.Click += NewGameButton_Click;
 
-        deleteGameButton = new Button
-        {
-            Text = "Delete",
-            Anchor = AnchorStyles.Left,
-            AutoSize = true,
-            Margin = new Padding(5),
-            Enabled = false
-        };
+        deleteGameButton = new Button { Anchor = AnchorStyles.Left, Size = new Size(35, 35), Margin = new Padding(5), Enabled = false };
         deleteGameButton.Click += DeleteGameButton_Click;
 
+        // Game action button initialization
         playGameButton = new Button
         { Anchor = AnchorStyles.Left, Size = new Size(35, 35), Margin = new Padding(5), Enabled = false };
         playGameButton.Click += RunButton_Click;
@@ -155,6 +144,7 @@ public class TopForm : Form
         { Anchor = AnchorStyles.Left, Size = new Size(35, 35), Margin = new Padding(5), Enabled = false };
         gameConfigButton.Click += GameConfigButton_Click;
 
+        // Edit action button initialization
         editGameDataButton = new Button
         { Anchor = AnchorStyles.Left, Size = new Size(35, 35), Margin = new Padding(5), Enabled = false };
         editGameDataButton.Click += EditGameDataButton_Click;
@@ -170,13 +160,19 @@ public class TopForm : Form
         // Load embedded resources
         Assembly assembly = Assembly.GetExecutingAssembly();
 
-        // Button icons
+        // Collection button actions
         refreshButton.Image = FormatTools.LoadImageFromResource("DOSGameCollection.Resources.icons.refresh.png");
+        newGameButton.Image = FormatTools.LoadImageFromResource("DOSGameCollection.Resources.icons.new.png");
+        deleteGameButton.Image = FormatTools.LoadImageFromResource("DOSGameCollection.Resources.icons.delete.png");
+
+        // Game actions
         playGameButton.Image = FormatTools.LoadImageFromResource("DOSGameCollection.Resources.icons.play.png");
         manualButton.Image = FormatTools.LoadImageFromResource("DOSGameCollection.Resources.icons.manual.png");
         dosboxConfigButton.Image = FormatTools.LoadImageFromResource("DOSGameCollection.Resources.icons.dosbox-stg.png");
         openGameFolderButton.Image = FormatTools.LoadImageFromResource("DOSGameCollection.Resources.icons.folder.png");
-        gameConfigButton.Image = FormatTools.LoadImageFromResource("DOSGameCollection.Resources.icons.gears.png");
+        gameConfigButton.Image = FormatTools.LoadImageFromResource("DOSGameCollection.Resources.icons.settings.png");
+
+        // Edit actions
         editGameDataButton.Image = FormatTools.LoadImageFromResource("DOSGameCollection.Resources.icons.edit.png");
         cancelGameDataButton.Image = FormatTools.LoadImageFromResource("DOSGameCollection.Resources.icons.cancel.png");
         saveGameDataButton.Image = FormatTools.LoadImageFromResource("DOSGameCollection.Resources.icons.ok.png");
@@ -238,17 +234,20 @@ public class TopForm : Form
 
         // --- ToolTips for Action Buttons ---
         ToolTip actionButtonToolTip = new();
-        actionButtonToolTip.SetToolTip(playGameButton, "Play Game");
-        actionButtonToolTip.SetToolTip(saveGameDataButton, "Save Game Data");
-        actionButtonToolTip.SetToolTip(cancelGameDataButton, "Cancel");
-        actionButtonToolTip.SetToolTip(manualButton, "Game Manual");
         actionButtonToolTip.SetToolTip(refreshButton, "Refresh Game List");
-        actionButtonToolTip.SetToolTip(dosboxConfigButton, "Open DOSBox Config");
-        actionButtonToolTip.SetToolTip(openGameFolderButton, "Open game folder");
-        actionButtonToolTip.SetToolTip(gameConfigButton, "Run Game Setup");
-        actionButtonToolTip.SetToolTip(editGameDataButton, "Edit Game Data");
+        actionButtonToolTip.SetToolTip(newGameButton, "New Game");
         actionButtonToolTip.SetToolTip(deleteGameButton, "Delete Selected Game");
 
+        actionButtonToolTip.SetToolTip(playGameButton, "Play Game");
+        actionButtonToolTip.SetToolTip(gameConfigButton, "Run Game Setup");
+        actionButtonToolTip.SetToolTip(manualButton, "Game Manual");
+        actionButtonToolTip.SetToolTip(dosboxConfigButton, "Open DOSBox Config");
+        actionButtonToolTip.SetToolTip(openGameFolderButton, "Open game folder");
+
+        actionButtonToolTip.SetToolTip(saveGameDataButton, "Save");
+        actionButtonToolTip.SetToolTip(cancelGameDataButton, "Cancel");
+        actionButtonToolTip.SetToolTip(editGameDataButton, "Edit Game Data");
+        
         // Define Row Styles for gameDetailsTableLayoutPanel
         rightColumnPanel.RowStyles.Add(new RowStyle(SizeType.AutoSize)); // Row 0: Action buttons
         rightColumnPanel.RowStyles.Add(new RowStyle(SizeType.AutoSize)); // Row 1: Game configuration and details

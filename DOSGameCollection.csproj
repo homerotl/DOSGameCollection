@@ -10,15 +10,23 @@
   </PropertyGroup>
   <ItemGroup>
     <EmbeddedResource Include="appicon.ico" />
+    <!-- Collection actions-->
     <EmbeddedResource Include="Resources\icons\refresh.png" />
+    <EmbeddedResource Include="Resources\icons\new.png" />
+    <EmbeddedResource Include="Resources\icons\delete.png" />
+
+    <!-- Game actions -->
     <EmbeddedResource Include="Resources\icons\play.png" />
     <EmbeddedResource Include="Resources\icons\manual.png" />
+    <EmbeddedResource Include="Resources\icons\dosbox-stg.png" />
+    <EmbeddedResource Include="Resources\icons\settings.png" />
+    <EmbeddedResource Include="Resources\icons\folder.png" />
+
+    <!-- Edit actions-->
     <EmbeddedResource Include="Resources\icons\edit.png" />
     <EmbeddedResource Include="Resources\icons\cancel.png" />
     <EmbeddedResource Include="Resources\icons\ok.png" />
-    <EmbeddedResource Include="Resources\icons\dosbox-stg.png" />
-    <EmbeddedResource Include="Resources\icons\gears.png" />
-    <EmbeddedResource Include="Resources\icons\folder.png" />
+    
     <!--Small icons for media-->
     <EmbeddedResource Include="Resources\icons\movie_20.png" />
     <EmbeddedResource Include="Resources\icons\pdf_20.png" />
