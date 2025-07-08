@@ -17,9 +17,10 @@
 
     <!-- Game actions -->
     <EmbeddedResource Include="Resources\icons\play.png" />
+    <EmbeddedResource Include="Resources\icons\prompt.png" />
+    <EmbeddedResource Include="Resources\icons\settings.png" />
     <EmbeddedResource Include="Resources\icons\manual.png" />
     <EmbeddedResource Include="Resources\icons\dosbox-stg.png" />
-    <EmbeddedResource Include="Resources\icons\settings.png" />
     <EmbeddedResource Include="Resources\icons\folder.png" />
 
     <!-- Edit actions-->

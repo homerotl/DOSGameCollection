@@ -10,6 +10,7 @@ public class TopForm : Form
 {
     private ListBox? gameListBox;
     private Button? playGameButton;
+    private Button? dosPromptButton;
     private Button? manualButton;
     private Button? dosboxConfigButton;
     private Button? gameConfigButton;
@@ -128,6 +129,10 @@ public class TopForm : Form
         { Anchor = AnchorStyles.Left, Size = new Size(35, 35), Margin = new Padding(5), Enabled = false };
         playGameButton.Click += RunButton_Click;
 
+        dosPromptButton = new Button
+        { Anchor = AnchorStyles.Left, Size = new Size(35, 35), Margin = new Padding(5), Enabled = false };
+        dosPromptButton.Click += DosPromptButton_Click;
+
         manualButton = new Button
         { Anchor = AnchorStyles.Left, Size = new Size(35, 35), Margin = new Padding(5), Enabled = false };
         manualButton.Click += ManualButton_Click;
@@ -167,6 +172,7 @@ public class TopForm : Form
 
         // Game actions
         playGameButton.Image = FormatTools.LoadImageFromResource("DOSGameCollection.Resources.icons.play.png");
+        dosPromptButton.Image = FormatTools.LoadImageFromResource("DOSGameCollection.Resources.icons.prompt.png");
         manualButton.Image = FormatTools.LoadImageFromResource("DOSGameCollection.Resources.icons.manual.png");
         dosboxConfigButton.Image = FormatTools.LoadImageFromResource("DOSGameCollection.Resources.icons.dosbox-stg.png");
         openGameFolderButton.Image = FormatTools.LoadImageFromResource("DOSGameCollection.Resources.icons.folder.png");
@@ -213,6 +219,7 @@ public class TopForm : Form
             // BackColor = Color.Blue for debugging layout
         };
         leftActionButtons.Controls.Add(playGameButton);
+        leftActionButtons.Controls.Add(dosPromptButton);
         leftActionButtons.Controls.Add(gameConfigButton);
         leftActionButtons.Controls.Add(manualButton);
         leftActionButtons.Controls.Add(dosboxConfigButton);
@@ -239,6 +246,7 @@ public class TopForm : Form
         actionButtonToolTip.SetToolTip(deleteGameButton, "Delete Selected Game");
 
         actionButtonToolTip.SetToolTip(playGameButton, "Play Game");
+        actionButtonToolTip.SetToolTip(dosPromptButton, "DOS Prompt");
         actionButtonToolTip.SetToolTip(gameConfigButton, "Run Game Setup");
         actionButtonToolTip.SetToolTip(manualButton, "Game Manual");
         actionButtonToolTip.SetToolTip(dosboxConfigButton, "Open DOSBox Config");
@@ -598,13 +606,22 @@ public class TopForm : Form
         Controls.Add(menuStrip);
     }
 
+    private void DosPromptButton_Click(object? sender, EventArgs e)
+    {
+        if (gameListBox?.SelectedItem is GameConfiguration selectedGame)
+        {
+            GameLauncherService.LaunchDosPrompt(selectedGame, appConfigService.DosboxExePath, this);
+        }
+    }
+
      private void NewGameButton_Click(object? sender, EventArgs e)
     {
         var existingNames = loadedGameConfigs.Select(c => c.GameName);
         var libraryPath = appConfigService.LibraryPath ?? "";
 
         using NewGameWizardDialog newGameDialog = new(existingNames, libraryPath);
-        if (newGameDialog.ShowDialog(this) == DialogResult.OK) {
+        if (newGameDialog.ShowDialog(this) == DialogResult.OK)
+        {
             if (newGameDialog.NewGameConfiguration != null && gameListBox != null)
             {
                 var newGame = newGameDialog.NewGameConfiguration;
@@ -871,6 +888,10 @@ private async void DeleteGameButton_Click(object? sender, EventArgs e)
     {
         if (playGameButton != null) playGameButton.Enabled = false;
         if (gameConfigButton != null) gameConfigButton.Enabled = false;
+        if (dosPromptButton != null)
+        {
+            dosPromptButton.Enabled = false;
+        }
         if (manualButton != null)
         {
             manualButton.Enabled = false;
@@ -1000,7 +1021,6 @@ private async void DeleteGameButton_Click(object? sender, EventArgs e)
                     // The component handles creating it on first save.
                     walkthroughTabPanel.FilePath = selectedGame.WalkthroughFilePath ?? Path.Combine(selectedGame.GameDirectoryPath, "walkthrough.txt");
                 }
-
                 if (manualButton != null && !string.IsNullOrEmpty(selectedGame.ManualPath) && File.Exists(selectedGame.ManualPath))
                 {
                     manualButton.Enabled = true;
@@ -1018,11 +1038,14 @@ private async void DeleteGameButton_Click(object? sender, EventArgs e)
                 {
                     playGameButton.Enabled = selectedGame.DosboxCommands.Any();
                 }
+                if (dosPromptButton != null)
+                {
+                    dosPromptButton.Enabled = true;
+                }
                 if (gameConfigButton != null)
                 {
                     gameConfigButton.Enabled = selectedGame.SetupCommands.Any();
                 }
-
                 if (runCommandsTextBox != null)
                 {
                     runCommandsTextBox.Text = string.Join(Environment.NewLine, selectedGame.DosboxCommands);
