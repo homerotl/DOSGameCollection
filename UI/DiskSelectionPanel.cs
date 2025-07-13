@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using DOSGameCollection.Services;
 
 namespace DOSGameCollection.UI;
 
@@ -143,6 +144,12 @@ public class DiskSelectionPanel : UserControl
             Filter = FileFilter,
             Multiselect = true
         };
+
+        // Pre-select the last used source path if it's valid.
+        if (!string.IsNullOrEmpty(AppConfigService.LastNewGameSourcePath) && Directory.Exists(AppConfigService.LastNewGameSourcePath))
+        {
+            openFileDialog.InitialDirectory = AppConfigService.LastNewGameSourcePath;
+        }
 
         if (openFileDialog.ShowDialog(this) == DialogResult.OK)
         {

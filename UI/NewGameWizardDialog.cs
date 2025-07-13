@@ -534,6 +534,12 @@ public class NewGameWizardDialog : Form
             ShowNewFolderButton = false
         };
 
+        // Pre-select the last used source path if it's valid.
+        if (!string.IsNullOrEmpty(AppConfigService.LastNewGameSourcePath) && Directory.Exists(AppConfigService.LastNewGameSourcePath))
+        {
+            folderDialog.SelectedPath = AppConfigService.LastNewGameSourcePath;
+        }
+
         if (folderDialog.ShowDialog(this) == DialogResult.OK)
         {
             _sourceDirectoryTextBox.Text = folderDialog.SelectedPath;
@@ -1148,11 +1154,7 @@ public class NewGameWizardDialog : Form
 
     private void UpdateLastSourcePath()
     {
-        if (_currentPanel == _step1Panel && !string.IsNullOrEmpty(_gameDirectoryTextBox.Text))
-        {
-            AppConfigService.LastNewGameSourcePath = Path.GetDirectoryName(_gameDirectoryTextBox.Text);
-        }
-        else if (_currentPanel == _step2FilesPanel && !string.IsNullOrEmpty(_sourceDirectoryTextBox.Text))
+       if (_currentPanel == _step2FilesPanel && !string.IsNullOrEmpty(_sourceDirectoryTextBox.Text))
         {
             AppConfigService.LastNewGameSourcePath = _sourceDirectoryTextBox.Text;
         }
