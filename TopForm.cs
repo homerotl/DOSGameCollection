@@ -616,57 +616,63 @@ public class TopForm : Form
         }
     }
 
-     private void NewGameButton_Click(object? sender, EventArgs e)
+    private async void NewGameButton_Click(object? sender, EventArgs e)
     {
         var existingNames = loadedGameConfigs.Select(c => c.GameName);
         var libraryPath = appConfigService.LibraryPath ?? "";
 
-        using NewGameWizardDialog newGameDialog = new(existingNames, libraryPath);
-        if (newGameDialog.ShowDialog(this) == DialogResult.OK)
+        using (NewGameWizardDialog newGameDialog = new(existingNames, libraryPath))
         {
-            if (newGameDialog.NewGameConfiguration != null && gameListBox != null)
+            if (newGameDialog.ShowDialog(this) == DialogResult.OK)
             {
-                var newGame = newGameDialog.NewGameConfiguration;
-                // Add the new game to our in-memory list and the UI listbox.
-                loadedGameConfigs.Add(newGame);
-                gameListBox.Items.Add(newGame);
-                gameListBox.SelectedItem = newGame; // Select the new game to show its details.
-
-                // If the wizard was for a diskette install, launch the installer now.
-                if (newGameDialog.CopiedDisketteImagePaths.Any())
+                if (newGameDialog.NewGameConfiguration != null && gameListBox != null)
                 {
-                    MessageBox.Show(this, "Game entry created. Now launching DOSBox for installation. When finished, type 'exit' in DOSBox.", "Installation Step 2", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    var newGame = newGameDialog.NewGameConfiguration;
+                    // Add the new game to our in-memory list and the UI listbox.
+                    loadedGameConfigs.Add(newGame);
+                    gameListBox.Items.Add(newGame);
+                    gameListBox.SelectedItem = newGame; // Select the new game to show its details.
 
-                    var dosboxExePath = appConfigService.DosboxExePath;
-                    var dosboxConfPath = Path.Combine(newGame.GameDirectoryPath, "dosbox-staging.conf");
-                    var mountCPath = Path.Combine(newGame.GameDirectoryPath, "game-files");
+                    // If the wizard was for a diskette install, launch the installer now.
+                    if (newGameDialog.CopiedDisketteImagePaths.Any())
+                    {
+                        MessageBox.Show(this, "Game entry created. Now launching DOSBox for installation. When finished, type 'exit' in DOSBox.",
+                        "Installation Step 2", MessageBoxButtons.OK, MessageBoxIcon.Information);
 
-                    GameLauncherService.LaunchDosboxForDisketteInstallation(
-                        dosboxExePath,
-                        dosboxConfPath,
-                        mountCPath,
-                        newGameDialog.CopiedDisketteImagePaths,
-                        this
-                    );
-                }
-                else if (newGameDialog.CopiedCdRomImagePaths.Any())
-                {
-                    MessageBox.Show(this, "Game entry created. Now launching DOSBox for installation. When finished, type 'exit' in DOSBox.", "Installation Step 2", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                        var dosboxExePath = appConfigService.DosboxExePath;
+                        var dosboxConfPath = Path.Combine(newGame.GameDirectoryPath, "dosbox-staging.conf");
+                        var mountCPath = Path.Combine(newGame.GameDirectoryPath, "game-files");
 
-                    var dosboxExePath = appConfigService.DosboxExePath;
-                    var dosboxConfPath = Path.Combine(newGame.GameDirectoryPath, "dosbox-staging.conf");
-                    var mountCPath = Path.Combine(newGame.GameDirectoryPath, "game-files");
+                        GameLauncherService.LaunchDosboxForDisketteInstallation(
+                            dosboxExePath,
+                            dosboxConfPath,
+                            mountCPath,
+                            newGameDialog.CopiedDisketteImagePaths,
+                            this
+                        );
+                    }
+                    else if (newGameDialog.CopiedCdRomImagePaths.Any())
+                    {
+                        MessageBox.Show(this, "Game entry created. Now launching DOSBox for installation. When finished, type 'exit' in DOSBox.", "Installation Step 2", MessageBoxButtons.OK, MessageBoxIcon.Information);
 
-                    GameLauncherService.LaunchDosboxForCdRomInstallation(
-                        dosboxExePath,
-                        dosboxConfPath,
-                        mountCPath,
-                        newGameDialog.CopiedCdRomImagePaths,
-                        this
-                    );
+                        var dosboxExePath = appConfigService.DosboxExePath;
+                        var dosboxConfPath = Path.Combine(newGame.GameDirectoryPath, "dosbox-staging.conf");
+                        var mountCPath = Path.Combine(newGame.GameDirectoryPath, "game-files");
+
+                        GameLauncherService.LaunchDosboxForCdRomInstallation(
+                            dosboxExePath,
+                            dosboxConfPath,
+                            mountCPath,
+                            newGameDialog.CopiedCdRomImagePaths,
+                            this
+                        );
+                    }
                 }
             }
         }
+        
+        // After the wizard is closed, save any potential changes to the last source path.
+        await appConfigService.SaveConfigurationAsync(this);
     }
 
 private async void DeleteGameButton_Click(object? sender, EventArgs e)
