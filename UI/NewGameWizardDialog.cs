@@ -84,7 +84,7 @@ public class NewGameWizardDialog : Form
     private readonly string _libraryPath;
 
     public NewGameWizardDialog(IEnumerable<string> existingGameNames, string libraryPath)
-    {
+{
         _existingGameNames = existingGameNames ?? Enumerable.Empty<string>();
         _libraryPath = libraryPath;
         InitializeComponent();
@@ -321,6 +321,8 @@ public class NewGameWizardDialog : Form
         else
         {
             _currentPanel.Visible = false;
+            // Update the source path before switching to the next panel.
+            UpdateLastSourcePath();
             _currentPanel = nextPanel;
             _currentPanel.Visible = true;
 
@@ -350,12 +352,18 @@ public class NewGameWizardDialog : Form
             GameDirectory = _gameDirectoryTextBox.Text;
             CdRomImagePaths = _cdRomSelectionPanel.SelectedFilePaths.ToList();
 
-            CopiedCdRomImagePaths = await Task.Run(() =>
+            var setupResult = await Task.Run(() =>
                 setupService.SetupNewGameFromCdRoms(GameName, GameDirectory, CdRomImagePaths, progress)
             );
+            CopiedCdRomImagePaths = setupResult.DestinationPaths;
 
             string newCfgPath = Path.Combine(GameDirectory, "game.cfg");
             NewGameConfiguration = await GameDataReaderService.ParseCfgFileAsync(newCfgPath, GameDirectory);
+
+            if (!setupResult.FilesWereCopied)
+            {
+                MessageBox.Show(this, "The selected CD-ROM images are already in the target directory. No files were copied.", "Files Skipped", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
 
             DialogResult = DialogResult.OK;
         }
@@ -392,13 +400,19 @@ public class NewGameWizardDialog : Form
             GameDirectory = _gameDirectoryTextBox.Text;
             DisketteImagePaths = _disketteSelectionPanel.SelectedFilePaths.ToList();
 
-            CopiedDisketteImagePaths = await Task.Run(() =>
+            var setupResult = await Task.Run(() =>
                 setupService.SetupNewGameFromDiskettes(GameName, GameDirectory, DisketteImagePaths, progress)
             );
+            CopiedDisketteImagePaths = setupResult.DestinationPaths;
 
             // At this point, the game is parsable.
             string newCfgPath = Path.Combine(GameDirectory, "game.cfg");
             NewGameConfiguration = await GameDataReaderService.ParseCfgFileAsync(newCfgPath, GameDirectory);
+
+            if (!setupResult.FilesWereCopied)
+            {
+                MessageBox.Show(this, "The selected diskette images are already in the target directory. No files were copied.", "Files Skipped", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
 
             // Signal success and the wizard will close. The main form will handle the rest.
             DialogResult = DialogResult.OK;
@@ -443,13 +457,20 @@ public class NewGameWizardDialog : Form
             SourceDirectory = _sourceDirectoryTextBox.Text;
 
             // Perform the setup operations
-            await Task.Run(() => setupService.SetupNewGameFromFiles(GameName, GameDirectory, SourceDirectory!, progress));
+            var filesWereCopied = await Task.Run(() => setupService.SetupNewGameFromFiles(GameName, GameDirectory, SourceDirectory!, progress));
 
             // Parse the newly created game to add it to the list
             string newCfgPath = Path.Combine(GameDirectory, "game.cfg");
             NewGameConfiguration = await GameDataReaderService.ParseCfgFileAsync(newCfgPath, GameDirectory);
 
-            MessageBox.Show(this, "Game setup completed successfully!", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            if (!filesWereCopied)
+            {
+                MessageBox.Show(this, "The source files are already in the target directory. No files were copied.", "Files Skipped", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+            else
+            {
+                MessageBox.Show(this, "Game setup completed successfully!", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
             DialogResult = DialogResult.OK;
         }
         catch (Exception ex)
@@ -1123,5 +1144,39 @@ public class NewGameWizardDialog : Form
     private record FileListItem(string FilePath)
     {
         public string FileName => Path.GetFileName(FilePath);
+    }
+
+    private void UpdateLastSourcePath()
+    {
+        if (_currentPanel == _step1Panel && !string.IsNullOrEmpty(_gameDirectoryTextBox.Text))
+        {
+            AppConfigService.LastNewGameSourcePath = Path.GetDirectoryName(_gameDirectoryTextBox.Text);
+        }
+        else if (_currentPanel == _step2FilesPanel && !string.IsNullOrEmpty(_sourceDirectoryTextBox.Text))
+        {
+            AppConfigService.LastNewGameSourcePath = _sourceDirectoryTextBox.Text;
+        }
+        else if (_currentPanel == _step2DiskettesPanel)
+        {
+            if (_disketteSelectionPanel.SelectedFilePaths.Any())
+            {
+                string? firstPath = _disketteSelectionPanel.SelectedFilePaths.FirstOrDefault();
+                if (firstPath != null)
+                {
+                    AppConfigService.LastNewGameSourcePath = Path.GetDirectoryName(firstPath);
+                }
+            }
+        }
+        else if (_currentPanel == _step2CdRomsPanel)
+        {
+            if (_cdRomSelectionPanel.SelectedFilePaths.Any())
+            {
+                string? firstPath = _cdRomSelectionPanel.SelectedFilePaths.FirstOrDefault();
+                if (firstPath != null)
+                {
+                    AppConfigService.LastNewGameSourcePath = Path.GetDirectoryName(firstPath);
+                }
+            }
+        }
     }
 }

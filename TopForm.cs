@@ -510,6 +510,7 @@ public class TopForm : Form
         TabPage isoImagesTab = new("CD-ROM");
         isoImagesTabPanel = new DiscImageTabPanel { Dock = DockStyle.Fill };
         isoImagesTabPanel.DisplayNameUpdated += MediaDisplayNameUpdated;
+        isoImagesTabPanel.DiscImageUpdated += DiscImageUpdated;
         isoImagesTab.Controls.Add(isoImagesTabPanel);
 
         TabPage soundtrackTab = new("Soundtrack");
@@ -521,6 +522,7 @@ public class TopForm : Form
         TabPage floppyDisksTab = new("Floppy disks");
         floppyDisksTabPanel = new DiscImageTabPanel { Dock = DockStyle.Fill };
         floppyDisksTabPanel.DisplayNameUpdated += MediaDisplayNameUpdated;
+        floppyDisksTabPanel.DiscImageUpdated += DiscImageUpdated;
         floppyDisksTab.Controls.Add(floppyDisksTabPanel);
 
         TabPage walkthroughTab = new TabPage("Walkthrough");
@@ -674,6 +676,9 @@ private async void DeleteGameButton_Click(object? sender, EventArgs e)
             return;
         }
 
+        // Disable the button immediately to prevent double-clicks while the confirmation is open.
+        if (deleteGameButton != null) deleteGameButton.Enabled = false;
+
         var confirmResult = MessageBox.Show(this,
             "You are about to delete the folder for this game and all the files within it. Are you sure?",
             "Confirm Deletion",
@@ -682,6 +687,11 @@ private async void DeleteGameButton_Click(object? sender, EventArgs e)
 
         if (confirmResult != DialogResult.OK)
         {
+            // Re-enable the button if the user cancels the operation.
+            if (deleteGameButton != null)
+            {
+                deleteGameButton.Enabled = true;
+            }
             return;
         }
 
@@ -700,7 +710,7 @@ private async void DeleteGameButton_Click(object? sender, EventArgs e)
         bool deleteSucceeded = false;
         try
         {
-            if (deleteGameButton != null) deleteGameButton.Enabled = false;
+            // The delete button is already disabled. Just disable refresh.
             if (refreshButton != null) refreshButton.Enabled = false;
 
             Task deleteTask = deleteService.DeleteGameAsync(selectedGame.GameDirectoryPath, progress);
@@ -715,6 +725,12 @@ private async void DeleteGameButton_Click(object? sender, EventArgs e)
         finally
         {
             if (refreshButton != null) refreshButton.Enabled = true;
+            // If deletion failed, the selected item is still present, so re-enable the delete button.
+            // If it succeeded, the list selection will change, and the button state will be updated by the event handler.
+            if (!deleteSucceeded && deleteGameButton != null)
+            {
+                deleteGameButton.Enabled = true;
+            }
         }
 
         if (deleteSucceeded)
@@ -778,6 +794,10 @@ private async void DeleteGameButton_Click(object? sender, EventArgs e)
         if (playGameButton != null)
         {
             playGameButton.Enabled = false;
+        }
+        if (dosPromptButton != null)
+        {
+            dosPromptButton.Enabled = false;
         }
         if (manualButton != null)
         {
@@ -1597,5 +1617,30 @@ private async void DeleteGameButton_Click(object? sender, EventArgs e)
             UpdateInList(selectedGame.SoundtrackFiles) ||
             UpdateDiscInList(selectedGame.IsoImages) ||
             UpdateDiscInList(selectedGame.DiscImages)) { }
+    }
+
+    private void DiscImageUpdated(DiscImageInfo updatedDiscInfo)
+    {
+        if (gameListBox?.SelectedItem is not GameConfiguration selectedGame)
+        {
+            return;
+        }
+
+        // Helper function to find and update the item in a list.
+        // Since records are immutable, we replace the old record with a new one.
+        bool UpdateInList(List<DiscImageInfo> list)
+        {
+            // The key is the FilePath.
+            var index = list.FindIndex(d => d.FilePath.Equals(updatedDiscInfo.FilePath, StringComparison.OrdinalIgnoreCase));
+            if (index != -1)
+            {
+                list[index] = updatedDiscInfo; // Replace the old record with the new one.
+                return true;
+            }
+            return false;
+        }
+
+        // Attempt to find and update the media item in both relevant lists.
+        if (UpdateInList(selectedGame.IsoImages) || UpdateInList(selectedGame.DiscImages)) { }
     }
 }

@@ -11,6 +11,7 @@ public class DiscImageTabPanel : UserControl
     private Image? _cdIcon;
     private Image? _floppyIcon;
     public event Action<string, string>? DisplayNameUpdated;
+    public event Action<DiscImageInfo>? DiscImageUpdated;
 
     public DiscImageTabPanel()
     {
@@ -78,13 +79,18 @@ public class DiscImageTabPanel : UserControl
 
         _imageNotAvailableLabel = new Label
         {
-            Text = "Image not available",
+            Text = "Image not available.\nDrag and drop an image to include it.",
             Dock = DockStyle.Fill,
             TextAlign = ContentAlignment.MiddleCenter,
             Visible = false,
             ForeColor = SystemColors.GrayText,
             BackColor = Color.Black
         };
+
+        // Enable Drag and Drop on the panel containing the PictureBox
+        imageDisplayPanel.AllowDrop = true;
+        imageDisplayPanel.DragEnter += ImageDisplayPanel_DragEnter;
+        imageDisplayPanel.DragDrop += ImageDisplayPanel_DragDrop;
 
         mainPanel.Controls.Add(_dataGridView, 0, 0);
         mainPanel.Controls.Add(imageDisplayPanel, 1, 0);
@@ -219,5 +225,65 @@ public class DiscImageTabPanel : UserControl
             ".img" => _floppyIcon,
             _ => null // Or a default icon if you have one
         };
+    }
+
+    private void ImageDisplayPanel_DragEnter(object? sender, DragEventArgs e)
+    {
+        if (e.Data != null && e.Data.GetDataPresent(DataFormats.FileDrop))
+        {
+            var files = (string[]?)e.Data.GetData(DataFormats.FileDrop);
+            if (files != null && files.Length == 1 && Path.GetExtension(files[0]).Equals(".png", StringComparison.OrdinalIgnoreCase))
+            {
+                e.Effect = DragDropEffects.Copy;
+                return;
+            }
+        }
+        e.Effect = DragDropEffects.None;
+    }
+
+    private void ImageDisplayPanel_DragDrop(object? sender, DragEventArgs e)
+    {
+        if (e.Data == null) return;
+
+        var files = (string[]?)e.Data.GetData(DataFormats.FileDrop);
+        if (files == null || files.Length != 1) return;
+
+        string sourcePngPath = files[0];
+
+        if (_dataGridView.SelectedRows.Count == 0 || _dataGridView.SelectedRows[0].Tag is not DiscImageInfo selectedDisc)
+        {
+            MessageBox.Show(this, "Please select a disk from the list before dragging an image.", "No Disk Selected", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            return;
+        }
+
+        try
+        {
+            string discImageDirectory = Path.GetDirectoryName(selectedDisc.FilePath) ?? "";
+            if (string.IsNullOrEmpty(discImageDirectory) || !Directory.Exists(discImageDirectory))
+            {
+                MessageBox.Show(this, "The directory for the selected disk image could not be found.", "Directory Not Found", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
+            string targetFileName = Path.ChangeExtension(Path.GetFileName(selectedDisc.FilePath), ".png");
+            string targetPngPath = Path.Combine(discImageDirectory, targetFileName);
+
+            File.Copy(sourcePngPath, targetPngPath, true);
+
+            // Update the model in the DataGridView's Tag
+            var updatedDiscInfo = selectedDisc with { PngFilePath = targetPngPath };
+            _dataGridView.SelectedRows[0].Tag = updatedDiscInfo;
+
+            // Refresh the PictureBox display using the new info in the Tag
+            UpdateImageForSelection();
+
+            // Notify the parent form (TopForm) to update its master list
+            DiscImageUpdated?.Invoke(updatedDiscInfo);
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(this, $"Failed to copy the image file.\n\nError: {ex.Message}", "File Copy Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            AppLogger.Log($"Error during drag-drop image copy: {ex.Message}");
+        }
     }
 }

@@ -1,12 +1,16 @@
-namespace DOSGameCollection;
+namespace DOSGameCollection.Services;
 public class AppConfigService
 {
     private const string ConfigFileName = "config.txt";
     private const string DosboxPathKey = "dosbox-path=";
     private const string LibraryPathKey = "library=";
+    private const string LastSourcePathKey = "last-source-path=";
 
     public string? DosboxExePath { get; private set; }
     public string? LibraryPath { get; private set; }
+
+    // Static so it can be accessed from the wizard without passing the service instance.
+    public static string? LastNewGameSourcePath { get; set; }
 
     private readonly string _configFilePath;
 
@@ -19,6 +23,7 @@ public class AppConfigService
     {
         DosboxExePath = null;
         LibraryPath = null;
+        LastNewGameSourcePath = null;
 
         if (File.Exists(_configFilePath)) // Try to load existing configuration
         {
@@ -49,6 +54,15 @@ public class AppConfigService
                         else
                         {
                             MessageBox.Show(owner, $"The Library path '{pathValue}' found in '{ConfigFileName}' is invalid.", "Invalid Config: Library Path", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                        }
+                    }
+                    else if (line.StartsWith(LastSourcePathKey, StringComparison.OrdinalIgnoreCase))
+                    {
+                        string pathValue = line.Substring(LastSourcePathKey.Length).Trim();
+                        // Silently ignore if the path doesn't exist anymore, it's just for convenience.
+                        if (Directory.Exists(pathValue))
+                        {
+                            LastNewGameSourcePath = pathValue;
                         }
                     }
                 }
@@ -132,6 +146,10 @@ public class AppConfigService
         if (!string.IsNullOrEmpty(LibraryPath))
         {
             linesToSave.Add($"{LibraryPathKey}{LibraryPath}");
+        }
+        if (!string.IsNullOrEmpty(LastNewGameSourcePath))
+        {
+            linesToSave.Add($"{LastSourcePathKey}{LastNewGameSourcePath}");
         }
 
         try

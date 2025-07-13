@@ -7,6 +7,8 @@ namespace DOSGameCollection.Services;
 /// </summary>
 public class GameSetupService
 {
+    public record DiskSetupResult(List<string> DestinationPaths, bool FilesWereCopied);
+
     /// <summary>
     /// Sets up a new game by creating its directory structure, copying a default config, and copying the game files.
     /// </summary>
@@ -14,7 +16,7 @@ public class GameSetupService
     /// <param name="gameName">The name of the game.</param>
     /// <param name="sourceDirectory">The directory containing the source game files to be copied.</param>    
     /// <param name="progress">An IProgress object to report progress updates.</param>
-    public void SetupNewGameFromFiles(string gameName, string targetDirectory, string sourceDirectory, IProgress<GameSetupProgressReport> progress)
+    public bool SetupNewGameFromFiles(string gameName, string targetDirectory, string sourceDirectory, IProgress<GameSetupProgressReport> progress)
     {
         progress.Report(new GameSetupProgressReport { Message = "Creating directory structure...", Percentage = 0 });
 
@@ -38,6 +40,13 @@ public class GameSetupService
         string gameCfgContent = $"game.name={gameName}{Environment.NewLine}{Environment.NewLine}[commands]{Environment.NewLine}";
         File.WriteAllText(gameCfgPath, gameCfgContent);
 
+        // Check if the source directory is already the target game-files directory.
+        if (Path.GetFullPath(sourceDirectory).Equals(Path.GetFullPath(gameFilesRootPath), StringComparison.OrdinalIgnoreCase))
+        {
+            progress.Report(new GameSetupProgressReport { Message = "Files are already in the destination. Skipping copy.", Percentage = 100 });
+            return false; // Files were not copied
+        }
+
         progress.Report(new GameSetupProgressReport { Message = "Calculating total file size...", Percentage = 0 });
         long totalSize = CalculateDirectorySize(new DirectoryInfo(sourceDirectory));
         long totalBytesCopied = 0;
@@ -46,6 +55,7 @@ public class GameSetupService
         CopyDirectory(sourceDirectory, gameFilesRootPath, totalSize, ref totalBytesCopied, progress, true);
 
         progress.Report(new GameSetupProgressReport { Message = "Setup complete.", Percentage = 100 });
+        return true; // Files were copied
     }
 
     /// <summary>
@@ -55,8 +65,8 @@ public class GameSetupService
     /// <param name="targetDirectory">The root directory for the new game in the library.</param>
     /// <param name="sourceDiskettePaths">A list of paths to the source diskette image files.</param>
     /// <param name="progress">An IProgress object to report progress updates.</param>
-    /// <returns>A list of the full paths to the newly copied diskette images.</returns>
-    public List<string> SetupNewGameFromDiskettes(string gameName, string targetDirectory, IEnumerable<string> sourceDiskettePaths, IProgress<GameSetupProgressReport> progress)
+    /// <returns>A result object containing the destination paths and a flag indicating if files were copied.</returns>
+    public DiskSetupResult SetupNewGameFromDiskettes(string gameName, string targetDirectory, IEnumerable<string> sourceDiskettePaths, IProgress<GameSetupProgressReport> progress)
     {
         progress.Report(new GameSetupProgressReport { Message = "Creating directory structure...", Percentage = 0 });
 
@@ -77,6 +87,18 @@ public class GameSetupService
         string gameCfgPath = Path.Combine(targetDirectory, "game.cfg");
         string gameCfgContent = $"game.name={gameName}{Environment.NewLine}{Environment.NewLine}[commands]{Environment.NewLine}";
         File.WriteAllText(gameCfgPath, gameCfgContent);
+
+        // Check if all source files are already in the target directory.
+        bool allFilesAreInDestination = sourceDiskettePaths.All(p =>
+            Path.GetFullPath(Path.GetDirectoryName(p) ?? "")
+                .Equals(Path.GetFullPath(diskImagesPath), StringComparison.OrdinalIgnoreCase)
+        );
+
+        if (allFilesAreInDestination)
+        {
+            progress.Report(new GameSetupProgressReport { Message = "Diskette images are already in the destination. Skipping copy.", Percentage = 100 });
+            return new DiskSetupResult(sourceDiskettePaths.ToList(), false);
+        }
 
         // 4. Copy disk images
         var destinationDiskettePaths = new List<string>();
@@ -102,7 +124,7 @@ public class GameSetupService
         }
 
         progress.Report(new GameSetupProgressReport { Message = "Setup complete.", Percentage = 100 });
-        return destinationDiskettePaths;
+        return new DiskSetupResult(destinationDiskettePaths, true);
     }
 
     private long CalculateDirectorySize(DirectoryInfo dir)
@@ -149,8 +171,8 @@ public class GameSetupService
     /// <param name="targetDirectory">The root directory for the new game in the library.</param>
     /// <param name="sourceCdRomPaths">A list of paths to the source CD-ROM image files (.iso, .cue).</param>
     /// <param name="progress">An IProgress object to report progress updates.</param>
-    /// <returns>A list of the full paths to the newly copied CD-ROM images.</returns>
-    public List<string> SetupNewGameFromCdRoms(string gameName, string targetDirectory, IEnumerable<string> sourceCdRomPaths, IProgress<GameSetupProgressReport> progress)
+    /// <returns>A result object containing the destination paths and a flag indicating if files were copied.</returns>
+    public DiskSetupResult SetupNewGameFromCdRoms(string gameName, string targetDirectory, IEnumerable<string> sourceCdRomPaths, IProgress<GameSetupProgressReport> progress)
     {
         progress.Report(new GameSetupProgressReport { Message = "Creating directory structure...", Percentage = 0 });
 
@@ -171,6 +193,18 @@ public class GameSetupService
         string gameCfgPath = Path.Combine(targetDirectory, "game.cfg");
         string gameCfgContent = $"game.name={gameName}{Environment.NewLine}{Environment.NewLine}[commands]{Environment.NewLine}";
         File.WriteAllText(gameCfgPath, gameCfgContent);
+
+        // Check if all source files are already in the target directory.
+        bool allFilesAreInDestination = sourceCdRomPaths.All(p =>
+            Path.GetFullPath(Path.GetDirectoryName(p) ?? "")
+                .Equals(Path.GetFullPath(isosPath), StringComparison.OrdinalIgnoreCase)
+        );
+
+        if (allFilesAreInDestination)
+        {
+            progress.Report(new GameSetupProgressReport { Message = "CD-ROM images are already in the destination. Skipping copy.", Percentage = 100 });
+            return new DiskSetupResult(sourceCdRomPaths.ToList(), false);
+        }
 
         // 4. Copy CD-ROM images, including .bin files for .cue sheets
         var destinationCdRomPaths = new List<string>();
@@ -209,6 +243,6 @@ public class GameSetupService
         }
 
         progress.Report(new GameSetupProgressReport { Message = "Setup complete.", Percentage = 100 });
-        return destinationCdRomPaths;
+        return new DiskSetupResult(destinationCdRomPaths, true);
     }
 }
