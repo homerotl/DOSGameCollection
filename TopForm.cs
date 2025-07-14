@@ -9,6 +9,7 @@ namespace DOSGameCollection;
 public class TopForm : Form
 {
     private ListBox? gameListBox;
+    private TextBox? searchTextBox;
     private Button? playGameButton;
     private Button? dosPromptButton;
     private Button? manualButton;
@@ -569,14 +570,14 @@ public class TopForm : Form
         {
             Dock = DockStyle.Fill,
             ColumnCount = 1,
-            RowCount = 2,
+            RowCount = 3,
             Margin = new Padding(0), // No margin for the panel itself
             //BackColor = Color.Red // For debugging layout
         };
-        leftColumnPanel.RowStyles.Add(new RowStyle(SizeType.AutoSize)); // Row for Refresh button
+        leftColumnPanel.RowStyles.Add(new RowStyle(SizeType.AutoSize)); // Row for buttons
+        leftColumnPanel.RowStyles.Add(new RowStyle(SizeType.AutoSize)); // Row for search box
         leftColumnPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 100F)); // Row for GameListBox
 
-        // Add Refresh Button to the leftColumnPanel
         // --- Top-left buttons panel (Refresh, New) ---
         FlowLayoutPanel topLeftButtonsPanel = new()
         {
@@ -592,12 +593,26 @@ public class TopForm : Form
 
         leftColumnPanel.Controls.Add(topLeftButtonsPanel, 0, 0);
 
+        // --- Search Box ---
+        searchTextBox = new TextBox
+        {
+            Dock = DockStyle.Fill,
+            Margin = new Padding(5, 5, 5, 0) // L, T, R, B
+        };
+        searchTextBox.Text = "Search";
+        searchTextBox.ForeColor = Color.Gray;
+        searchTextBox.GotFocus += SearchTextBox_GotFocus;
+        searchTextBox.LostFocus += SearchTextBox_LostFocus;
+        searchTextBox.TextChanged += SearchTextBox_TextChanged;
+        searchTextBox.KeyDown += SearchTextBox_KeyDown;
+        leftColumnPanel.Controls.Add(searchTextBox, 0, 1);
+
         // Configure Game ListBox (moved here to be added to leftColumnPanel)
         gameListBox.Dock = DockStyle.Fill;
-        gameListBox.Margin = new Padding(5, 0, 5, 5); // Adjusted margin (L,T,R,B) - top margin handled by button's bottom margin or AutoSize row
+        gameListBox.Margin = new Padding(5, 5, 5, 5); // L, T, R, B
         gameListBox.Sorted = true;
         gameListBox.SelectedIndexChanged += GameListBox_SelectedIndexChanged;
-        leftColumnPanel.Controls.Add(gameListBox, 0, 1); // Add gameListBox to the second row of leftColumnPanel
+        leftColumnPanel.Controls.Add(gameListBox, 0, 2); // Add gameListBox to the third row of leftColumnPanel
 
         mainLayoutPanel.Controls.Add(leftColumnPanel, 0, 0); // Add leftColumnPanel to column 0, row 0 of main TLP
         mainLayoutPanel.Controls.Add(rightColumnPanel, 1, 0); // Add to column 1, row 0 of main TLP
@@ -606,6 +621,63 @@ public class TopForm : Form
         Controls.Add(mainLayoutPanel);
 
         Controls.Add(menuStrip);
+    }
+
+    private void SearchTextBox_GotFocus(object? sender, EventArgs e)
+    {
+        if (searchTextBox != null && searchTextBox.Text == "Search")
+        {
+            searchTextBox.Text = "";
+            searchTextBox.ForeColor = SystemColors.WindowText;
+        }
+    }
+
+    private void SearchTextBox_LostFocus(object? sender, EventArgs e)
+    {
+        if (searchTextBox != null && string.IsNullOrWhiteSpace(searchTextBox.Text))
+        {
+            searchTextBox.Text = "Search";
+            searchTextBox.ForeColor = Color.Gray;
+        }
+    }
+
+    private void SearchTextBox_TextChanged(object? sender, EventArgs e)
+    {
+        if (searchTextBox == null || searchTextBox.Text == "Search" || gameListBox == null)
+        {
+            return;
+        }
+
+        string searchText = searchTextBox.Text.Trim();
+
+        // When the search box is cleared or text is too short, show all games.
+        if (searchText.Length < 3)
+        {
+            // To avoid flickering, only repopulate if the list is currently filtered.
+            if (gameListBox.Items.Count != loadedGameConfigs.Count)
+            {
+                PopulateListBox(loadedGameConfigs);
+            }
+            return;
+        }
+
+        var filteredGames = loadedGameConfigs
+            .Where(g => g.GameName.Contains(searchText, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        PopulateListBox(filteredGames);
+    }
+
+    private void SearchTextBox_KeyDown(object? sender, KeyEventArgs e)
+    {
+        if (e.KeyCode == Keys.Escape)
+        {
+            if (searchTextBox != null)
+            {
+                searchTextBox.Clear();
+                e.SuppressKeyPress = true; // Prevents the 'ding' sound
+            }
+        }
     }
 
     private void DosPromptButton_Click(object? sender, EventArgs e)
@@ -766,6 +838,11 @@ private async void DeleteGameButton_Click(object? sender, EventArgs e)
         if (gameListBox != null)
         {
             gameListBox.Items.Clear();
+        }
+        if (searchTextBox != null)
+        {
+            searchTextBox.Text = "Search";
+            searchTextBox.ForeColor = Color.Gray;
         }
         if (gameNameTextBox != null)
         {
