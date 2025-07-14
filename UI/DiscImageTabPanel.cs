@@ -7,11 +7,13 @@ public class DiscImageTabPanel : UserControl
 {
     private readonly DataGridView _dataGridView;
     private readonly PictureBox _pictureBox;
+    private readonly ContextMenuStrip _pictureContextMenu;
     private readonly Label _imageNotAvailableLabel;
     private Image? _cdIcon;
     private Image? _floppyIcon;
     public event Action<string, string>? DisplayNameUpdated;
     public event Action<DiscImageInfo>? DiscImageUpdated;
+    public event Action<string>? PictureDeleteRequested;
 
     public DiscImageTabPanel()
     {
@@ -76,6 +78,14 @@ public class DiscImageTabPanel : UserControl
             BorderStyle = BorderStyle.FixedSingle,
             BackColor = Color.Black
         };
+
+        // --- Context Menu for PictureBox ---
+        _pictureContextMenu = new ContextMenuStrip();
+        var deleteMenuItem = new ToolStripMenuItem("Delete picture");
+        deleteMenuItem.Click += DeletePictureMenuItem_Click;
+        _pictureContextMenu.Items.Add(deleteMenuItem);
+
+        _pictureBox.ContextMenuStrip = _pictureContextMenu;
 
         _imageNotAvailableLabel = new Label
         {
@@ -151,7 +161,14 @@ public class DiscImageTabPanel : UserControl
             {
                 try
                 {
-                    _pictureBox.Image = Image.FromFile(selectedDisc.PngFilePath);
+                    // Load the image via a memory stream to avoid locking the file on disk.
+                    // Then, create a new Bitmap from the stream-based image to allow the stream to be closed.
+                    using var fileStream = new FileStream(selectedDisc.PngFilePath, FileMode.Open, FileAccess.Read);
+                    using var memoryStream = new MemoryStream();
+                    fileStream.CopyTo(memoryStream);
+                    memoryStream.Position = 0; // Rewind the stream before reading
+                    using var tempImage = Image.FromStream(memoryStream);
+                    _pictureBox.Image = new Bitmap(tempImage);
                 }
                 catch (Exception ex)
                 {
@@ -284,6 +301,18 @@ public class DiscImageTabPanel : UserControl
         {
             MessageBox.Show(this, $"Failed to copy the image file.\n\nError: {ex.Message}", "File Copy Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             AppLogger.Log($"Error during drag-drop image copy: {ex.Message}");
+        }
+    }
+
+    private void DeletePictureMenuItem_Click(object? sender, EventArgs e)
+    {
+        // The context menu is on the PictureBox, but the relevant data is in the DataGridView's selected row.
+        if (_dataGridView.SelectedRows.Count > 0 && _dataGridView.SelectedRows[0].Tag is DiscImageInfo selectedDisc)
+        {
+            if (!string.IsNullOrEmpty(selectedDisc.PngFilePath) && File.Exists(selectedDisc.PngFilePath))
+            {
+                PictureDeleteRequested?.Invoke(selectedDisc.PngFilePath);
+            }
         }
     }
 }

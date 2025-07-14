@@ -512,6 +512,7 @@ public class TopForm : Form
         isoImagesTabPanel = new DiscImageTabPanel { Dock = DockStyle.Fill };
         isoImagesTabPanel.DisplayNameUpdated += MediaDisplayNameUpdated;
         isoImagesTabPanel.DiscImageUpdated += DiscImageUpdated;
+        isoImagesTabPanel.PictureDeleteRequested += DiscImage_PictureDeleteRequested;
         isoImagesTab.Controls.Add(isoImagesTabPanel);
 
         TabPage soundtrackTab = new("Soundtrack");
@@ -524,6 +525,7 @@ public class TopForm : Form
         floppyDisksTabPanel = new DiscImageTabPanel { Dock = DockStyle.Fill };
         floppyDisksTabPanel.DisplayNameUpdated += MediaDisplayNameUpdated;
         floppyDisksTabPanel.DiscImageUpdated += DiscImageUpdated;
+        floppyDisksTabPanel.PictureDeleteRequested += DiscImage_PictureDeleteRequested;
         floppyDisksTab.Controls.Add(floppyDisksTabPanel);
 
         TabPage walkthroughTab = new TabPage("Walkthrough");
@@ -1700,6 +1702,56 @@ private async void DeleteGameButton_Click(object? sender, EventArgs e)
             UpdateInList(selectedGame.SoundtrackFiles) ||
             UpdateDiscInList(selectedGame.IsoImages) ||
             UpdateDiscInList(selectedGame.DiscImages)) { }
+    }
+
+    private void DiscImage_PictureDeleteRequested(string picturePath)
+    {
+        var confirmResult = MessageBox.Show(this,
+            $"Are you sure you want to permanently delete this picture?\n\n{Path.GetFileName(picturePath)}",
+            "Confirm Picture Deletion",
+            MessageBoxButtons.YesNo,
+            MessageBoxIcon.Warning);
+
+        if (confirmResult != DialogResult.Yes)
+        {
+            return;
+        }
+
+        if (gameListBox?.SelectedItem is not GameConfiguration selectedGame)
+        {
+            return;
+        }
+
+        try
+        {
+            File.Delete(picturePath);
+
+            // Helper to update a list and its corresponding UI panel
+            bool UpdateListAndUI(List<DiscImageInfo> list, DiscImageTabPanel? panel)
+            {
+                var index = list.FindIndex(d => picturePath.Equals(d.PngFilePath, StringComparison.OrdinalIgnoreCase));
+                if (index != -1)
+                {
+                    // Create a new record with the PngFilePath removed
+                    list[index] = list[index] with { PngFilePath = null };
+                    // Repopulate the UI to reflect the change
+                    panel?.Populate(list);
+                    return true;
+                }
+                return false;
+            }
+
+            // Check the ISOs list first, if not found, check the diskettes list.
+            if (!UpdateListAndUI(selectedGame.IsoImages, isoImagesTabPanel))
+            {
+                UpdateListAndUI(selectedGame.DiscImages, floppyDisksTabPanel);
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(this, $"Failed to delete the picture file.\n\nError: {ex.Message}", "Deletion Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            AppLogger.Log($"Error deleting disc picture '{picturePath}': {ex.Message}");
+        }
     }
 
     private void DiscImageUpdated(DiscImageInfo updatedDiscInfo)
