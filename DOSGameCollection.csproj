@@ -28,6 +28,11 @@
     <EmbeddedResource Include="Resources\icons\cancel.png" />
     <EmbeddedResource Include="Resources\icons\ok.png" />
     
+    <!-- Disk selection actions-->
+    <EmbeddedResource Include="Resources\icons\up.png" />
+    <EmbeddedResource Include="Resources\icons\down.png" />
+    <EmbeddedResource Include="Resources\icons\delete_disk.png" />
+
     <!--Small icons for media-->
     <EmbeddedResource Include="Resources\icons\movie_20.png" />
     <EmbeddedResource Include="Resources\icons\pdf_20.png" />
@@ -37,6 +42,7 @@
     <EmbeddedResource Include="Resources\icons\default_20.png" />
     <EmbeddedResource Include="Resources\icons\pop_20.png" />
     <EmbeddedResource Include="Resources\icons\music_20.png" />
+
     <!--Image for the abou dialog -->
     <EmbeddedResource Include="Resources\DGC-logo-200.png" />
 

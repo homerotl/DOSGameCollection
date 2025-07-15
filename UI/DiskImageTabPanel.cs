@@ -3,7 +3,7 @@ using DOSGameCollection.Services;
 
 namespace DOSGameCollection.UI;
 
-public class DiscImageTabPanel : UserControl
+public class DiskImageTabPanel : UserControl
 {
     private readonly DataGridView _dataGridView;
     private readonly PictureBox _pictureBox;
@@ -15,7 +15,7 @@ public class DiscImageTabPanel : UserControl
     public event Action<DiscImageInfo>? DiscImageUpdated;
     public event Action<string>? PictureDeleteRequested;
 
-    public DiscImageTabPanel()
+    public DiskImageTabPanel()
     {
         LoadIcons();
 
@@ -118,6 +118,8 @@ public class DiscImageTabPanel : UserControl
         foreach (var discInfo in discImages)
         {
             Image? typeIcon = GetIconForFile(discInfo.FilePath);
+
+            if (typeIcon == null) continue;
 
             var rowIndex = _dataGridView.Rows.Add(
                 typeIcon,

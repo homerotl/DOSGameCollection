@@ -1,16 +1,12 @@
 using DOSGameCollection.Models;
-using DOSGameCollection.Services;
 
-namespace DOSGameCollection;
+namespace DOSGameCollection.Services;
 
 public class LoadGamesDataService
 {
-    // This method simulates loading data and reports progress
-    // It takes an IProgress<ProgressReport> to allow reporting updates
-
     public async Task<List<GameConfiguration>> LoadDataAsync(string libraryBasePath, IProgress<ProgressReport>? progress)
     {
-        List<GameConfiguration> gameConfigurations = new List<GameConfiguration>();
+        List<GameConfiguration> gameConfigurations = [];
 
         // 1. Validate the directory path input to ensure it's not null or empty.
         if (string.IsNullOrWhiteSpace(libraryBasePath))

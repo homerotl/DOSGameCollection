@@ -34,8 +34,8 @@ public class TopForm : Form
     private MediaTabPanel? mediaTabPanel;
     private MediaTabPanel? insertsTabPanel;
     private MediaTabPanel? soundtrackTabPanel;
-    private DiscImageTabPanel? isoImagesTabPanel;
-    private DiscImageTabPanel? floppyDisksTabPanel;
+    private DiskImageTabPanel? isoImagesTabPanel;
+    private DiskImageTabPanel? floppyDisksTabPanel;
     private TextBox? runCommandsTextBox;
     private TextBox? setupCommandsTextBox;
     private TextEditorTabPanel? synopsisTabPanel;
@@ -509,7 +509,7 @@ public class TopForm : Form
         insertsTab.Controls.Add(insertsTabPanel);
 
         TabPage isoImagesTab = new("CD-ROM");
-        isoImagesTabPanel = new DiscImageTabPanel { Dock = DockStyle.Fill };
+        isoImagesTabPanel = new DiskImageTabPanel { Dock = DockStyle.Fill };
         isoImagesTabPanel.DisplayNameUpdated += MediaDisplayNameUpdated;
         isoImagesTabPanel.DiscImageUpdated += DiscImageUpdated;
         isoImagesTabPanel.PictureDeleteRequested += DiscImage_PictureDeleteRequested;
@@ -522,7 +522,7 @@ public class TopForm : Form
         soundtrackTab.Controls.Add(soundtrackTabPanel);
 
         TabPage floppyDisksTab = new("Floppy disks");
-        floppyDisksTabPanel = new DiscImageTabPanel { Dock = DockStyle.Fill };
+        floppyDisksTabPanel = new DiskImageTabPanel { Dock = DockStyle.Fill };
         floppyDisksTabPanel.DisplayNameUpdated += MediaDisplayNameUpdated;
         floppyDisksTabPanel.DiscImageUpdated += DiscImageUpdated;
         floppyDisksTabPanel.PictureDeleteRequested += DiscImage_PictureDeleteRequested;
@@ -1727,7 +1727,7 @@ private async void DeleteGameButton_Click(object? sender, EventArgs e)
             File.Delete(picturePath);
 
             // Helper to update a list and its corresponding UI panel
-            bool UpdateListAndUI(List<DiscImageInfo> list, DiscImageTabPanel? panel)
+            bool UpdateListAndUI(List<DiscImageInfo> list, DiskImageTabPanel? panel)
             {
                 var index = list.FindIndex(d => picturePath.Equals(d.PngFilePath, StringComparison.OrdinalIgnoreCase));
                 if (index != -1)

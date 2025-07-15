@@ -89,113 +89,118 @@ public class DiskSelectionPanel : UserControl
             Margin = new Padding(5, 0, 0, 0)
         };
 
-        _moveUpButton.Text = "▲";
-        _moveUpButton.Enabled = false;
-        _moveUpButton.Size = new Size(30, 30);
-        _moveUpButton.Font = new Font("Segoe UI", 9F);
-        _moveUpButton.Click += MoveUpButton_Click;
+       _moveUpButton.Image = FormatTools.LoadImageFromResource("DOSGameCollection.Resources.icons.up.png");
+       _moveUpButton.Enabled = false;
+       _moveUpButton.Size = new Size(30, 30);
+       _moveUpButton.Click += MoveUpButton_Click;
 
-        _moveDownButton.Text = "▼";
-        _moveDownButton.Enabled = false;
-        _moveDownButton.Size = new Size(30, 30);
-        _moveDownButton.Font = new Font("Segoe UI", 9F);
-        _moveDownButton.Click += MoveDownButton_Click;
+       _moveDownButton.Image = FormatTools.LoadImageFromResource("DOSGameCollection.Resources.icons.down.png");
+       _moveDownButton.Enabled = false;
+       _moveDownButton.Size = new Size(30, 30);
+       _moveDownButton.Click += MoveDownButton_Click;
 
-        _deleteButton.Text = "X";
-        _deleteButton.Enabled = false;
-        _deleteButton.Size = new Size(30, 30);
-        _deleteButton.ForeColor = Color.Red;
-        _deleteButton.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-        _deleteButton.Click += DeleteButton_Click;
+       _deleteButton.Image = FormatTools.LoadImageFromResource("DOSGameCollection.Resources.icons.delete_disk.png");
+       _deleteButton.Enabled = false;
+       _deleteButton.Size = new Size(30, 30);
+       _deleteButton.Click += DeleteButton_Click;
 
-        orderButtonsPanel.Controls.AddRange([_moveUpButton, _moveDownButton, _deleteButton]);
+       ToolTip toolTip = new();
+       toolTip.SetToolTip(_moveUpButton, "Move Up");
+       toolTip.SetToolTip(_moveDownButton, "Move Down");
+       toolTip.SetToolTip(_deleteButton, "Remove");
 
-        contentPanel.Controls.Add(_listBox, 0, 0);
-        contentPanel.Controls.Add(orderButtonsPanel, 1, 0);
+       orderButtonsPanel.Controls.AddRange([_moveUpButton, _moveDownButton, _deleteButton]);
 
-        // --- Add Button ---
-        _addButton.AutoSize = true;
-        _addButton.Anchor = AnchorStyles.Left;
-        _addButton.Margin = new Padding(0, 5, 0, 5);
-        _addButton.Click += AddButton_Click;
+       contentPanel.Controls.Add(_listBox, 0, 0);
+       contentPanel.Controls.Add(orderButtonsPanel, 1, 0);
 
-        // --- Main Layout ---
-        var mainLayout = new TableLayoutPanel
-        {
-            Dock = DockStyle.Top,
-            ColumnCount = 1,
-            //BackColor = Color.Blue, // For debugging layout
-            RowCount = 2,
-            AutoSize = true
-        };
-        mainLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
-        mainLayout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-        mainLayout.Controls.Add(contentPanel, 0, 0);
-        mainLayout.Controls.Add(_addButton, 0, 1);
+       // --- Add Button ---
+       _addButton.AutoSize = true;
+       _addButton.Anchor = AnchorStyles.Left;
+       _addButton.Margin = new Padding(0, 5, 0, 5);
+       _addButton.Click += AddButton_Click;
 
-        Controls.Add(mainLayout);
-    }
+       // --- Main Layout ---
+       var mainLayout = new TableLayoutPanel
+       {
+           Dock = DockStyle.Top,
+           ColumnCount = 1,
+           //BackColor = Color.Blue, // For debugging layout
+           RowCount = 2,
+           AutoSize = true
+       };
+       mainLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
+       mainLayout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+       mainLayout.Controls.Add(contentPanel, 0, 0);
+       mainLayout.Controls.Add(_addButton, 0, 1);
 
-    private void AddButton_Click(object? sender, EventArgs e)
-    {
-        using var openFileDialog = new OpenFileDialog
-        {
-            Title = AddDialogTitle,
-            Filter = FileFilter,
-            Multiselect = true
-        };
+       Controls.Add(mainLayout);
+   }
 
-        // Pre-select the last used source path if it's valid.
-        if (!string.IsNullOrEmpty(AppConfigService.LastNewGameSourcePath) && Directory.Exists(AppConfigService.LastNewGameSourcePath))
-        {
-            openFileDialog.InitialDirectory = AppConfigService.LastNewGameSourcePath;
-        }
+   private void AddButton_Click(object? sender, EventArgs e)
+   {
+       using var openFileDialog = new OpenFileDialog
+       {
+           Title = AddDialogTitle,
+           Filter = FileFilter,
+           Multiselect = true
+       };
 
-        if (openFileDialog.ShowDialog(this) == DialogResult.OK)
-        {
-            var currentItems = _listBox.Items.Cast<FileListItem>().Select(i => i.FilePath).ToHashSet(StringComparer.OrdinalIgnoreCase);
-            var newItems = openFileDialog.FileNames
-                .Where(f => !currentItems.Contains(f))
-                .Select(f => new FileListItem(f));
-            _listBox.Items.AddRange([.. newItems]);
-            ListChanged?.Invoke(this, EventArgs.Empty);
-        }
-    }
+       // Pre-select the last used source path if it's valid.
+       if (!string.IsNullOrEmpty(AppConfigService.LastNewGameSourcePath) && Directory.Exists(AppConfigService.LastNewGameSourcePath))
+       {
+           openFileDialog.InitialDirectory = AppConfigService.LastNewGameSourcePath;
+       }
 
-    private void ListBox_SelectedIndexChanged(object? sender, EventArgs e)
-    {
-        int selectedIndex = _listBox.SelectedIndex;
-        bool isItemSelected = selectedIndex != -1;
-        _deleteButton.Enabled = isItemSelected;
-        _moveUpButton.Enabled = isItemSelected && selectedIndex > 0;
-        _moveDownButton.Enabled = isItemSelected && selectedIndex < _listBox.Items.Count - 1;
-    }
+       if (openFileDialog.ShowDialog(this) == DialogResult.OK)
+       {
+           var currentItems = _listBox.Items.Cast<FileListItem>().Select(i => i.FilePath).ToHashSet(StringComparer.OrdinalIgnoreCase);
+           var newItems = openFileDialog.FileNames
+               .Where(f => !currentItems.Contains(f))
+               .Select(f => new FileListItem(f));
+           _listBox.Items.AddRange([.. newItems]);
+           ListChanged?.Invoke(this, EventArgs.Empty);
+       }
+   }
 
-    private void MoveUpButton_Click(object? sender, EventArgs e) { MoveItem(-1); }
-    private void MoveDownButton_Click(object? sender, EventArgs e) { MoveItem(1); }
-    private void DeleteButton_Click(object? sender, EventArgs e)
-    {
-        if (_listBox.SelectedIndex != -1)
-        {
-            _listBox.Items.RemoveAt(_listBox.SelectedIndex);
-            ListChanged?.Invoke(this, EventArgs.Empty);
-        }
-    }
+   private void ListBox_SelectedIndexChanged(object? sender, EventArgs e)
+   {
+       int selectedIndex = _listBox.SelectedIndex;
+       bool isItemSelected = selectedIndex != -1;
+       _deleteButton.Enabled = isItemSelected;
+       _moveUpButton.Enabled = isItemSelected && selectedIndex > 0;
+       _moveDownButton.Enabled = isItemSelected && selectedIndex < _listBox.Items.Count - 1;
+   }
 
-    private void MoveItem(int direction)
-    {
+   private void MoveUpButton_Click(object? sender, EventArgs e) { MoveItem(-1); }
+   private void MoveDownButton_Click(object? sender, EventArgs e) { MoveItem(1); }
+   private void DeleteButton_Click(object? sender, EventArgs e)
+   {
+       if (_listBox.SelectedIndex != -1)
+       {
+           _listBox.Items.RemoveAt(_listBox.SelectedIndex);
+           ListChanged?.Invoke(this, EventArgs.Empty);
+       }
+   }
+
+   private void MoveItem(int direction)
+   {
         int selectedIndex = _listBox.SelectedIndex;
         if (selectedIndex < 0) return;
         int newIndex = selectedIndex + direction;
         if (newIndex < 0 || newIndex >= _listBox.Items.Count) return;
+        if (_listBox == null) return;
+        if (_listBox.SelectedItem == null) return;
         object item = _listBox.SelectedItem;
+        if (item == null) return;
         _listBox.Items.RemoveAt(selectedIndex);
         _listBox.Items.Insert(newIndex, item);
-        _listBox.SelectedIndex = newIndex;
-    }
+        _listBox.SelectedIndex = newIndex;        
+       
+   }
 
-    private record FileListItem(string FilePath)
-    {
-        public string FileName => Path.GetFileName(FilePath);
-    }
+   private record FileListItem(string FilePath)
+   {
+       public string FileName => Path.GetFileName(FilePath);
+   }
 }
